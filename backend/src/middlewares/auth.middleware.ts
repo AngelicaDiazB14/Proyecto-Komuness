@@ -46,12 +46,20 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             res.status(401).json({ message: 'No provee token' });
             return;
         }
-        const user = await verificarToken(token);
-        if (!user) {
-            res.status(401).json({ message: 'No autorizado' });
+        const status = await verificarToken(token);
+        if (!status.usuario) {
+            if (status.error === "Token expirado") {
+                res.status(401).json({ message: 'Token expirado' });
+                return;
+            }
+            if (status.error === "Token inválido") {
+                res.status(401).json({ message: 'Token inválido' });
+                return;
+            }
+            res.status(401).json({ message: 'No autorizado NULL USER' });
             return;
         }
-        (req as Request & { user?: any }).user = user;
+        (req as Request & { user?: any }).user = status.usuario;
         next();
 
     } catch (error) {

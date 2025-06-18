@@ -122,19 +122,37 @@ class BibliotecaController {
                 errors: []
             });
         }
+        // generar el objectid basado en el id del param
+        //no validar si no generarlo
+        if (!mongoose.Types.ObjectId.isValid(id) && id !== '0') {
+            return res.status(400).json({
+                success: false,
+                message: 'id es inválido',
+                errors: []
+            });
+        }
 
+        // Modificar en la construcción de queryArchivos
         const queryArchivos = {
-            ...(global !== 'true' && { folder: id !== '0' ? id : null }),
+            ...(global !== 'true' && {
+                folder: id !== '0' ? new mongoose.Types.ObjectId(id) : null
+            }),
             ...(nombre && { nombre: { $regex: nombre, $options: 'i' } }),
             ...(publico !== undefined && { esPublico: publico === 'true' })
         };
 
+        // Y en queryFolders
         const queryFolders = {
-            ...(global !== 'true' && { directorioPadre: id !== '0' ? id : null }),
+            ...(global !== 'true' && {
+                directorioPadre: id !== '0' ? new mongoose.Types.ObjectId(id) : null
+            }),
             ...(nombre && { nombre: { $regex: nombre, $options: 'i' } })
         };
 
         try {
+            console.log('Query archivos:', queryArchivos);
+            console.log('Query folders:', queryFolders);
+
             const archivos = await Archivo.find(queryArchivos)
                 .populate('autor', 'nombre')
                 .collation({ locale: 'es', strength: 2 })

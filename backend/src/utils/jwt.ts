@@ -16,12 +16,21 @@ export const generarToken = (usuario: IUsuario): string => {
  * @param token
  * @returns user | null
  */
-export const verificarToken = async (token: string): Promise<IUsuario | null> => {
+export const verificarToken = async (token: string): Promise<{ usuario: IUsuario | null, error?: string }> => {
     try {
-        const decoded = await jwt.verify(token, JWT_SECRET) as { usuario: IUsuario };
-        return decoded.usuario;
+        const decoded = jwt.verify(token, JWT_SECRET) as { usuario: IUsuario };
+        return { usuario: decoded.usuario };
     } catch (error) {
-        console.error('Error verifying token:', error);
-        return null;
+        if (error instanceof jwt.TokenExpiredError) {
+            return {
+                usuario: null,
+                error: 'Token expirado'
+            };
+        }
+        console.error('Error verificando token:', error);
+        return {
+            usuario: null,
+            error: 'Token inválido'
+        };
     }
 };
