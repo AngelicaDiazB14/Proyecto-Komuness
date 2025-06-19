@@ -30,7 +30,7 @@ export const verificarToken = async (token: string): Promise<{ usuario: IUsuario
         console.error('Error verificando token:', error);
         return {
             usuario: null,
-            error: 'Token inválido'
+            error: 'Token invalido'
         };
     }
 };

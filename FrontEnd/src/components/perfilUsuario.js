@@ -21,15 +21,27 @@ export const PerfilUsuario = () => {
   }, [user, navigate]);
 
   // Función para cargar publicaciones
-  const cargarPublicaciones = () => {
-    fetch(`${API_URL}/publicaciones/?publicado=false`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setPublicaciones(data.data))
-      .catch((error) => console.error("Error al obtener las publicaciones: ", error));
+  const cargarPublicaciones = async () => {
+    try {
+      const responseapi = await fetch(`${API_URL}/publicaciones/?publicado=false`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!responseapi.ok) {
+        if (responseapi.status === 401 || responseapi.status === 403) {
+          logout();
+          navigate("/iniciarSesion");
+        }
+      }
+      const data = await responseapi.json();
+      setPublicaciones(data.data);
+    } catch (error) {
+      console.error("Error: ", error);
+    }
+    // .then((res) => res.json())
+    // .then((data) => setPublicaciones(data.data))
+    // .catch((error) => console.error("Error al obtener las publicaciones: ", error));
   };
 
   // Función para cargar archivos
@@ -45,24 +57,39 @@ export const PerfilUsuario = () => {
   };
 
   // Función para cargar usuarios
-  const cargarUsuarios = () => {
-    fetch(`${API_URL}/usuario?tipoUsuario=1,2`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setUsuarios(data))
-      .catch((error) => console.error("Error al obtener los usuarios: ", error));
+  const cargarUsuarios = async () => {
+    try {
+      const apires = await fetch(`${API_URL}/usuario?tipoUsuario=1,2`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!apires.ok) {
+        if (apires.status === 401 || apires.status === 403) {
+          logout();
+          navigate("/iniciarSesion");
+        }
+      }
+      const data = await apires.json();
+      setUsuarios(data);
+    } catch (error) {
+      console.error("Error: ", error);
+    }
+    //   .then((res) => res.json())
+    //   .then((data) => setUsuarios(data))
+    //   .catch((error) => console.error("Error al obtener los usuarios: ", error));
   };
 
   // useEffect que controla la carga de datos administrativos
   useEffect(() => {
-    if (user && (user.tipoUsuario === 0 || user.tipoUsuario === 1)) {
-      cargarPublicaciones();
-      cargarArchivos();
-      cargarUsuarios();
-    }
+    const loader = async () => {
+      if (user && (user.tipoUsuario === 0 || user.tipoUsuario === 1)) {
+        await cargarPublicaciones();
+        await cargarArchivos();
+        await cargarUsuarios();
+      }
+    };
+    loader();
   }, [user]);
 
 
@@ -293,8 +320,8 @@ export const PerfilUsuario = () => {
                       <td className="px-4 py-2">{item.tag}</td>
                       <td className="px-4 py-2">{item.fecha}</td>
                       <td className="px-4 py-2">
-                        <a 
-                          href={`publicaciones/${item._id}`} 
+                        <a
+                          href={`publicaciones/${item._id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline"

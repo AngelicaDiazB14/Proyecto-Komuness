@@ -178,18 +178,32 @@ export const registerUsuario = async (req: Request, res: Response): Promise<void
  */
 export const checkAuth = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { token } = req.cookies;
+        const header = req.headers.authorization;
+        if (!header || !header.startsWith('Bearer ')) {
+            res.status(401).json({ message: 'No provee Bearer header' });
+            return;
+        }
+        const token = header.split(' ')[1];
         if (!token) {
-            res.status(401).json({ message: 'Token no proporcionado' });
+            res.status(401).json({ message: 'No provee token' });
             return;
         }
         //verificamos el token
-        const usuario: unknown = await verificarToken(token);
-        if (!usuario) {
+        const status = await verificarToken(token);
+        if (!status.usuario) {
+            if (status.error === "Token expirado") {
+                res.status(401).json({ message: 'Token expirado' });
+                return;
+            }
+            if (status.error === "Token invalido") {
+                res.status(403).json({ message: 'Token invalido' });
+                return;
+
+            }
             res.status(401).json({ message: 'No autorizado' });
             return;
         }
-        res.status(200).json({ message: 'Autorizado', user: usuario });
+        res.status(200).json({ message: 'Autorizado', user: status.usuario });
     } catch (error) {
         const err = error as Error;
         console.log(err);
@@ -205,7 +219,7 @@ export async function enviarCorreoRecuperacion(req: Request, res: Response): Pro
     const transporter = createTransport({
         service: 'zoho',
         host: 'smtp.zoho.com',
-        port: 587,
+        port: 2525,
         secure: false,
         auth: {
             user: process.env.MAIL_USER,
