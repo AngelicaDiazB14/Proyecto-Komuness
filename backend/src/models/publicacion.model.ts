@@ -28,7 +28,10 @@ const publicacionSchema = new Schema({
     tag: { type: String, required: true },
     publicado: { type: Boolean, required: true },
     fechaEvento: { type: String, required: false },
-    Precio: { type: Number, required: false }
+    Precio: { type: Number, required: false },
+    // categorías de área
+    categoria: { type: Schema.Types.ObjectId, ref: 'Categoria', required: true }
+
 }, { timestamps: true });
 
 export const modelPublicacion = model<IPublicacion>('Publicacion', publicacionSchema);
