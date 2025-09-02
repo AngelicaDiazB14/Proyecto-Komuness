@@ -116,6 +116,41 @@ export const getPublicacionById = async (req: Request, res: Response): Promise<v
     }
 };
 
+// Obtener publicaciones por categoría
+export const getPublicacionesByCategoria = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { categoriaId } = req.params;
+        const offset = parseInt(req.query.offset as string) || 0;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        const query = { categoria: categoriaId, publicado: true };
+
+        const [publicaciones, total] = await Promise.all([
+            modelPublicacion.find(query)
+                .populate('autor', 'nombre')
+                .populate('categoria', 'nombre')
+                .sort({ createdAt: -1 })
+                .skip(offset)
+                .limit(limit),
+            modelPublicacion.countDocuments(query)
+        ]);
+
+        res.status(200).json({
+            data: publicaciones,
+            pagination: {
+                offset,
+                limit,
+                total,
+                pages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        const err = error as Error;
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
 // Actualizar una publicación
 export const updatePublicacion = async (req: Request, res: Response): Promise<void> => {
     try {
