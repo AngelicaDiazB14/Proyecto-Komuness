@@ -4,6 +4,7 @@ export interface IPublicacion extends Document {
     titulo: string;
     contenido: string;
     autor: string;
+    categoria: string;
     fecha: string;
     adjunto: IAdjunto[];
     comentarios: IComentario[]; // Array de comentarios
