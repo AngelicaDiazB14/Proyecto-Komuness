@@ -1,6 +1,6 @@
 import multer from "multer";
 import { Router } from 'express';
-import { createPublicacion, getPublicacionById, updatePublicacion, deletePublicacion, addComentario, getPublicacionesByTag, filterPublicaciones, createPublicacionA } from '../controllers/publicacion.controller';
+import { createPublicacion, getPublicacionById, updatePublicacion, deletePublicacion, addComentario, getPublicacionesByTag, filterPublicaciones, createPublicacionA, getPublicacionesByCategoria } from '../controllers/publicacion.controller';
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { verificarRoles } from "../middlewares/roles.middleware";
 const storage = multer.memoryStorage();
@@ -16,6 +16,11 @@ router.get('/', getPublicacionesByTag); // read
 router.get('/buscar', filterPublicaciones); // get all publicaciones
 
 router.get('/:id', getPublicacionById); // read by id
+
+// Obtener publicaciones por categoría
+router.get('/categoria/:categoriaId', getPublicacionesByCategoria);
+
+
 //Solo los tipoUsuarios 0 y 1 pueden actualizar publicaciones
 router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion); // update    
 //Solo los tipoUsuarios 0 y 1 pueden eliminar publicaciones
