@@ -65,7 +65,6 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
 };
 
 
-
 //obtener publicaciones por tag
 export const getPublicacionesByTag = async (req: Request, res: Response): Promise<void> => {
     try {

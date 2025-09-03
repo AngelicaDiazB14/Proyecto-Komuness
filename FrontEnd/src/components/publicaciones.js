@@ -63,18 +63,14 @@ export const Publicaciones = () => {
   const obtenerPublicaciones = async (tag, page = 1, limit) => {
     const offset = (page - 1) * limit; 
     try {
-      const response = await fetch(`${API_URL}/publicaciones/?tag=${tag}&offset=${offset}&limit=${limit}`);
+      const resp = await fetch(`${API}/publicaciones/v2`, { method: 'POST', body: formData });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn("No hay publicaciones.");
-          return;
-        } else {
-          throw new Error(`Error HTTP: ${response.status}`);
-        }
+      if (!resp.ok) {
+        const text = await resp.text(); // puede ser HTML (502/403) o JSON con error
+        throw new Error(`HTTP ${resp.status}: ${text}`);
       }
 
-      const data = await response.json();
+      const data = await resp.json();
      
       setPublicaciones(data.data);
       setPaginaActual(page);
