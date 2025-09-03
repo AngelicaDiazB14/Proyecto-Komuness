@@ -66,6 +66,8 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     data.append("publicado", formData.publicado.toString());
     data.append("fechaEvento", formData.fechaEvento);
     data.append("precio", formData.precio);
+    data.append("categoria", idCategoriaSeleccionada);
+
     // data.append("comentarios", formData.comentarios);
     // archivos:
     formData.archivos.forEach((archivo) => {

@@ -35,3 +35,24 @@ export async function deleteGridFSFile(id: string) {
   const bucket = getBucket();
   await bucket.delete(new mongoose.Types.ObjectId(id));
 }
+
+export function saveBufferToGridFS(
+  buffer: Buffer,
+  filename: string,
+  mimetype?: string
+): Promise<{ id: any; filename: string }> {
+  return new Promise((resolve, reject) => {
+    const uploadStream = bucket.openUploadStream(filename, {
+      contentType: mimetype,
+    });
+
+    uploadStream.once('error', reject);
+
+    // 'finish' NO recibe parámetros. Usa uploadStream.id
+    uploadStream.once('finish', () => {
+      resolve({ id: uploadStream.id, filename: uploadStream.filename });
+    });
+
+    uploadStream.end(buffer);
+  });
+}
