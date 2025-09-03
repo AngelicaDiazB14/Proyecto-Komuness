@@ -14,27 +14,24 @@ function getBucket(): mongoose.mongo.GridFSBucket {
 /**
  * Guarda un Buffer en GridFS
  */
+// en src/utils/gridfs.ts
 export function saveBufferToGridFS(
   buffer: Buffer,
   filename: string,
   mimetype?: string
 ): Promise<{ id: any; filename: string }> {
   return new Promise((resolve, reject) => {
-    const bkt = getBucket();
+    const bkt = getBucket(); // <- usar getBucket()
 
-    const uploadStream = bkt.openUploadStream(filename, {
-      contentType: mimetype,
-    });
-
+    const uploadStream = bkt.openUploadStream(filename, { contentType: mimetype });
     uploadStream.once('error', reject);
-    // OJO: 'finish' NO recibe argumentos; usa uploadStream.id
     uploadStream.once('finish', () => {
       resolve({ id: uploadStream.id, filename: uploadStream.filename });
     });
-
     uploadStream.end(buffer);
   });
 }
+
 
 /**
  * Guarda un archivo de Multer en GridFS
@@ -61,3 +58,4 @@ export async function deleteGridFSFile(id: string) {
   const bkt = getBucket();
   await bkt.delete(new mongoose.Types.ObjectId(id));
 }
+
