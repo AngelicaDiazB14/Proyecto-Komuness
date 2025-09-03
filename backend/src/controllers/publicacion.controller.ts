@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { IAdjunto, IComentario, IPublicacion } from '../interfaces/publicacion.interface';
 import { modelPublicacion } from '../models/publicacion.model';
 import mongoose from 'mongoose';
-import { uploadFile } from '../utils/digitalOceanSpace';
+import { uploadBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
 
 // Crear una publicación
 export const createPublicacion = async (req: Request, res: Response): Promise<void> => {
@@ -28,17 +28,14 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
         //subimos la imagen o imagenes
         let datos: IAdjunto[] = [];
 
-        for (let image of req.files as Express.Multer.File[]) {
-            const result = await uploadFile(image, 'publicaciones');
-            if (!result) {
-                res.status(500).json({ message: 'Error al subir el archivo' });
-                return;
-            }
-            datos.push({
-                url: result.location,
-                key: result.key
-            })
+        for (const image of req.files as Express.Multer.File[]) {
+        const result = await uploadBufferToGridFS(image, 'publicaciones');
+        datos.push({
+            url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/files/${result.id.toString()}`,
+            key: result.id.toString(), // guardamos el id de GridFS para borrar si hace falta
+        });
         }
+
         const nuevaPublicacion = new modelPublicacion({
             ...publicacion,
             adjunto: datos
@@ -170,19 +167,32 @@ export const updatePublicacion = async (req: Request, res: Response): Promise<vo
 
 // Eliminar una publicación
 export const deletePublicacion = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const deletedPost = await modelPublicacion.findByIdAndDelete(id);
-        if (!deletedPost) {
-            res.status(404).json({ message: 'Publicación no encontrada' });
-            return;
-        }
-        res.status(200).json({ message: 'Publicación eliminada correctamente' });
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+  try {
+    const { id } = req.params;
+    const deletedPost = await modelPublicacion.findByIdAndDelete(id);
+
+    if (!deletedPost) {
+      res.status(404).json({ message: 'Publicación no encontrada' });
+      return;
     }
+
+    // Limpieza de adjuntos en GridFS
+    const adjuntos = (deletedPost as any).adjunto as IAdjunto[] | undefined;
+    if (adjuntos && adjuntos.length) {
+      for (const a of adjuntos) {
+        if (a.key) {
+          try { await deleteGridFSFile(a.key); } catch {}
+        }
+      }
+    }
+
+    res.status(200).json({ message: 'Publicación eliminada correctamente' });
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
+
 
 /**
  * Agrega comentarios a una publicación

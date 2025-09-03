@@ -7,6 +7,7 @@ import publicacionRoutes from './routes/publicaciones.routes';
 import bibliotecaRoutes from './routes/biblioteca.routes';
 import categoriaRoutes from "./routes/categoria.routes";//importación de rutas para categoría
 import { sendEmail } from './utils/mail';
+import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
 
 const app: Express = express();
@@ -34,6 +35,7 @@ app.use('/api/usuario', usuarioRoutes);
 app.use('/api/publicaciones', publicacionRoutes);
 app.use('/api/biblioteca', bibliotecaRoutes);
 app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
+app.use('/api', filesRouter);
 
 app.get('/api/', (req: Request, res: Response) => {
     res.send('Hello World');
