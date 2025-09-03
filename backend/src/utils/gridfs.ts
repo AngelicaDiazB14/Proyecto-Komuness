@@ -2,13 +2,13 @@ import mongoose from 'mongoose';
 
 let bucket: mongoose.mongo.GridFSBucket | null = null;
 
-function getBucket() {
+function getBucket(): mongoose.mongo.GridFSBucket {
   if (!bucket) {
     const db = mongoose.connection.db;
     if (!db) throw new Error('MongoDB no está conectado');
     bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
   }
-  return bucket!;
+  return bucket;
 }
 
 export async function uploadBufferToGridFS(file: Express.Multer.File, carpeta = 'publicaciones') {
@@ -21,44 +21,21 @@ export async function uploadBufferToGridFS(file: Express.Multer.File, carpeta = 
     metadata: { originalname: file.originalname, carpeta },
   });
 
-  uploadStream.end(file.buffer);
-
   return await new Promise<{ id: mongoose.Types.ObjectId; filename: string; contentType: string }>((resolve, reject) => {
-    uploadStream.on('finish', (f: any) =>
-      resolve({ id: f._id as mongoose.Types.ObjectId, filename: f.filename as string, contentType }),
-    );
     uploadStream.on('error', reject);
+    uploadStream.on('finish', () => {
+      // ⬇️ el id se toma del stream, no del parámetro del evento
+      resolve({
+        id: uploadStream.id as mongoose.Types.ObjectId,
+        filename,
+        contentType,
+      });
+    });
+    uploadStream.end(file.buffer);
   });
 }
 
 export async function deleteGridFSFile(id: string) {
   const bucket = getBucket();
   await bucket.delete(new mongoose.Types.ObjectId(id));
-}
-
-// Ejemplo robusto: guarda un Buffer en GridFS
-export function saveBufferToGridFS(
-  buffer: Buffer,
-  filename: string,
-  mimetype?: string
-): Promise<{ id: any; filename: string }> {
-  return new Promise((resolve, reject) => {
-    // bucket viene de tu módulo de conexión; aquí solo validamos que exista
-    if (!bucket) {
-      return reject(new Error('GridFS bucket no inicializado'));
-    }
-
-    const uploadStream = bucket.openUploadStream(filename, {
-      contentType: mimetype,
-    });
-
-    uploadStream.once('error', reject);
-
-    // OJO: 'finish' NO recibe 'file'. Usa uploadStream.id
-    uploadStream.once('finish', () => {
-      resolve({ id: uploadStream.id, filename: uploadStream.filename });
-    });
-
-    uploadStream.end(buffer);
-  });
 }

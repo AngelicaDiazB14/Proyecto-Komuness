@@ -17,20 +17,16 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
     }
 };
 
-// Crear publicación con adjunto v2
 // Crear publicación con adjunto v2 (GridFS)
 export const createPublicacionA = async (req: Request, res: Response): Promise<void> => {
   try {
-    const publicacion: IPublicacion = req.body;
+    const publicacion: IPublicacion = req.body as any;
 
-    // Recolectar archivos, vengan de upload.array(...) o upload.fields(...)
+    // --- Recolectar archivos, funcionará con upload.array(...) o upload.fields(...) ---
     let files: Express.Multer.File[] = [];
-
     if (Array.isArray(req.files)) {
-      // Caso: upload.array('archivos')
       files = req.files as Express.Multer.File[];
     } else if (req.files && typeof req.files === 'object') {
-      // Caso: upload.fields([{ name: 'archivos' }, { name: 'imagenes' }])
       const map = req.files as Record<string, Express.Multer.File[] | undefined>;
       files = [
         ...(map['archivos'] ?? []),
@@ -38,20 +34,35 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       ];
     }
 
-    const adjuntos: IAdjunto[] = [];
+    // --- Validar/establecer categoria ---
+    let categoria = (publicacion as any).categoria;
+    if (!categoria) {
+      const defId = process.env.DEFAULT_CATEGORIA_ID;
+      if (defId && mongoose.Types.ObjectId.isValid(defId)) {
+        categoria = defId;
+      } else {
+        res.status(400).json({
+          ok: false,
+          message: 'categoria es requerida (envía el campo "categoria" o configura DEFAULT_CATEGORIA_ID en .env)',
+        });
+        return;
+      }
+    }
 
-    // Si hay archivos, subir cada uno a GridFS
+    // --- Subir adjuntos (si los hay) ---
+    const adjuntos: IAdjunto[] = [];
     for (const image of files) {
       const result = await uploadBufferToGridFS(image, 'publicaciones');
       adjuntos.push({
         url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/files/${result.id.toString()}`,
-        key: result.id.toString(), // id de GridFS para poder borrar después
+        key: result.id.toString(),
       });
     }
 
-    // Crear la publicación (con o sin adjuntos)
+    // --- Crear doc ---
     const nuevaPublicacion = new modelPublicacion({
       ...publicacion,
+      categoria,     // forzamos que exista
       adjunto: adjuntos,
     });
 
@@ -63,6 +74,7 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
     res.status(500).json({ ok: false, message: err.message });
   }
 };
+
 
 
 //obtener publicaciones por tag
