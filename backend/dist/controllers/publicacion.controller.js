@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.filterPublicaciones = exports.addComentario = exports.deletePublicacion = exports.updatePublicacion = exports.getPublicacionById = exports.getPublicacionesByTag = exports.createPublicacionA = exports.createPublicacion = void 0;
+exports.filterPublicaciones = exports.addComentario = exports.deletePublicacion = exports.updatePublicacion = exports.getPublicacionesByCategoria = exports.getPublicacionById = exports.getPublicacionesByTag = exports.createPublicacionA = exports.createPublicacion = void 0;
 const publicacion_model_1 = require("../models/publicacion.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const digitalOceanSpace_1 = require("../utils/digitalOceanSpace");
@@ -120,6 +120,38 @@ const getPublicacionById = (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.getPublicacionById = getPublicacionById;
+// Obtener publicaciones por categoría
+const getPublicacionesByCategoria = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { categoriaId } = req.params;
+        const offset = parseInt(req.query.offset) || 0;
+        const limit = parseInt(req.query.limit) || 10;
+        const query = { categoria: categoriaId, publicado: true };
+        const [publicaciones, total] = yield Promise.all([
+            publicacion_model_1.modelPublicacion.find(query)
+                .populate('autor', 'nombre')
+                .populate('categoria', 'nombre')
+                .sort({ createdAt: -1 })
+                .skip(offset)
+                .limit(limit),
+            publicacion_model_1.modelPublicacion.countDocuments(query)
+        ]);
+        res.status(200).json({
+            data: publicaciones,
+            pagination: {
+                offset,
+                limit,
+                total,
+                pages: Math.ceil(total / limit),
+            },
+        });
+    }
+    catch (error) {
+        const err = error;
+        res.status(500).json({ message: err.message });
+    }
+});
+exports.getPublicacionesByCategoria = getPublicacionesByCategoria;
 // Actualizar una publicación
 const updatePublicacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

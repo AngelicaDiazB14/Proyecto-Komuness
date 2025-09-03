@@ -25,6 +25,8 @@ const publicacionSchema = new mongoose_1.Schema({
     tag: { type: String, required: true },
     publicado: { type: Boolean, required: true },
     fechaEvento: { type: String, required: false },
-    Precio: { type: Number, required: false }
+    Precio: { type: Number, required: false },
+    // categorías de área
+    categoria: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Categoria', required: true }
 }, { timestamps: true });
 exports.modelPublicacion = (0, mongoose_1.model)('Publicacion', publicacionSchema);

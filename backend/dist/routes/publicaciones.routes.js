@@ -17,6 +17,8 @@ router.post("/v2", upload.array('archivos'), /*authMiddleware, verificarRoles([0
 router.get('/', publicacion_controller_1.getPublicacionesByTag); // read
 router.get('/buscar', publicacion_controller_1.filterPublicaciones); // get all publicaciones
 router.get('/:id', publicacion_controller_1.getPublicacionById); // read by id
+// Obtener publicaciones por categoría
+router.get('/categoria/:categoriaId', publicacion_controller_1.getPublicacionesByCategoria);
 //Solo los tipoUsuarios 0 y 1 pueden actualizar publicaciones
 router.put('/:id', auth_middleware_1.authMiddleware, (0, roles_middleware_1.verificarRoles)([0, 1]), publicacion_controller_1.updatePublicacion); // update    
 //Solo los tipoUsuarios 0 y 1 pueden eliminar publicaciones

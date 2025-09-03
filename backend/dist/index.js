@@ -19,6 +19,7 @@ const mongodb_1 = require("./utils/mongodb");
 const usuario_routes_1 = __importDefault(require("./routes/usuario.routes"));
 const publicaciones_routes_1 = __importDefault(require("./routes/publicaciones.routes"));
 const biblioteca_routes_1 = __importDefault(require("./routes/biblioteca.routes"));
+const categoria_routes_1 = __importDefault(require("./routes/categoria.routes")); //importación de rutas para categoría
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const app = (0, express_1.default)();
 dotenv_1.default.config();
@@ -40,6 +41,7 @@ app.use((0, cors_1.default)({
 app.use('/api/usuario', usuario_routes_1.default);
 app.use('/api/publicaciones', publicaciones_routes_1.default);
 app.use('/api/biblioteca', biblioteca_routes_1.default);
+app.use("/api/categorias", categoria_routes_1.default); // nueva ruta para categorías
 app.get('/api/', (req, res) => {
     res.send('Hello World');
 });
