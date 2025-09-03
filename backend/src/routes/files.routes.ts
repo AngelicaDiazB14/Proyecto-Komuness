@@ -1,4 +1,3 @@
-// src/routes/files.routes.ts
 import { Router, RequestHandler } from 'express';
 import mongoose from 'mongoose';
 

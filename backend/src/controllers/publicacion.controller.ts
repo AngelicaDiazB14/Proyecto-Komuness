@@ -17,36 +17,53 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
     }
 };
 
-//Crear publicación con adjunto v2
+// Crear publicación con adjunto v2
+// Crear publicación con adjunto v2 (GridFS)
 export const createPublicacionA = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const publicacion: IPublicacion = req.body;
-        if (!req.files) {
-            res.status(400).json({ message: 'No se ha proporcionado un archivo' });
-            return;
-        }
-        //subimos la imagen o imagenes
-        let datos: IAdjunto[] = [];
+  try {
+    const publicacion: IPublicacion = req.body;
 
-        for (const image of req.files as Express.Multer.File[]) {
-        const result = await uploadBufferToGridFS(image, 'publicaciones');
-        datos.push({
-            url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/files/${result.id.toString()}`,
-            key: result.id.toString(), // guardamos el id de GridFS para borrar si hace falta
-        });
-        }
+    // Recolectar archivos, vengan de upload.array(...) o upload.fields(...)
+    let files: Express.Multer.File[] = [];
 
-        const nuevaPublicacion = new modelPublicacion({
-            ...publicacion,
-            adjunto: datos
-        });
-        const savePost = await nuevaPublicacion.save();
-        res.status(201).json(savePost);
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+    if (Array.isArray(req.files)) {
+      // Caso: upload.array('archivos')
+      files = req.files as Express.Multer.File[];
+    } else if (req.files && typeof req.files === 'object') {
+      // Caso: upload.fields([{ name: 'archivos' }, { name: 'imagenes' }])
+      const map = req.files as Record<string, Express.Multer.File[] | undefined>;
+      files = [
+        ...(map['archivos'] ?? []),
+        ...(map['imagenes'] ?? []),
+      ];
     }
-}
+
+    const adjuntos: IAdjunto[] = [];
+
+    // Si hay archivos, subir cada uno a GridFS
+    for (const image of files) {
+      const result = await uploadBufferToGridFS(image, 'publicaciones');
+      adjuntos.push({
+        url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/files/${result.id.toString()}`,
+        key: result.id.toString(), // id de GridFS para poder borrar después
+      });
+    }
+
+    // Crear la publicación (con o sin adjuntos)
+    const nuevaPublicacion = new modelPublicacion({
+      ...publicacion,
+      adjunto: adjuntos,
+    });
+
+    const savePost = await nuevaPublicacion.save();
+    res.status(201).json(savePost);
+  } catch (error) {
+    console.error('createPublicacionA error:', error);
+    const err = error as Error;
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
 
 
 //obtener publicaciones por tag

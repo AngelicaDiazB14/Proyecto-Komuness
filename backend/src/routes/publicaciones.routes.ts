@@ -1,31 +1,37 @@
 import multer from "multer";
 import { Router } from 'express';
-import { createPublicacion, getPublicacionById, updatePublicacion, deletePublicacion, addComentario, getPublicacionesByTag, filterPublicaciones, createPublicacionA, getPublicacionesByCategoria } from '../controllers/publicacion.controller';
+import {
+  createPublicacion, getPublicacionById, updatePublicacion, deletePublicacion,
+  addComentario, getPublicacionesByTag, filterPublicaciones, createPublicacionA, getPublicacionesByCategoria
+} from '../controllers/publicacion.controller';
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { verificarRoles } from "../middlewares/roles.middleware";
+
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+});
+
+// ✅ Acepta 'archivos' o 'imagenes' y permite 0..N archivos
+const multiFields = upload.fields([
+  { name: 'archivos', maxCount: 10 },
+  { name: 'imagenes', maxCount: 10 },
+]);
+
 const router = Router();
 
 router.post('/', createPublicacion); // create
-//Solo los tipoUsuarios 0 , 1 y 2 pueden crear publicaciones
-router.post("/v2", upload.array('archivos'), /*authMiddleware, verificarRoles([0, 1, 2]),*/ createPublicacionA); //crear con la imagen adjunto
+
+// ✅ Crear publicación con adjuntos opcionales (0..N)
+router.post("/v2", multiFields, /*authMiddleware, verificarRoles([0, 1, 2]),*/ createPublicacionA);
 
 router.get('/', getPublicacionesByTag); // read
-
-router.get('/buscar', filterPublicaciones); // get all publicaciones
-
-router.get('/:id', getPublicacionById); // read by id
-
-// Obtener publicaciones por categoría
+router.get('/buscar', filterPublicaciones);
+router.get('/:id', getPublicacionById);
 router.get('/categoria/:categoriaId', getPublicacionesByCategoria);
-
-
-//Solo los tipoUsuarios 0 y 1 pueden actualizar publicaciones
-router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion); // update    
-//Solo los tipoUsuarios 0 y 1 pueden eliminar publicaciones
-router.delete('/:id', authMiddleware, verificarRoles([0, 1]), deletePublicacion); //delete
-//Solo los tipoUsuarios 0, 1 y 2 pueden agregar comentarios
-router.post('/:id/comentarios', authMiddleware, verificarRoles([0, 1, 2]), addComentario); // add comentario
+router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion);
+router.delete('/:id', authMiddleware, verificarRoles([0, 1]), deletePublicacion);
+router.post('/:id/comentarios', authMiddleware, verificarRoles([0, 1, 2]), addComentario);
 
 export default router;
