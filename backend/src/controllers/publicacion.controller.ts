@@ -104,7 +104,7 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
       pagination: {
         offset,
         limit,
-        total: totalPubliciciones: totalPublicaciones,
+        total: totalPubliciciones, totalPublicaciones,
         pages: Math.ceil(totalPublicaciones / limit),
       },
     });
