@@ -66,8 +66,7 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     data.append("publicado", formData.publicado.toString());
     data.append("fechaEvento", formData.fechaEvento);
     data.append("precio", formData.precio);
-    data.append("categoria", idCategoriaSeleccionada);
-    formData.append('categoria', selectedCategoryId); // <- obligatorio si no usas DEFAULT_CATEGORIA_ID
+    data.append("categoria", formData?.categoria || "");
 
 
     // data.append("comentarios", formData.comentarios);

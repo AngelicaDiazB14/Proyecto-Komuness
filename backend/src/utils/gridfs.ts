@@ -11,29 +11,25 @@ function getBucket(): mongoose.mongo.GridFSBucket {
   return bucket;
 }
 
-export async function uploadBufferToGridFS(file: Express.Multer.File, carpeta = 'publicaciones') {
-  const filename = `${carpeta}/${Date.now()}-${file.originalname}`;
-  const contentType = file.mimetype;
+export function saveBufferToGridFS(
+  buffer: Buffer,
+  filename: string,
+  mimetype?: string
+): Promise<{ id: any; filename: string }> {
+  return new Promise((resolve, reject) => {
+    if (!bucket) return reject(new Error('GridFS bucket no inicializado'));
 
-  const bucket = getBucket();
-  const uploadStream = bucket.openUploadStream(filename, {
-    contentType,
-    metadata: { originalname: file.originalname, carpeta },
-  });
+    const uploadStream = bucket.openUploadStream(filename, { contentType: mimetype });
 
-  return await new Promise<{ id: mongoose.Types.ObjectId; filename: string; contentType: string }>((resolve, reject) => {
-    uploadStream.on('error', reject);
-    uploadStream.on('finish', () => {
-      // ⬇️ el id se toma del stream, no del parámetro del evento
-      resolve({
-        id: uploadStream.id as mongoose.Types.ObjectId,
-        filename,
-        contentType,
-      });
+    uploadStream.once('error', reject);
+    uploadStream.once('finish', () => {
+      resolve({ id: uploadStream.id, filename: uploadStream.filename });
     });
-    uploadStream.end(file.buffer);
+
+    uploadStream.end(buffer);
   });
 }
+
 
 export async function deleteGridFSFile(id: string) {
   const bucket = getBucket();
