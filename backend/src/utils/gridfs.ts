@@ -36,19 +36,25 @@ export async function deleteGridFSFile(id: string) {
   await bucket.delete(new mongoose.Types.ObjectId(id));
 }
 
+// Ejemplo robusto: guarda un Buffer en GridFS
 export function saveBufferToGridFS(
   buffer: Buffer,
   filename: string,
   mimetype?: string
 ): Promise<{ id: any; filename: string }> {
   return new Promise((resolve, reject) => {
+    // bucket viene de tu módulo de conexión; aquí solo validamos que exista
+    if (!bucket) {
+      return reject(new Error('GridFS bucket no inicializado'));
+    }
+
     const uploadStream = bucket.openUploadStream(filename, {
       contentType: mimetype,
     });
 
     uploadStream.once('error', reject);
 
-    // 'finish' NO recibe parámetros. Usa uploadStream.id
+    // OJO: 'finish' NO recibe 'file'. Usa uploadStream.id
     uploadStream.once('finish', () => {
       resolve({ id: uploadStream.id, filename: uploadStream.filename });
     });
