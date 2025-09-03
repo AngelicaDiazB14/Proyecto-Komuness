@@ -1,11 +1,18 @@
-import multer from "multer";
+import multer from 'multer';
 import { Router } from 'express';
 import {
-  createPublicacion, getPublicacionById, updatePublicacion, deletePublicacion,
-  addComentario, getPublicacionesByTag, filterPublicaciones, createPublicacionA, getPublicacionesByCategoria
+  createPublicacion,
+  getPublicacionById,
+  updatePublicacion,
+  deletePublicacion,
+  addComentario,
+  getPublicacionesByTag,
+  filterPublicaciones,
+  createPublicacionA,
+  getPublicacionesByCategoria,
 } from '../controllers/publicacion.controller';
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { verificarRoles } from "../middlewares/roles.middleware";
+import { authMiddleware } from '../middlewares/auth.middleware';
+import { verificarRoles } from '../middlewares/roles.middleware';
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -13,7 +20,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
 });
 
-// ✅ Acepta 'archivos' o 'imagenes' y permite 0..N archivos
+// acepta 'archivos' o 'imagenes' (0..N)
 const multiFields = upload.fields([
   { name: 'archivos', maxCount: 10 },
   { name: 'imagenes', maxCount: 10 },
@@ -21,12 +28,21 @@ const multiFields = upload.fields([
 
 const router = Router();
 
-router.post('/', createPublicacion); // create
+router.post('/', createPublicacion);
 
-// ✅ Crear publicación con adjuntos opcionales (0..N)
-router.post("/v2", multiFields, /*authMiddleware, verificarRoles([0, 1, 2]),*/ createPublicacionA);
+// Handler robusto para capturar errores de Multer (p.ej. límite de tamaño)
+router.post('/v2', (req, res, next) => {
+  multiFields(req, res, (err: any) => {
+    if (err) {
+      const msg = err?.message || 'Error al subir archivos';
+      const status = err?.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ ok: false, message: msg });
+    }
+    createPublicacionA(req, res).catch(next);
+  });
+});
 
-router.get('/', getPublicacionesByTag); // read
+router.get('/', getPublicacionesByTag);
 router.get('/buscar', filterPublicaciones);
 router.get('/:id', getPublicacionById);
 router.get('/categoria/:categoriaId', getPublicacionesByCategoria);

@@ -2,40 +2,37 @@ import { Request, Response } from 'express';
 import { IAdjunto, IComentario, IPublicacion } from '../interfaces/publicacion.interface';
 import { modelPublicacion } from '../models/publicacion.model';
 import mongoose from 'mongoose';
-import { uploadBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
+import { saveMulterFileToGridFS, saveBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
 
-// Crear una publicación
+// Crear una publicación (sin adjuntos)
 export const createPublicacion = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const publicacion: IPublicacion = req.body;
-        const nuevaPublicacion = new modelPublicacion(publicacion);
-        const savePost = await nuevaPublicacion.save();
-        res.status(201).json(savePost);
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
-    }
+  try {
+    const publicacion: IPublicacion = req.body;
+    const nuevaPublicacion = new modelPublicacion(publicacion);
+    const savePost = await nuevaPublicacion.save();
+    res.status(201).json(savePost);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// Crear publicación con adjunto v2 (GridFS)
+// Crear publicación con adjuntos v2 (GridFS)
 export const createPublicacionA = async (req: Request, res: Response): Promise<void> => {
   try {
-    const publicacion: IPublicacion = req.body as any;
+    const publicacion = req.body as IPublicacion & Record<string, any>;
 
-    // --- Recolectar archivos, funcionará con upload.array(...) o upload.fields(...) ---
+    // --- Recolectar archivos desde Multer (array o fields) ---
     let files: Express.Multer.File[] = [];
     if (Array.isArray(req.files)) {
       files = req.files as Express.Multer.File[];
     } else if (req.files && typeof req.files === 'object') {
       const map = req.files as Record<string, Express.Multer.File[] | undefined>;
-      files = [
-        ...(map['archivos'] ?? []),
-        ...(map['imagenes'] ?? []),
-      ];
+      files = [ ...(map['archivos'] ?? []), ...(map['imagenes'] ?? []) ];
     }
 
     // --- Validar/establecer categoria ---
-    let categoria = (publicacion as any).categoria;
+    let categoria: any = (publicacion as any).categoria;
     if (!categoria) {
       const defId = process.env.DEFAULT_CATEGORIA_ID;
       if (defId && mongoose.Types.ObjectId.isValid(defId)) {
@@ -43,27 +40,29 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       } else {
         res.status(400).json({
           ok: false,
-          message: 'categoria es requerida (envía el campo "categoria" o configura DEFAULT_CATEGORIA_ID en .env)',
+          message: 'categoria es requerida (envía "categoria" o configura DEFAULT_CATEGORIA_ID en .env)'
         });
         return;
       }
     }
 
-    // --- Subir adjuntos (si los hay) ---
+    // --- Subir adjuntos (0..N) ---
     const adjuntos: IAdjunto[] = [];
-    for (const image of files) {
-      const result = await uploadBufferToGridFS(image, 'publicaciones');
+    for (const file of files) {
+      const result = await saveMulterFileToGridFS(file, 'publicaciones');
       adjuntos.push({
         url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/files/${result.id.toString()}`,
         key: result.id.toString(),
       });
     }
 
-    // --- Crear doc ---
+    // --- Crear documento y guardar ---
     const nuevaPublicacion = new modelPublicacion({
       ...publicacion,
-      categoria,     // forzamos que exista
+      categoria,
       adjunto: adjuntos,
+      // normalizaciones útiles:
+      publicado: `${(publicacion as any).publicado}` === 'true',
     });
 
     const savePost = await nuevaPublicacion.save();
@@ -75,125 +74,114 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
   }
 };
 
-
-
-//obtener publicaciones por tag
+// obtener publicaciones por tag
 export const getPublicacionesByTag = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const offset = parseInt(req.query.offset as string) || 0;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const { tag, publicado } = req.query;
+  try {
+    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const { tag, publicado } = req.query;
 
-        // Construye el query de manera flexible
-        const query: { tag?: string; publicado?: boolean } = {};
+    const query: { tag?: string; publicado?: boolean } = {};
+    if (tag) query.tag = tag as string;
+    if (publicado !== undefined) query.publicado = publicado === 'true';
 
-        if (tag) {
-            query.tag = tag as string;
-        }
+    const [publicaciones, totalPublicaciones] = await Promise.all([
+      modelPublicacion.find(query)
+        .populate('autor', 'nombre')
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit),
+      modelPublicacion.countDocuments(query)
+    ]);
 
-        if (publicado !== undefined) {
-            query.publicado = publicado === 'true';
-        }
-
-        const [publicaciones, totalPublicaciones] = await Promise.all([
-            modelPublicacion.find(query)
-                .populate('autor', 'nombre')
-                .sort({ createdAt: -1 })
-                .skip(offset)
-                .limit(limit),
-            modelPublicacion.countDocuments(query)
-        ]);
-
-        if (publicaciones.length === 0) {
-            res.status(404).json({ message: 'No se encontraron publicaciones' });
-            return;
-        }
-
-        res.status(200).json({
-            data: publicaciones,
-            pagination: {
-                offset,
-                limit,
-                total: totalPublicaciones,
-                pages: Math.ceil(totalPublicaciones / limit),
-            },
-        });
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+    if (publicaciones.length === 0) {
+      res.status(404).json({ message: 'No se encontraron publicaciones' });
+      return;
     }
-};
 
+    res.status(200).json({
+      data: publicaciones,
+      pagination: {
+        offset,
+        limit,
+        total: totalPubliciciones: totalPublicaciones,
+        pages: Math.ceil(totalPublicaciones / limit),
+      },
+    });
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
+};
 
 // Obtener una publicación por su ID
 export const getPublicacionById = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const publicacion: IPublicacion | null = await modelPublicacion.findById(id);
-        if (!publicacion) {
-            res.status(404).json({ message: 'Publicación no encontrada' });
-            return;
-        }
-        res.status(200).json(publicacion);
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+  try {
+    const { id } = req.params;
+    const publicacion: IPublicacion | null = await modelPublicacion.findById(id);
+    if (!publicacion) {
+      res.status(404).json({ message: 'Publicación no encontrada' });
+      return;
     }
+    res.status(200).json(publicacion);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // Obtener publicaciones por categoría
 export const getPublicacionesByCategoria = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { categoriaId } = req.params;
-        const offset = parseInt(req.query.offset as string) || 0;
-        const limit = parseInt(req.query.limit as string) || 10;
+  try {
+    const { categoriaId } = req.params;
+    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-        const query = { categoria: categoriaId, publicado: true };
+    const query = { categoria: categoriaId, publicado: true };
 
-        const [publicaciones, total] = await Promise.all([
-            modelPublicacion.find(query)
-                .populate('autor', 'nombre')
-                .populate('categoria', 'nombre')
-                .sort({ createdAt: -1 })
-                .skip(offset)
-                .limit(limit),
-            modelPublicacion.countDocuments(query)
-        ]);
+    const [publicaciones, total] = await Promise.all([
+      modelPublicacion.find(query)
+        .populate('autor', 'nombre')
+        .populate('categoria', 'nombre')
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit),
+      modelPublicacion.countDocuments(query)
+    ]);
 
-        res.status(200).json({
-            data: publicaciones,
-            pagination: {
-                offset,
-                limit,
-                total,
-                pages: Math.ceil(total / limit),
-            },
-        });
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
-    }
+    res.status(200).json({
+      data: publicaciones,
+      pagination: {
+        offset,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
-
 
 // Actualizar una publicación
 export const updatePublicacion = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const updatedData: Partial<IPublicacion> = req.body;
-        const publicacion = await modelPublicacion.findByIdAndUpdate(id, updatedData, { new: true });
-        if (!publicacion) {
-            res.status(404).json({ message: 'Publicación no encontrada' });
-            return;
-        }
-        res.status(200).json(publicacion);
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+  try {
+    const { id } = req.params;
+    const updatedData: Partial<IPublicacion> = req.body;
+    const publicacion = await modelPublicacion.findByIdAndUpdate(id, updatedData, { new: true });
+    if (!publicacion) {
+      res.status(404).json({ message: 'Publicación no encontrada' });
+      return;
     }
+    res.status(200).json(publicacion);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// Eliminar una publicación
+// Eliminar una publicación (y sus adjuntos en GridFS)
 export const deletePublicacion = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -204,9 +192,8 @@ export const deletePublicacion = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Limpieza de adjuntos en GridFS
     const adjuntos = (deletedPost as any).adjunto as IAdjunto[] | undefined;
-    if (adjuntos && adjuntos.length) {
+    if (adjuntos?.length) {
       for (const a of adjuntos) {
         if (a.key) {
           try { await deleteGridFSFile(a.key); } catch {}
@@ -221,85 +208,68 @@ export const deletePublicacion = async (req: Request, res: Response): Promise<vo
   }
 };
 
-
-/**
- * Agrega comentarios a una publicación
- * @param req : Request de la petición
- * @param res : Response de la petición
- * @returns Código de estado de la petición
- */
+// Agregar comentario
 export const addComentario = async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params; //identificador de la publicación
-    const { autor, contenido, fecha } = req.body; //autor y contenido del comentario
-    //creado el comentario
-    const nuevoComentario: IComentario = {
-        autor,
-        contenido,
-        fecha,
-        // fecha: new Date().toLocaleDateString()
+  const { id } = req.params;
+  const { autor, contenido, fecha } = req.body;
+
+  const nuevoComentario: IComentario = { autor, contenido, fecha };
+
+  try {
+    const publicacionActualizada = await modelPublicacion.findByIdAndUpdate(
+      id,
+      { $push: { comentarios: nuevoComentario } },
+      { new: true }
+    );
+
+    if (!publicacionActualizada) {
+      res.status(404).json({ message: 'Publicación no encontrada' });
+      return;
     }
+    res.status(201).json(publicacionActualizada);
+  } catch (error) {
+    console.warn('Error al agregar comentario:', error);
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
+};
 
-    try {
-        const publicacionActualizada = await modelPublicacion.findByIdAndUpdate(
-            id,
-            { $push: { comentarios: nuevoComentario } },
-            { new: true }); //agrega el comentario a la publicación
-
-        if (!publicacionActualizada) {
-            res.status(404).json({ message: 'Publicación no encontrada' });
-            return;
-        }
-        res.status(201).json(publicacionActualizada);
-
-    } catch (error) {
-        console.log('Error al agregar comentario:', error);
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
-    }
-}
-
-
-// filtros de busqueda
-// Obtener publicaciones por titulo, autor o tag (barra de búsqueda)
+// filtros de búsqueda
 export const filterPublicaciones = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { texto, tag, autor } = req.query;
+  try {
+    const { texto, tag, autor } = req.query;
+    const filtro: any = {};
 
-        const filtro: any = {};
-
-        //filtro por texto (titulo o contenido)
-        if (texto) {
-            filtro.$or = [
-                { titulo: { $regex: texto, $options: 'i' } },
-                { contenido: { $regex: texto, $options: 'i' } }
-            ];
-        }
-        //filtro por tag
-        if (tag) filtro.tag = { $regex: tag, $options: 'i' };
-        //filtro por autor
-        if (autor) {
-            if (!mongoose.Types.ObjectId.isValid(autor as string)) {
-                res.status(400).json({ message: 'ID de autor inválido' });
-                return;
-            }
-            filtro.autor = autor; // o: new mongoose.Types.ObjectId(autor as string)
-        }
-
-        if (Object.keys(filtro).length === 0) {
-            res.status(400).json({ message: 'Debe proporcionar al menos un parámetro de búsqueda (titulo, tag o autor)' });
-            return;
-        }
-
-        const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro);
-
-        if (publicaciones.length === 0) {
-            res.status(404).json({ message: 'No se encontraron publicaciones con esos criterios' });
-            return;
-        }
-
-        res.status(200).json(publicaciones);
-    } catch (error) {
-        const err = error as Error;
-        res.status(500).json({ message: err.message });
+    if (texto) {
+      filtro.$or = [
+        { titulo: { $regex: texto, $options: 'i' } },
+        { contenido: { $regex: texto, $options: 'i' } },
+      ];
     }
+    if (tag) filtro.tag = { $regex: tag, $options: 'i' };
+    if (autor) {
+      if (!mongoose.Types.ObjectId.isValid(autor as string)) {
+        res.status(400).json({ message: 'ID de autor inválido' });
+        return;
+      }
+      filtro.autor = autor;
+    }
+
+    if (Object.keys(filtro).length === 0) {
+      res.status(400).json({ message: 'Debe proporcionar al menos un parámetro de búsqueda (titulo, tag o autor)' });
+      return;
+    }
+
+    const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro);
+
+    if (publicaciones.length === 0) {
+      res.status(404).json({ message: 'No se encontraron publicaciones con esos criterios' });
+      return;
+    }
+
+    res.status(200).json(publicaciones);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
 };
