@@ -1,38 +1,56 @@
-import { Router, RequestHandler } from 'express';
-import mongoose from 'mongoose';
+// backend/src/routes/files.routes.ts
+import { Router, type RequestHandler } from "express";
+import mongoose from "mongoose";
 
 const router = Router();
 
-function getBucket(): mongoose.mongo.GridFSBucket {
-  const db = mongoose.connection.db;
-  if (!db) throw new Error('MongoDB no está conectado');
-  return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
-}
+const getFile: RequestHandler = async (req, res) => {
+  const { id } = req.params;
 
-const getFileHandler: RequestHandler = async (req, res) => {
+  // validar ObjectId
+  let _id: mongoose.Types.ObjectId;
   try {
-    const id = new mongoose.Types.ObjectId(req.params.id);
-    const bucket = getBucket();
-
-    const files = await bucket.find({ _id: id }).toArray();
-    if (!files || files.length === 0) {
-      res.sendStatus(404);
-      return;
-    }
-
-    const file: any = files[0];
-    if (file.contentType) res.setHeader('Content-Type', file.contentType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.setHeader('Content-Disposition', 'inline');
-
-    const stream = bucket.openDownloadStream(id);
-    stream.on('error', () => res.sendStatus(404));
-    stream.pipe(res);
+    _id = new mongoose.Types.ObjectId(id);
   } catch {
-    res.sendStatus(400);
+    res.status(400).json({ message: "ID de archivo inválido" });
+    return;
   }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    res.status(500).json({ message: "DB no inicializada" });
+    return;
+  }
+
+  // buscar metadatos (para headers)
+  const fileDoc = await db.collection("uploads.files").findOne({ _id });
+  if (!fileDoc) {
+    res.status(404).json({ message: "Archivo no encontrado" });
+    return;
+  }
+
+  const contentType =
+    // @ts-ignore
+    fileDoc.contentType || fileDoc?.metadata?.contentType || "application/octet-stream";
+  // @ts-ignore
+  const length = fileDoc.length;
+  // @ts-ignore
+  const filename = fileDoc.filename;
+
+  res.setHeader("Content-Type", contentType);
+  if (length) res.setHeader("Content-Length", String(length));
+  if (filename) res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+  res.setHeader("Cache-Control", "public, max-age=604800"); // 7d
+
+  // GridFSBucket desde mongoose
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bucket = new (mongoose as any).mongo.GridFSBucket(db, { bucketName: "uploads" });
+
+  const stream = bucket.openDownloadStream(_id);
+  stream.on("error", () => res.status(404).end());
+  stream.pipe(res);
 };
 
-router.get('/files/:id', getFileHandler);
+router.get("/:id", getFile);
 
 export default router;
