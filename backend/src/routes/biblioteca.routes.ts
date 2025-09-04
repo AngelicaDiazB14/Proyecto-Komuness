@@ -1,7 +1,7 @@
 import multer from "multer";
 import { Router } from "express";
 import BibliotecaController from "../controllers/biblioteca.controller";
-import { upload } from "../middlewares/multer.middleware";
+import { uploadBiblioteca as upload, uploadBiblioteca } from "../middlewares/multer.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { verificarRoles } from "../middlewares/roles.middleware";
 //const storage = multer.memoryStorage();
@@ -32,7 +32,7 @@ const router = Router();
  *  } 
  */
 // solo los tipoUsuarios 0, 1 y 2 pueden subir archivos
-router.post("/upload", upload.array('archivos'), authMiddleware, verificarRoles([0, 1, 2]), BibliotecaController.uploadFiles as any);
+router.post("/upload", uploadBiblioteca.array('archivos'), authMiddleware, verificarRoles([0, 1, 2]), BibliotecaController.uploadFiles as any);
 
 /**
  * Posibles respuestas del endpoint:
