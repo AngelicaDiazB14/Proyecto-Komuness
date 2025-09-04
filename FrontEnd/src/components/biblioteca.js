@@ -164,11 +164,14 @@ export const Biblioteca = () => {
 
     const data = new FormData();
     acceptedFiles.forEach((archivo) => {
-    
       data.append("archivos", archivo);
     });
     data.append("userId", user._id);
-    data.append("folderId", id);
+    // ANTES: data.append("folderId", id);
+    // AHORA:
+    if (id && id !== '0') {
+      data.append("folderId", id);
+    }
 
 
 

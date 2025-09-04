@@ -15,92 +15,101 @@ class BibliotecaController {
      * @returns: Response 
      */
     static async uploadFiles(req: Request, res: Response) {
+    const { folderId, userId } = req.body;
 
-        const { folderId, userId } = req.body;
-        console.log(folderId, userId);
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                message: 'userId es requerido',
-                errors: []
-            });
-        }
-
-        const files = req.files as Express.Multer.File[];
-
-        if (!files || files.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No se han enviado archivos.',
-                errors: []
-            });
-        }
-
-        try {
-
-            const results = await Promise.all(files.map(async (file) => {
-
-                try {
-                    //subir archivo a digitalOcean spaces
-                    const result: { location: string, key: string } | null = await uploadFileStorage(file, folderId);
-                    if (!result) {
-                        return {
-                            success: false,
-                            nombre: file.originalname,
-                            message: 'Error al subir el archivo',
-                            content: null
-                        };
-                    }
-
-                    //guardar los metadatos del archivo en la base de datos
-                    const archivo = new Archivo({
-                        nombre: file.originalname,
-                        fechaSubida: new Date(),
-                        tipoArchivo: file.mimetype,
-                        tamano: file.size,
-                        autor: userId,
-                        esPublico: false,
-                        url: result.location, // Asignar la URL devuelta
-                        key: result.key, // Asignar la key devuelta
-                        folder: folderId
-                    });
-                    //guardar archivo en la base de datos
-                    await archivo.save();
-                    //guardando el estado de la subida en digitalOcean spaces y en la base de datos
-                    return {
-                        success: true,
-                        nombre: file.originalname,
-                        message: 'Archivo subido correctamente',
-                        content: archivo
-                    };
-                } catch (error) {
-                    console.error('Error detallado:', error); // Mejor logging
-                    return {
-                        success: false,
-                        nombre: file.originalname,
-                        message: error instanceof Error ? error.message : 'Error interno al procesar el archivo',
-                        content: null
-                    };
-                }
-            }));
-            // Verificar si hay errores en alguna de las respuestas
-            const hasErrors = results.some(r => !r.success);
-            // Respuesta final al cliente
-            return res.status(hasErrors ? 207 : 200).json({
-                success: !hasErrors,
-                message: hasErrors ? 'Algunos archivos no se subieron correctamente' : 'Todos los archivos subidos exitosamente',
-                results
-            });
-
-        } catch (error) {
-            console.error('Error general:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error instanceof Error ? error.message : 'An unknown error occurred'
-            });
-        }
+    if (!userId) {
+        return res.status(400).json({
+        success: false,
+        message: 'userId es requerido',
+        errors: []
+        });
     }
+
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+        return res.status(400).json({
+        success: false,
+        message: 'No se han enviado archivos.',
+        errors: []
+        });
+    }
+
+    try {
+        // Autor como ObjectId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ success: false, message: 'userId inválido' });
+        }
+        const autorId = new mongoose.Types.ObjectId(userId);
+
+        // Folder: "0" => null (raíz). Si viene otro valor, validar ObjectId.
+        let folder: mongoose.Types.ObjectId | null = null;
+        if (folderId && folderId !== '0') {
+        if (!mongoose.Types.ObjectId.isValid(folderId)) {
+            return res.status(400).json({ success: false, message: 'folderId inválido' });
+        }
+        folder = new mongoose.Types.ObjectId(folderId);
+        }
+
+        const results = await Promise.all(files.map(async (file) => {
+        try {
+            // Subir a storage (si estás en raíz, no pases "0")
+            const storageRes = await uploadFileStorage(file, folder ? folder.toString() : undefined);
+            if (!storageRes) {
+            return {
+                success: false,
+                nombre: file.originalname,
+                message: 'Error al subir el archivo',
+                content: null
+            };
+            }
+
+            const archivo = new Archivo({
+            nombre: file.originalname,
+            fechaSubida: new Date(),
+            tipoArchivo: file.mimetype,
+            tamano: file.size,
+            autor: autorId,
+            esPublico: false,
+            url: storageRes.location,
+            key: storageRes.key,
+            folder // <- null si raíz, ObjectId si carpeta
+            });
+
+            await archivo.save();
+
+            return {
+            success: true,
+            nombre: file.originalname,
+            message: 'Archivo subido correctamente',
+            content: archivo
+            };
+        } catch (error) {
+            console.error('Error detallado:', error);
+            return {
+            success: false,
+            nombre: file.originalname,
+            message: error instanceof Error ? error.message : 'Error interno al procesar el archivo',
+            content: null
+            };
+        }
+        }));
+
+        const hasErrors = results.some(r => !r.success);
+        return res.status(hasErrors ? 207 : 200).json({
+        success: !hasErrors,
+        message: hasErrors ? 'Algunos archivos no se subieron correctamente' : 'Todos los archivos subidos exitosamente',
+        results
+        });
+    } catch (error) {
+        console.error('Error general:', error);
+        return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
+        });
+    }
+    }
+
 
     /**
      * @description: Lista el contenido de una carpeta de la biblioteca (archivos y carpetas) 
