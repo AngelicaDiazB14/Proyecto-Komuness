@@ -79,11 +79,11 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { tag, publicado } = req.query;
+    const { tag, publicado } = req.query as { tag?: string; publicado?: string };
 
     const query: { tag?: string; publicado?: boolean } = {};
-    if (tag) query.tag = tag as string;
-    if (publicado !== undefined) query.publicado = publicado === 'true';
+    if (tag) query.tag = tag;
+    if (publicado !== undefined) query.publicado = (publicado === 'true');
 
     const [publicaciones, totalPublicaciones] = await Promise.all([
       modelPublicacion.find(query)
@@ -91,21 +91,17 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
         .sort({ createdAt: -1 })
         .skip(offset)
         .limit(limit),
-      modelPublicacion.countDocuments(query)
+      modelPublicacion.countDocuments(query),
     ]);
 
-    if (publicaciones.length === 0) {
-      res.status(404).json({ message: 'No se encontraron publicaciones' });
-      return;
-    }
-
+    // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
     res.status(200).json({
       data: publicaciones,
       pagination: {
         offset,
         limit,
-        total: totalPublicaciones, totalPublicaciones,
-        pages: Math.ceil(totalPublicaciones / limit),
+        total: totalPublicaciones,
+        pages: Math.ceil(totalPublicaciones / Math.max(limit, 1)),
       },
     });
   } catch (error) {
@@ -113,6 +109,7 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // Obtener una publicación por su ID
 export const getPublicacionById = async (req: Request, res: Response): Promise<void> => {
