@@ -134,3 +134,10 @@ out
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# secretos
+.env
+.env.*
+backend/.env
+FrontEnd/.env
+FrontEnd/.env.*

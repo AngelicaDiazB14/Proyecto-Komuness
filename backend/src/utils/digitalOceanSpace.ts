@@ -1,103 +1,39 @@
-import * as AWS from 'aws-sdk';
-import dotenv from 'dotenv';
-dotenv.config();
-import fs from 'node:fs'
-const spacesEndpoint = new AWS.Endpoint(process.env.S3_ENDPOINT!);
+// src/utils/digitalOceanSpace.ts
+import fs from 'fs';
+import path from 'path';
 
-const s3 = new AWS.S3({
-    endpoint: spacesEndpoint,
-    //!TODO: IMPLEMENTAR ESTO QUE HACE FALTA, PARA CUANDO INTEGRE LO DE DIGITAL OCEAN SPACES
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-})
-/**
- * upload file to digitalOcean spaces, a modular function that can be used in any file in this project
- * 
- * @param file : Express.Multer.File Archivo a subir al bucket
- * @param folder : string Carpeta donde se va a subir el archivo si es null se subira a la raiz
- * @returns : Promise<string | null> URL del archivo subido de manera publica  o null si ocurre un error
- */
-export const uploadFile = async (file: Express.Multer.File, folder?: string): Promise<{ location: string, key: string } | null> => {
-    // Generar nombre único con timestamp y nombre original
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const originalName = file.originalname.replace(/\s+/g, '-'); // Reemplazar espacios por guiones
-    const uniqueFileName = `${uniqueSuffix}-${originalName}`;
+const UPLOAD_DIR = process.env.UPLOAD_DIR || '/srv/uploads';
+const BASE_URL   = process.env.PUBLIC_BASE_URL || 'http://localhost';
 
-    const params = {
-        Bucket: process.env.BUCKET_NAME!,
-        Key: `${folder || 'any'}/${uniqueFileName}`,
-        Body: file.buffer,
-        ACL: 'public-read',
-        ContentType: file.mimetype,
-    };
-    try {
-        const data = await s3.upload(params).promise();
-        return {
-            location: data.Location,
-            key: data.Key
-        };
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
+function safeName(original: string) {
+  return `${Date.now()}-${original.replace(/\s+/g, '_')}`;
 }
 
-/**Add commentMore actions
- * upload file to digitalOcean spaces, a modular function that can be used in any file in this project
- * 
- * @param file : Express.Multer.File Archivo a subir al bucket
- * @param folder : string Carpeta donde se va a subir el archivo si es null se subira a la raiz
- * @returns : Promise<string | null> URL del archivo subido de manera publica  o null si ocurre un error
- */
-export const uploadFileStorage = async (file: Express.Multer.File, folder?: string): Promise<{ location: string, key: string } | null> => {
-    // Generar nombre único con timestamp y nombre original
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const originalName = file.originalname.replace(/\s+/g, '-'); // Reemplazar espacios por guiones
-    const uniqueFileName = `${uniqueSuffix}-${originalName}`;
-    const fileStream = fs.createReadStream(file.path);
-
-    const params = {
-        Bucket: process.env.BUCKET_NAME!,
-        Key: `${folder || 'any'}/${uniqueFileName}`,
-        Body: fileStream,
-        ACL: 'public-read',
-        ContentType: file.mimetype,
-    };
-    try {
-        const data = await s3.upload(params).promise();
-        fs.unlinkSync(file.path);
-        return {
-            location: data.Location,
-            key: data.Key
-        };
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
+async function writeToDisk(buf: Buffer, relKey: string) {
+  const fullPath = path.join(UPLOAD_DIR, relKey);
+  await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
+  await fs.promises.writeFile(fullPath, buf);
+  return {
+    location: `${BASE_URL}/uploads/${relKey}`,
+    key: relKey
+  };
 }
 
-
-/**
- * deleteFile: delete file from digitalOcean spaces
- * 
- * @param key : string Key del archivo a eliminar
- * @returns boolean true si se elimino correctamente, false si ocurre un error
- */
-export const deleteFile = async (key: string): Promise<boolean> => {
-    const params = {
-        Bucket: process.env.BUCKET_NAME!, // Reemplaza con el nombre de tu bucket  process.env.DO_SPACES_BUCKET!,
-        Key: key,
-    };
-    try {
-        const result = await s3.deleteObject(params).promise();
-        if (!result.$response.error) {
-            return true;
-        } else {
-            console.log('Error deleting file:', result.$response.error);
-            return false;
-        }
-    } catch (error) {
-        console.log(error);
-        return false;
-    }
+/** Sube un archivo (buffer o path) y devuelve { location, key } */
+export async function uploadFile(file: any, prefix: string = ''): Promise<{location: string; key: string}> {
+  const name = (prefix ? `${prefix}/` : '') + safeName(file.originalname || 'file');
+  const buffer = file.buffer || (file.path ? await fs.promises.readFile(file.path) : null);
+  if (!buffer) throw new Error('No file buffer/path provided');
+  return writeToDisk(buffer, name);
 }
+
+/** Compat con tu controlador de biblioteca */
+export async function uploadFileStorage(file: any, folderId: string = ''): Promise<{location: string; key: string}> {
+  const name = (folderId ? `${folderId}/` : '') + safeName(file.originalname || 'file');
+  const buffer = file.buffer || (file.path ? await fs.promises.readFile(file.path) : null);
+  if (!buffer) throw new Error('No file buffer/path provided');
+  return writeToDisk(buffer, name);
+}
+
+export default { uploadFile, uploadFileStorage };
+
