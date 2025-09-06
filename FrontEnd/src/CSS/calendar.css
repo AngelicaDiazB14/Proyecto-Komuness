@@ -1,0 +1,315 @@
+/* CALENDARIO COMPLETO - ESTILOS ORGANIZADOS */
+
+/* ==================== */
+/* ESTILOS GENERALES */
+/* ==================== */
+
+.rbc-calendar {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Gotham', sans-serif;
+}
+
+/* ==================== */
+/* CABECERAS DEL CALENDARIO (MES/SEMANA) */
+/* ==================== */
+
+.rbc-header {
+  background-color: #5445FF;
+  color: white;
+  padding: 0.8rem 0.5rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border: none;
+  text-transform: capitalize;
+}
+
+/* Nombres de días COMPLETOS para vista mes */
+.rbc-header span {
+  display: none;
+}
+
+.rbc-header::before {
+  content: "";
+  font-size: 1rem;
+}
+
+.rbc-header:nth-child(7)::before { content: "Domingo"; }
+.rbc-header:nth-child(1)::before { content: "Lunes"; }
+.rbc-header:nth-child(2)::before { content: "Martes"; }
+.rbc-header:nth-child(3)::before { content: "Miércoles"; }
+.rbc-header:nth-child(4)::before { content: "Jueves"; }
+.rbc-header:nth-child(5)::before { content: "Viernes"; }
+.rbc-header:nth-child(6)::before { content: "Sábado"; }
+
+/* ==================== */
+/* CABECERAS DE AGENDA  */
+/* ==================== */
+
+/* HEADERS DE LA TABLA AGENDA (Fecha, Hora, Evento) */
+.rbc-agenda-view thead {
+  background-color: #5445FF !important;
+}
+
+.rbc-agenda-view thead th {
+  color: white !important;
+  padding: 12px;
+  font-weight: bold;
+  text-align: left;
+  border: none !important;
+}
+
+/* Específicamente para cada header de agenda */
+.rbc-agenda-view thead th:nth-child(1) { content: "Fecha"; }
+.rbc-agenda-view thead th:nth-child(2) { content: "Hora"; }
+.rbc-agenda-view thead th:nth-child(3) { content: "Evento"; }
+
+/* Remover contenido duplicado de días */
+.rbc-agenda-view thead th::before,
+.rbc-agenda-view thead th::after {
+  content: "" !important;
+  display: none !important;
+}
+
+/* ==================== */
+/* CUERPO DE AGENDA */
+/* ==================== */
+
+.rbc-agenda-view table.rbc-agenda-table {
+  border: 2px solid #e9ecef;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+/* CELDAS DE FECHA EN AGENDA */
+.rbc-agenda-date-cell {
+  color: #000000 !important;
+  background-color: #f8f9fa !important;
+  font-weight: bold;
+  padding: 0.8rem;
+  border-right: 1px solid #e9ecef;
+  min-width: 120px;
+}
+
+/* CELDAS DE TIEMPO EN AGENDA */
+.rbc-agenda-time-cell {
+  color: #000000 !important;
+  font-weight: 500;
+  background-color: #f8f9fa;
+  padding: 0.8rem;
+  border-right: 1px solid #e9ecef;
+}
+
+/* CELDAS DE EVENTOS EN AGENDA */
+.rbc-agenda-event-cell {
+  color: #000000 !important;
+  padding: 0.8rem;
+  background-color: white;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* HOVER EN AGENDA */
+.rbc-agenda-event-cell:hover {
+  background-color: #f0f2ff !important;
+  color: #5445FF !important;
+}
+
+/* EVENTOS EN AGENDA */
+.rbc-agenda-event-cell .rbc-event {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0;
+  margin: 0;
+}
+
+/* FILAS ZEBRA EN AGENDA */
+.rbc-agenda-view table.rbc-agenda-table tbody tr:nth-child(odd) {
+  background-color: #fafafa;
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody tr:nth-child(even) {
+  background-color: white;
+}
+
+/* ==================== */
+/* EVENTOS */
+/* ==================== */
+
+.rbc-event {
+  background-color: #5445FF;
+  border: none;
+  border-radius: 5px;
+  padding: 2px 4px;
+  opacity: 0.9;
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer !important;
+}
+
+.rbc-event:hover {
+  opacity: 1;
+  transform: scale(1.02);
+  background-color: #3a2db8 !important;
+}
+
+/* Vista mes - eventos más pequeños */
+.rbc-month-view .rbc-event {
+  font-size: 0.75rem;
+  padding: 1px 3px;
+}
+
+/* Vista agenda - eventos más grandes */
+.rbc-agenda-view .rbc-event {
+  font-size: 1rem;
+  padding: 4px 6px;
+}
+
+/* ==================== */
+/* DÍAS Y FECHAS */
+/* ==================== */
+
+.rbc-date-cell {
+  color: #333 !important;
+  font-weight: 500;
+}
+
+.rbc-off-range .rbc-button-link {
+  color: #999 !important;
+}
+
+.rbc-button-link {
+  color: #333 !important;
+  text-decoration: none;
+}
+
+.rbc-button-link:hover {
+  color: #5445FF !important;
+}
+
+/* DÍA ACTUAL */
+.rbc-today {
+  background-color: #e6e6ff !important;
+}
+
+.rbc-current .rbc-button-link {
+  color: #5445FF !important;
+  font-weight: bold;
+}
+
+/* DÍAS DE OTROS MESES */
+.rbc-off-range-bg {
+  background-color: #f8f9fa;
+}
+
+/* ==================== */
+/* BOTONES DE NAVEGACIÓN */
+/* ==================== */
+
+.rbc-toolbar {
+  margin-bottom: 1rem;
+}
+
+.rbc-toolbar button {
+  color: #5445FF;
+  border: 1px solid #5445FF;
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  margin: 0 0.2rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #5445FF;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #5445FF;
+  color: white;
+  border-color: #5445FF;
+}
+
+/* ==================== */
+/* BORDES Y ESTRUCTURA */
+/* ==================== */
+
+.rbc-month-row {
+  border: none;
+}
+
+.rbc-day-bg {
+  border: 1px solid #e9ecef;
+}
+
+/* ==================== */
+/* MENSAJES Y ESTADOS */
+/* ==================== */
+
+.rbc-agenda-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  margin: 1rem 0;
+}
+
+/* ==================== */
+/* ACCESIBILIDAD */
+/* ==================== */
+
+.rbc-agenda-event-cell:focus {
+  outline: 2px solid #5445FF;
+  outline-offset: -2px;
+}
+
+.rbc-event:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* ==================== */
+/* RESPONSIVE */
+/* ==================== */
+
+@media (max-width: 768px) {
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .rbc-toolbar-label {
+    margin: 0.5rem 0;
+    text-align: center;
+  }
+  
+  .rbc-header {
+    padding: 0.5rem 0.2rem;
+    font-size: 0.8rem;
+  }
+  
+  .rbc-date-cell {
+    font-size: 0.9rem;
+  }
+  
+  /* AGENDA RESPONSIVE */
+  .rbc-agenda-time-cell,
+  .rbc-agenda-event-cell,
+  .rbc-agenda-date-cell {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .rbc-agenda-view th {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}
