@@ -198,7 +198,7 @@ class BibliotecaController {
             const folder = new Folder({
                 nombre,
                 fechaCreacion: new Date(),
-                directorioPadre: parent
+                directorioPadre: parent === '0' ? null : parent
             });
             await folder.save();
 
@@ -424,3 +424,4 @@ class BibliotecaController {
     }
 }
 export default BibliotecaController;
+
