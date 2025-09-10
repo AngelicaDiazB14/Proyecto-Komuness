@@ -11,6 +11,7 @@ import {IniciarSesion} from './iniciarSesion'
 import {RecuperarContra} from './recuperarContra'
 import {NuevaContra} from './nuevaContra'
 import {CrearUsuario} from './crearUsuario'
+import CalendarView from './Calendar';
 
 export const Rutas = () =>{
     
@@ -28,7 +29,8 @@ export const Rutas = () =>{
                 <Route path = "/iniciarSesion" element= {<IniciarSesion/>}/>
                 <Route path = "/recuperar" element= {<RecuperarContra/>}/>
                 <Route path = "/nuevaCont" element= {<NuevaContra/>}/>
-                 <Route path = "/crearUsr" element= {<CrearUsuario/>}/>
+                <Route path = "/crearUsr" element= {<CrearUsuario/>}/>
+                <Route path="/calendario" element={<CalendarView />} />
 
 
                

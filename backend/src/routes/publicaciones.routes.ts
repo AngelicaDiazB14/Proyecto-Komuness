@@ -10,10 +10,10 @@ import {
   filterPublicaciones,
   createPublicacionA,
   getPublicacionesByCategoria,
+  getEventosPorFecha,
 } from '../controllers/publicacion.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { verificarRoles } from '../middlewares/roles.middleware';
-
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -49,5 +49,5 @@ router.get('/categoria/:categoriaId', getPublicacionesByCategoria);
 router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion);
 router.delete('/:id', authMiddleware, verificarRoles([0, 1]), deletePublicacion);
 router.post('/:id/comentarios', authMiddleware, verificarRoles([0, 1, 2]), addComentario);
-
+router.get('/eventos/calendario', getEventosPorFecha);
 export default router;

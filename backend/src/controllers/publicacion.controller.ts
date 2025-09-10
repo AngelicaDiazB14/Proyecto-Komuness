@@ -270,3 +270,33 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
     res.status(500).json({ message: err.message });
   }
 };
+
+// Obtener eventos por rango de fechas
+export const getEventosPorFecha = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      res.status(400).json({ message: 'Se requieren startDate y endDate' });
+      return;
+    }
+
+    const eventos = await modelPublicacion.find({
+      tag: 'evento',
+      publicado: true,
+      fechaEvento: {
+        $gte: startDate as string,
+        $lte: endDate as string
+      }
+    })
+    .populate('autor', 'nombre')
+    .populate('categoria', 'nombre')
+    .select('titulo fechaEvento horaEvento contenido adjunto _id')
+    .sort({ fechaEvento: 1}); 
+
+    res.status(200).json(eventos);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
+};

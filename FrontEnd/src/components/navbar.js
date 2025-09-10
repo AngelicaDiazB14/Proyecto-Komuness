@@ -6,7 +6,7 @@ import {
   AiOutlineUser,
 } from "react-icons/ai";
 import logo from "../images/logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export const Navbar = () => {
   var usuario = JSON.parse(localStorage.getItem("user"));
@@ -31,7 +31,7 @@ export const Navbar = () => {
 
   return (
     <header className="navbar">
-     <a href = ""><img src={logo} className="logo" alt="/" /></a> 
+     <Link to="/"><img src={logo} className="logo" alt="Logo Komuness" /></Link>
       <nav>
         <ul className={nav ? ["menu", "activo"].join(" ") : ["menu"]}>
           <li onClick={() => handleNavigation("/publicaciones")}>
@@ -45,7 +45,10 @@ export const Navbar = () => {
           </li>
           <li onClick={() => handleNavigation("/biblioteca/0")}>
             <span>Biblioteca</span>
-          </li>
+          </li> 
+          <li onClick={() => handleNavigation("/calendario")}> 
+            <span>Calendario</span>
+          </li> 
          
           <li onClick={() => handleNavigation(goToLogin ? "/perfilUsuario" : "/iniciarSesion")}>
             <AiOutlineUser size={25} style={{ marginTop: "6px" }} />
