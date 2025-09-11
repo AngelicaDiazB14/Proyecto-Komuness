@@ -12,6 +12,7 @@ import {RecuperarContra} from './recuperarContra'
 import {NuevaContra} from './nuevaContra'
 import {CrearUsuario} from './crearUsuario'
 import CalendarView from './Calendar';
+import AdminCategorias from './adminCategorias';
 
 export const Rutas = () =>{
     
@@ -31,6 +32,7 @@ export const Rutas = () =>{
                 <Route path = "/nuevaCont" element= {<NuevaContra/>}/>
                 <Route path = "/crearUsr" element= {<CrearUsuario/>}/>
                 <Route path="/calendario" element={<CalendarView />} />
+                <Route path="/admin/categorias" element={<AdminCategorias />} />
 
 
                
