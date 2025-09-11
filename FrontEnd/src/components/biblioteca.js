@@ -205,7 +205,7 @@ const [nombre, setNombre] = useState('');
 const publicoParam = (user?.tipoUsuario === 0 || user?.tipoUsuario === 1) ? '' : '&publico=true';
 const handleSearch = useCallback(async () => {
   try {
-    const respuesta = await fetch(`${API_URL}/biblioteca/list/0?nombre=${encodeURIComponent(nombre)}&orden=asc&global=true${publicoParam}`);
+    const respuesta = await fetch(`${API_URL}/biblioteca/list/0?nombre=${nombre}&orden=asc&global=true`);
     const datos = await respuesta.json();
     const archivos = datos.contentFile.map(file => ({
       nombre: file.nombre,
@@ -244,7 +244,7 @@ useEffect(() => {
   const obtenerArchivos = async () => {
     try {
     
-      const response = await fetch(`${API_URL}/biblioteca/list/${id}?orden=asc${publicoParam}`);
+      const response = await fetch(`${API_URL}/biblioteca/list/${id}?orden=asc`);
       const data = await response.json();
       const archivos = data.contentFile.map(file => ({
         nombre: file.nombre,

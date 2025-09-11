@@ -107,17 +107,25 @@ class BibliotecaController {
                       .split(path.sep)
                       .join('/');
 
-                    //guardar los metadatos del archivo en la base de datos
+
+                    const folderValue =
+                        !folderId || folderId === '0'
+                            ? null
+                            : new mongoose.Types.ObjectId(folderId);
+                            
+                    const autorValue =
+                    new mongoose.Types.ObjectId(userId);
+
                     const archivo = new Archivo({
-                        nombre: file.originalname,
-                        fechaSubida: new Date(),
-                        tipoArchivo: file.mimetype,
-                        tamano: file.size,
-                        autor: userId,
-                        esPublico: false,
-                        url: '',          // la llenamos luego con el _id
-                        key: relKey,      // <- clave para ubicar el binario en disco
-                        folder: folderId || null
+                    nombre: file.originalname,
+                    fechaSubida: new Date(),
+                    tipoArchivo: file.mimetype,
+                    tamano: file.size,
+                    autor: autorValue,
+                    esPublico: false,       // si así lo quieres por flujo de publicación
+                    url: '',                // la llenamos después
+                    key: relKey,
+                    folder: folderValue
                     });
 
                     await archivo.save();
