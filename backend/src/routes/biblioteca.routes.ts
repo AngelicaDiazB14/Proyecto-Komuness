@@ -33,7 +33,8 @@ const router = Router();
  */
 // solo los tipoUsuarios 0, 1 y 2 pueden subir archivos
 // router.post("/upload", upload.array('archivos'), authMiddleware, verificarRoles([0, 1, 2]), BibliotecaController.uploadFiles as any);
-router.post("/upload", uploadLibrary.array('archivos'), authMiddleware, verificarRoles([0, 1, 2]), BibliotecaController.uploadFiles as any);
+router.post("/upload", authMiddleware, verificarRoles([0, 1, 2]), uploadLibrary.array('archivos'), BibliotecaController.uploadFiles as any
+);
 
 /* ====================== NUEVO: descarga del binario ====================== */
 /**
