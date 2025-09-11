@@ -502,39 +502,58 @@ class BibliotecaController {
 
     /* ====================== NUEVO: descarga del binario desde la VM ====================== */
     /**
-     * @description: Descarga un archivo de la biblioteca (binario en VM)
+     * @description: Descarga (o muestra inline) un archivo de la biblioteca (binario en VM)
      * @route: GET /api/biblioteca/files/:id
+     * Query opcionales:
+     *   - ?inline=1     -> intenta mostrar en el navegador (imágenes/PDF)
+     *   - ?download=1   -> fuerza descarga
      */
     static async downloadArchivo(req: Request, res: Response) {
-      try {
-        const { id } = req.params;
-        const doc = await Archivo.findById(id);
-        if (!doc) {
-          res.status(404).json({ success: false, message: 'Archivo no encontrado' });
-          return;
+        try {
+            const { id } = req.params;
+            const doc = await Archivo.findById(id);
+            if (!doc) {
+            res.status(404).json({ success: false, message: 'Archivo no encontrado' });
+            return;
+            }
+
+            const abs = path.resolve(LIB_DIR, String(doc.key || ''));
+            const libNorm = path.normalize(LIB_DIR + path.sep);
+            const absNorm = path.normalize(abs);
+
+            if (!absNorm.startsWith(libNorm)) {
+            res.status(403).json({ success: false, message: 'Ruta inválida' });
+            return;
+            }
+
+            if (doc.tipoArchivo) res.setHeader('Content-Type', doc.tipoArchivo);
+
+            /* ====================== NUEVO: decidir inline vs attachment ====================== */
+            const wantsDownload = req.query.download === '1';
+            const wantsInline  = req.query.inline === '1';
+            const isPreviewable =
+            !!doc.tipoArchivo &&
+            (doc.tipoArchivo.startsWith('image/') || doc.tipoArchivo === 'application/pdf');
+
+            const disposition =
+            (wantsDownload || (!wantsInline && !isPreviewable)) ? 'attachment' : 'inline';
+
+            if (doc.nombre) {
+            res.setHeader(
+                'Content-Disposition',
+                `${disposition}; filename="${encodeURIComponent(doc.nombre)}"`
+            );
+            }
+            /* ====================== FIN NUEVO ====================== */
+
+            const stream = fs.createReadStream(absNorm);
+            stream.on('error', () =>
+            res.status(404).json({ success: false, message: 'No se pudo abrir el archivo' })
+            );
+            stream.pipe(res);
+        } catch (error) {
+            res.status(500).json({ success: false, message: (error as Error).message });
         }
-
-        const abs = path.resolve(LIB_DIR, String(doc.key || ''));
-        const libNorm = path.normalize(LIB_DIR + path.sep);
-        const absNorm = path.normalize(abs);
-
-        if (!absNorm.startsWith(libNorm)) {
-          res.status(403).json({ success: false, message: 'Ruta inválida' });
-          return;
-        }
-
-        if (doc.tipoArchivo) res.setHeader('Content-Type', doc.tipoArchivo);
-        if (doc.nombre) {
-          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.nombre)}"`);
-        }
-
-        const stream = fs.createReadStream(absNorm);
-        stream.on('error', () => res.status(404).json({ success: false, message: 'No se pudo abrir el archivo' }));
-        stream.pipe(res);
-      } catch (error) {
-        res.status(500).json({ success: false, message: (error as Error).message });
-      }
     }
-    /* ====================== FIN NUEVO ====================== */
 }
 export default BibliotecaController;
