@@ -1,10 +1,11 @@
 // src/components/publicaciones.js
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import '../CSS/publicaciones.css';
 import PublicacionCard from './publicacionCard';
 import FormularioPublicacion from '../pages/formulario';
 import { useAuth } from './context/AuthContext';
+import CategoriaFilter from './categoriaFilter';
 
 // URL base del backend (usa .env en build o IP directa)
 const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
@@ -12,11 +13,13 @@ const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
 export const Publicaciones = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [mostrar, setMostrar] = useState(0);
   const [cards, setCards] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
+  const [categoriaFilter, setCategoriaFilter] = useState(null); // Añade este estado
 
   const limite = 12; // cuántas publicaciones por página
   const [tag, setTag] = useState(null);
@@ -24,6 +27,12 @@ export const Publicaciones = () => {
 
   const { user } = useAuth();
   const [publicaciones, setPublicaciones] = useState([]);
+
+  // Obtener categoría de los query parameters
+  useEffect(() => {
+    const categoriaId = searchParams.get('categoria');
+    setCategoriaFilter(categoriaId);
+  }, [searchParams]);
 
   // Cambia el "modo" según la ruta
   useEffect(() => {
@@ -46,13 +55,12 @@ export const Publicaciones = () => {
     setTotalPaginas(1);
   }, [location.pathname]);
 
-  // Cuando hay tag definido, trae la primera página
+  // Cuando hay tag definido o cambia el filtro de categoría, trae la primera página
   useEffect(() => {
     if (tag) {
-      obtenerPublicaciones(tag, 1, limite);
+      obtenerPublicaciones(tag, 1, limite, categoriaFilter);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tag]);
+  }, [tag, categoriaFilter]);
 
   // Filtra localmente según "mostrar" (por si el backend devuelve mezcla)
   useEffect(() => {
@@ -68,8 +76,7 @@ export const Publicaciones = () => {
     }
   }, [mostrar, publicaciones]);
 
-  // ====== CAMBIO CLAVE: obtenerPublicaciones via GET con query params ======
-  const obtenerPublicaciones = async (tag, page = 1, limit = limite) => {
+  const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId = null) => {
     try {
       const offset = (page - 1) * limit;
 
@@ -78,6 +85,11 @@ export const Publicaciones = () => {
       params.set('offset', String(offset));
       params.set('limit', String(limit));
       params.set('publicado', 'true');
+      
+      // Añadir filtro por categoría si existe
+      if (categoriaId) {
+        params.set('categoria', categoriaId);
+      }
 
       const resp = await fetch(`${API}/publicaciones?${params.toString()}`, {
         method: 'GET',
@@ -108,13 +120,13 @@ export const Publicaciones = () => {
       setTotalPaginas(1);
     }
   };
-  // ====== FIN CAMBIO ======
 
   return (
     <div className="bg-gray-800/80 pt-16 min-h-screen">
+      <CategoriaFilter />
       <div className="card-container">
         {cards.length === 0 ? (
-          <p>No hay publicaciones para mostrar.</p>
+          <p className="text-white">No hay publicaciones para mostrar.</p>
         ) : (
           cards.map((publicacion) => (
             <PublicacionCard key={publicacion._id} publicacion={publicacion} />
@@ -125,8 +137,8 @@ export const Publicaciones = () => {
       <div className="w-full flex justify-center mt-6 gap-2 flex-wrap pb-6">
         {paginaActual > 1 && (
           <button
-            onClick={() => obtenerPublicaciones(tag, paginaActual - 1, limite)}
-            className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600"
+            onClick={() => obtenerPublicaciones(tag, paginaActual - 1, limite, categoriaFilter)}
+            className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
           >
             « Anterior
           </button>
@@ -145,7 +157,7 @@ export const Publicaciones = () => {
                 <span className="px-2 py-1 text-gray-500">...</span>
               )}
               <button
-                onClick={() => obtenerPublicaciones(tag, p, limite)}
+                onClick={() => obtenerPublicaciones(tag, p, limite, categoriaFilter)}
                 className={`px-3 py-1 rounded text-sm ${
                   p === paginaActual
                     ? 'bg-[#5445FF] text-white'
@@ -159,8 +171,8 @@ export const Publicaciones = () => {
 
         {paginaActual < totalPaginas && (
           <button
-            onClick={() => obtenerPublicaciones(tag, paginaActual + 1, limite)}
-            className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600"
+            onClick={() => obtenerPublicaciones(tag, paginaActual + 1, limite, categoriaFilter)}
+            className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
           >
             Siguiente »
           </button>
