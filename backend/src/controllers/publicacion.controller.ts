@@ -88,13 +88,13 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
     const [publicaciones, totalPublicaciones] = await Promise.all([
       modelPublicacion.find(query)
         .populate('autor', 'nombre')
-        .sort({ createdAt: -1 })
+        .populate('categoria', 'nombre estado') 
         .skip(offset)
         .limit(limit),
       modelPublicacion.countDocuments(query),
     ]);
 
-    // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
+ // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
     res.status(200).json({
       data: publicaciones,
       pagination: {
@@ -115,11 +115,15 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
 export const getPublicacionById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const publicacion: IPublicacion | null = await modelPublicacion.findById(id);
+    const publicacion: IPublicacion | null = await modelPublicacion.findById(id)
+      .populate('autor', 'nombre')
+      .populate('categoria', 'nombre estado'); 
+
     if (!publicacion) {
       res.status(404).json({ message: 'Publicación no encontrada' });
       return;
     }
+    console.log('Publicación con categoría:', publicacion.categoria); // Para debug
     res.status(200).json(publicacion);
   } catch (error) {
     const err = error as Error;
@@ -139,8 +143,7 @@ export const getPublicacionesByCategoria = async (req: Request, res: Response): 
     const [publicaciones, total] = await Promise.all([
       modelPublicacion.find(query)
         .populate('autor', 'nombre')
-        .populate('categoria', 'nombre')
-        .sort({ createdAt: -1 })
+        .populate('categoria', 'nombre estado') 
         .skip(offset)
         .limit(limit),
       modelPublicacion.countDocuments(query)
