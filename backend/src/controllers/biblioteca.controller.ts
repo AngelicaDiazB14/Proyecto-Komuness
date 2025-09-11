@@ -108,25 +108,24 @@ class BibliotecaController {
                       .join('/');
 
 
-                    const folderValue =
-                        !folderId || folderId === '0'
-                            ? null
-                            : new mongoose.Types.ObjectId(folderId);
-                            
-                    const autorValue =
-                    new mongoose.Types.ObjectId(userId);
+                    // dentro del try de cada file en uploadFiles
+                    const folderValue = (!folderId || folderId === '0') ? null : new mongoose.Types.ObjectId(folderId);
+                    const autorValue  = new mongoose.Types.ObjectId(userId);
 
+                    // Mongoose ya asigna _id al instanciar:
                     const archivo = new Archivo({
                     nombre: file.originalname,
                     fechaSubida: new Date(),
                     tipoArchivo: file.mimetype,
                     tamano: file.size,
                     autor: autorValue,
-                    esPublico: false,       // si así lo quieres por flujo de publicación
-                    url: '',                // la llenamos después
+                    esPublico: false,
                     key: relKey,
-                    folder: folderValue
+                    folder: folderValue,
+                    // ⚠️ asigna la URL ANTES de guardar
+                    url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/biblioteca/files/${/* usa el _id ya creado */ String(new mongoose.Types.ObjectId((new (Archivo as any))())._id)}`
                     });
+
 
                     await archivo.save();
 
