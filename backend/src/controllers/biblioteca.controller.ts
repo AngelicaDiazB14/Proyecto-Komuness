@@ -109,38 +109,33 @@ class BibliotecaController {
 
 
                     // dentro del try de cada file en uploadFiles
-                    const folderValue = (!folderId || folderId === '0') ? null : new mongoose.Types.ObjectId(folderId);
-                    const autorValue  = new mongoose.Types.ObjectId(userId);
+                    const folderValue =
+                        !folderId || folderId === '0' ? null : new mongoose.Types.ObjectId(folderId);
+                    const autorValue = new mongoose.Types.ObjectId(userId);
 
-                    // Mongoose ya asigna _id al instanciar:
+                    // 1) Instancia (Mongoose ya asigna _id antes de guardar)
                     const archivo = new Archivo({
-                    nombre: file.originalname,
-                    fechaSubida: new Date(),
-                    tipoArchivo: file.mimetype,
-                    tamano: file.size,
-                    autor: autorValue,
-                    esPublico: false,
-                    key: relKey,
-                    folder: folderValue,
-                    // ⚠️ asigna la URL ANTES de guardar
-                    url: `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/biblioteca/files/${/* usa el _id ya creado */ String(new mongoose.Types.ObjectId((new (Archivo as any))())._id)}`
+                        nombre: file.originalname,
+                        fechaSubida: new Date(),
+                        tipoArchivo: file.mimetype,
+                        tamano: file.size,
+                        autor: autorValue,
+                        esPublico: false,
+                        key: relKey,
+                        folder: folderValue,
                     });
 
-
+                    // 2) Asigna la URL usando el _id generado y guarda una sola vez
+                    archivo.url = `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/biblioteca/files/${archivo._id}`;
                     await archivo.save();
 
-                    // URL de descarga expuesta por el backend
-                    const downloadUrl = `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/biblioteca/files/${archivo._id}`;
-                    archivo.url = downloadUrl;
-                    await archivo.save();
-
-                    //guardando el estado de la subida en disco (VM) y en la base de datos
                     return {
                         success: true,
                         nombre: file.originalname,
                         message: 'Archivo subido correctamente',
                         content: archivo
                     };
+
                 } catch (error) {
                     console.error('Error detallado:', error); // Mejor logging
                     return {
