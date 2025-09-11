@@ -426,6 +426,18 @@ export const PerfilUsuario = () => {
           </div>
 
           {user.tipoUsuario === 0 && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-black mb-2">Administración</h2>
+              <a 
+                href="/admin/categorias" 
+                className="text-blue-600 hover:underline"
+              >
+                Gestionar Categorías
+              </a>
+            </div>
+          )}
+
+          {user.tipoUsuario === 0 && (
             <div className="overflow-x-auto max-h-[300px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
               <h2 className="text-lg font-semibold text-black mb-2">Otorgar permisos</h2>
 
