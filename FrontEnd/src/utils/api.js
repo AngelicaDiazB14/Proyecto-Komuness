@@ -1,6 +1,6 @@
-export const API_URL = "http://159.54.148.238/api";
+export const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
 
-
+// hace una petición HTTP al backend
 export const getCategoriaById = async (id) => {
   try {
     const response = await fetch(`${API_URL}/categorias/${id}`);

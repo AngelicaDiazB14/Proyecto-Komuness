@@ -1,7 +1,8 @@
 import { IoMdArrowRoundBack } from "react-icons/io";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { API_URL } from "../utils/api";
+import { API_URL, getCategoriaById } from "../utils/api";
+
 
 import Slider from "./slider";
 import ComentariosPub from "./comentariosPub";
@@ -19,6 +20,7 @@ export const PublicacionDetalle = () => {
   const [publicacion, setPublicacion] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+    const [categoriaCompleta, setCategoriaCompleta] = useState(null); // ← Nuevo estado
   
   useEffect(() => {
     const obtenerPublicacion = async () => {
@@ -32,7 +34,19 @@ export const PublicacionDetalle = () => {
         if (!response.ok) {
           throw new Error(data.mensaje || "No se encontró la publicación");
         }
-        setPublicacion(data);
+       
+      if (data.categoria && typeof data.categoria === 'string') {
+          console.log('🔄 Obteniendo datos de categoría...');
+          const categoriaData = await getCategoriaById(data.categoria);
+          if (categoriaData) {
+            setCategoriaCompleta(categoriaData);
+          }
+        } else if (data.categoria && data.categoria.nombre) {
+          // Si ya está populada
+          setCategoriaCompleta(data.categoria);
+        }
+
+      setPublicacion(data);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -80,23 +94,26 @@ export const PublicacionDetalle = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-800/80">
-      <div className="flex items-center gap-2 mb-4">
-        <strong>Clasificación:</strong>
-        <CategoriaBadge categoria={publicacion.categoria} />
+  <div className="min-h-screen bg-gray-800/80">
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="md:hidden flex justify-between w-full mb-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-gray-600 text-2xl font-bold"
+        >
+          <IoMdArrowRoundBack color={"white"} size={35} />
+        </button>
       </div>
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <div className="md:hidden flex justify-between w-full mb-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="text-gray-600 text-2xl font-bold"
-          >
-            <IoMdArrowRoundBack color={"white"} size={35} />
-          </button>
-        </div>
 
-        {
+      {publicacion && ( // ← ESTE ES EL BLOQUE CONDICIONAL PRINCIPAL
+        <>
+          {/* BADGE DE CATEGORÍA MOVIDO AQUÍ DENTRO */}
+          <div className="flex items-center gap-2 mb-4">
+              <strong className="text-white">Clasificación:</strong>
+              <CategoriaBadge categoria={categoriaCompleta} />
+            </div>
+
           <div>
             <div className="flex items-center justify-between w-full mb-4">
               {/* Botón atrás (izquierda) */}
@@ -139,34 +156,35 @@ export const PublicacionDetalle = () => {
               </div>
             </div>
 
-            <h2>
+            <h2 className="text-white">
               {publicacion.autor
                 ? publicacion.autor.nombre
                 : "Autor desconocido"}
             </h2>
             <Slider key={publicacion._id} publicacion={publicacion} />
             <div className="text-white-600">
-              <p className="mt-2">
+              <p className="mt-2 text-white">
                 <strong>Fecha:</strong> {publicacion.fecha}
               </p>
-              <p>
-                <strong>Categoría:</strong> {publicacion.tag}
+              <p className="text-white">
+                <strong>Tipo:</strong> {publicacion.tag}
               </p>
               <p className="mt-4 text-white whitespace-pre-line">{publicacion.contenido}</p>
             </div>
           </div>
-        }
 
-        {/* COMENTARIOS */}
-        <ComentariosPub
-          comentarios={comentarios}
-          setComentarios={setComentarios}
-          publicacionId={publicacion._id}
-          usuario={user}
-        />
-      </div>
+          {/* COMENTARIOS */}
+          <ComentariosPub
+            comentarios={comentarios}
+            setComentarios={setComentarios}
+            publicacionId={publicacion._id}
+            usuario={user}
+          />
+        </>
+      )}
     </div>
-  );
+  </div>
+);
 };
 
 export default PublicacionDetalle;

@@ -40,14 +40,15 @@ export const CategoriaFilter = () => {
   };
 
   return (
-    <div className="flex items-center gap-2 p-4 bg-gray-700 rounded-lg mb-4">
-      <label className="text-white font-semibold">Filtrar por área:</label>
+   <div className="flex justify-end  bg-blue-900"> {/* Contenedor padre */}
+    <div className="flex items-center gap-2 p-2 mb-4">
+      <label className="text-yellow-400  p-2 font-bold text-sm">Categorías</label>
       <select
         value={selectedCategoria}
         onChange={handleCategoriaChange}
-        className="p-2 border rounded text-black" 
+        className=" border rounded border-e-blue-900  p-2 bg-blue-900 text-gray-50 text-sm" 
       >
-        <option value="">Todas las áreas</option>
+        <option value="">Todas las categorías</option>
         {categorias.map((categoria) => (
           <option key={categoria._id} value={categoria._id}>
             {categoria.nombre.toUpperCase()}
@@ -55,6 +56,7 @@ export const CategoriaFilter = () => {
         ))}
       </select>
     </div>
+  </div>
   );
 };
 

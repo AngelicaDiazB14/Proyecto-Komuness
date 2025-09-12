@@ -79,16 +79,20 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { tag, publicado } = req.query as { tag?: string; publicado?: string };
-
-    const query: { tag?: string; publicado?: boolean } = {};
+    const { tag, publicado, categoria } = req.query as { tag?: string; publicado?: string, categoria?: string;};
+    
+    const query: any = {}; 
     if (tag) query.tag = tag;
     if (publicado !== undefined) query.publicado = (publicado === 'true');
-
+    
+    if (categoria) {
+      query.categoria = categoria;
+    }
     const [publicaciones, totalPublicaciones] = await Promise.all([
       modelPublicacion.find(query)
         .populate('autor', 'nombre')
         .populate('categoria', 'nombre estado') 
+        .sort({ createdAt: -1 })
         .skip(offset)
         .limit(limit),
       modelPublicacion.countDocuments(query),
@@ -123,7 +127,6 @@ export const getPublicacionById = async (req: Request, res: Response): Promise<v
       res.status(404).json({ message: 'Publicación no encontrada' });
       return;
     }
-    console.log('Publicación con categoría:', publicacion.categoria); // Para debug
     res.status(200).json(publicacion);
   } catch (error) {
     const err = error as Error;

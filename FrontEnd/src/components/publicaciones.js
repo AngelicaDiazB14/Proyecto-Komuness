@@ -10,19 +10,18 @@ import CategoriaFilter from './categoriaFilter';
 // URL base del backend (usa .env en build o IP directa)
 const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
 
-export const Publicaciones = () => {
+export const Publicaciones = ({ tag: propTag }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [mostrar, setMostrar] = useState(0);
   const [cards, setCards] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [categoriaFilter, setCategoriaFilter] = useState(null); // Añade este estado
-
-  const limite = 12; // cuántas publicaciones por página
-  const [tag, setTag] = useState(null);
+  const [tag, setTag] = useState(propTag); // 
+  const limite = 10; // cuántas publicaciones por página
   const [formulario, setFormulario] = useState(false);
 
   const { user } = useAuth();
@@ -36,24 +35,28 @@ export const Publicaciones = () => {
 
   // Cambia el "modo" según la ruta
   useEffect(() => {
-    const path = location.pathname;
-    if (path === '/eventos') {
-      setMostrar(0);
-      setTag('evento');
-    } else if (path === '/emprendimientos') {
-      setMostrar(1);
-      setTag('emprendimiento');
-    } else if (path === '/publicaciones') {
-      setMostrar(2);
-      setTag('publicacion');
-    } else if (path === '/perfilUsuario') {
-      setMostrar(3);
-      setTag(null);
-    }
-    setPublicaciones([]);
-    setPaginaActual(1);
-    setTotalPaginas(1);
-  }, [location.pathname]);
+      const path = location.pathname;
+      let newTag = propTag; // ← Usa la prop directamente
+      
+      if (path === '/eventos') {
+        setMostrar(0);
+        newTag = 'evento';
+      } else if (path === '/emprendimientos') {
+        setMostrar(1);
+        newTag = 'emprendimiento';
+      } else if (path === '/publicaciones') {
+        setMostrar(2);
+        newTag = 'publicacion';
+      } else if (path === '/perfilUsuario') {
+        setMostrar(3);
+        newTag = null;
+      }
+      
+      setTag(newTag);
+      setPublicaciones([]);
+      setPaginaActual(1);
+      setTotalPaginas(1);
+    }, [location.pathname, propTag]);
 
   // Cuando hay tag definido o cambia el filtro de categoría, trae la primera página
   useEffect(() => {
@@ -122,7 +125,7 @@ export const Publicaciones = () => {
   };
 
   return (
-    <div className="bg-gray-800/80 pt-16 min-h-screen">
+    <div className="bg-gray-800/80 pt-1 min-h-screen">
       <CategoriaFilter />
       <div className="card-container">
         {cards.length === 0 ? (
