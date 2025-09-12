@@ -120,7 +120,7 @@ class BibliotecaController {
                         tipoArchivo: file.mimetype,
                         tamano: file.size,
                         autor: autorValue,
-                        esPublico: false,
+                        esPublico: true,              // <--- ÚNICO CAMBIO: todo queda publicado
                         key: relKey,
                         folder: folderValue,
                     });
