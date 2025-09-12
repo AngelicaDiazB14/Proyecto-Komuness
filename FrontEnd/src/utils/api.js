@@ -1,5 +1,4 @@
 export const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
-
 // hace una petición HTTP al backend
 export const getCategoriaById = async (id) => {
   try {
@@ -13,3 +12,4 @@ export const getCategoriaById = async (id) => {
     return null;
   }
 };
+
