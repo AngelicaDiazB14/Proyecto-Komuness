@@ -1,0 +1,375 @@
+/* Contenedor principal */
+.admin-categorias-container {
+  min-height: 100vh;
+  background-color: rgba(31, 41, 55, 0.8);
+  padding: 1rem;
+}
+
+.admin-categorias-content {
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Header */
+.admin-categorias-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-categorias-back-btn {
+  background-color: #6b7280;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  align-self: flex-start;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-categorias-back-btn:hover {
+  background-color: #4b5563;
+}
+
+.admin-categorias-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+/* Formulario */
+.admin-categorias-form-container {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-categorias-subtitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.admin-categorias-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-categorias-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #000;
+  transition: all 0.2s;
+}
+
+.admin-categorias-input:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #3b82f6;
+  border-color: transparent;
+}
+
+.admin-categorias-form-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-categorias-submit-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.admin-categorias-submit-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.admin-categorias-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-categorias-cancel-btn {
+  background-color: #6b7280;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.admin-categorias-cancel-btn:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+/* Tabla */
+.admin-categorias-table-container {
+  background-color: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.admin-categorias-table-wrapper {
+  overflow-x: auto;
+}
+
+.admin-categorias-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-categorias-table-header {
+  background-color: #f9fafb;
+}
+
+.admin-categorias-th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.admin-categorias-tr {
+  color: #000;
+}
+
+.admin-categorias-tr-even {
+  background-color: #f9fafb;
+}
+
+.admin-categorias-tr-odd {
+  background-color: white;
+}
+
+.admin-categorias-td {
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.admin-categorias-td-name {
+  font-weight: 500;
+}
+
+.admin-categorias-status {
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.admin-categorias-status-active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.admin-categorias-status-inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-categorias-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-categorias-edit-btn {
+  background-color: #eab308;
+  color: #000;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.admin-categorias-edit-btn:hover {
+  background-color: #ca8a04;
+}
+
+.admin-categorias-delete-btn {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.admin-categorias-delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.admin-categorias-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* Loading */
+.admin-categorias-loading {
+  min-height: 100vh;
+  background-color: rgba(31, 41, 55, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Media Queries para Responsividad */
+@media (min-width: 640px) {
+  .admin-categorias-container {
+    padding: 1.5rem;
+  }
+  
+  .admin-categorias-form {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+  
+  .admin-categorias-form-buttons {
+    flex-direction: row;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-categorias-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .admin-categorias-th {
+    padding: 1rem;
+  }
+  
+  .admin-categorias-td {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-categorias-container {
+    padding: 2rem;
+  }
+  
+  .admin-categorias-form-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .admin-categorias-actions {
+    flex-direction: column;
+  }
+  
+  .admin-categorias-form-buttons {
+    width: 100%;
+  }
+  
+  .admin-categorias-submit-btn,
+  .admin-categorias-cancel-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Botón de volver personalizado */
+.admin-categorias-back-btn.hidden {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .admin-categorias-back-btn.hidden {
+    display: inline;
+  }
+}
+
+/* Botón de volver */
+.admin-categorias-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background-color: white;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-categorias-back-btn:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Contenedor con scroll para la tabla */
+.admin-categorias-table-container {
+  background-color: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  max-height: 60vh; /* Altura máxima para el scroll */
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-categorias-table-wrapper {
+  overflow: auto; /* Scroll automático cuando sea necesario */
+  flex: 1;
+}
+
+/* Asegurar que la tabla ocupe todo el ancho */
+.admin-categorias-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Ancho mínimo para evitar compresión excesiva */
+}
+
+/* Header fijo si lo deseas (opcional) */
+.admin-categorias-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f9fafb;
+}
+
+/* Mejoras de scroll para mejor experiencia */
+.admin-categorias-table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-categorias-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.admin-categorias-table-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.admin-categorias-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

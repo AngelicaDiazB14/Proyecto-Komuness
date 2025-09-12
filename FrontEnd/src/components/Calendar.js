@@ -4,7 +4,6 @@ import moment from 'moment';
 import 'moment/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../utils/api';
 import '../CSS/calendar.css';
 
 // Configurar moment en español
@@ -37,9 +36,6 @@ export const CalendarView = () => {
       const startOfMonth = dateMoment.startOf('month').format('YYYY-MM-DD');
       const endOfMonth = dateMoment.endOf('month').format('YYYY-MM-DD');
       
-      console.log(' Fechas de búsqueda:', startOfMonth, 'hasta', endOfMonth);
-      console.log('Hoy es:', new Date().toLocaleDateString());
-      
       const response = await fetch(
         `http://localhost:5000/api/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
       );
@@ -51,10 +47,6 @@ export const CalendarView = () => {
       const calendarEvents = eventos.map(evento => {
         const [year, month, day] = evento.fechaEvento.split('-');
         const fechaEvento = new Date(year, month - 1, day);
-        
-        console.log('Evento:', evento.titulo, 
-                   'Fecha BD:', evento.fechaEvento, 
-                   'Fecha en calendario:', fechaEvento.toLocaleDateString());
         
         return {
           id: evento._id,
