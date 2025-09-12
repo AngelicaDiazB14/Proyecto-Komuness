@@ -43,7 +43,6 @@ export const Biblioteca = () => {
 
   const handleDelete = async () => {
     try {
-      // Si es una carpeta, ejecuta una lógica distinta
       if (selectedDoc.tag === 'carpeta') {
         await toast.promise(
           fetch(`${API_URL}/biblioteca/folder/${selectedDoc.id}`, {
@@ -62,7 +61,6 @@ export const Biblioteca = () => {
           }
         );
       } else {
-        // Si no es una carpeta, eliminar como archivo
         await toast.promise(
           fetch(`${API_URL}/biblioteca/delete/${selectedDoc.id}`, {
             method: "DELETE",
@@ -81,7 +79,6 @@ export const Biblioteca = () => {
         );
       }
 
-      // Remover del estado ambos casos
       setDocumentos((prevDocs) =>
         prevDocs.filter((doc) => doc.id !== selectedDoc.id)
       );
@@ -133,7 +130,6 @@ export const Biblioteca = () => {
     }
   })
 
-  // PREVISTA: agrega key en el elemento raíz (no en DocumentCard) para evitar el warning
   const files = acceptedFiles.map(file => (
     <div
       key={`${file.name}-${file.size}-${file.lastModified ?? ''}`}
@@ -148,17 +144,55 @@ export const Biblioteca = () => {
     </div>
   ));
 
-  // Navegación para modal (usa selectedDoc)
   const handleNavigation = () => {
     handleCloseModal();
+    // Persistimos nombre de carpeta al navegar (para F5)
+    if (selectedDoc?.id && selectedDoc?.nombre) {
+      sessionStorage.setItem(`bibFolderName:${selectedDoc.id}`, selectedDoc.nombre);
+    }
     navigate(`/biblioteca/${selectedDoc.id}`)
   };
 
-  // Navegación directa al hacer clic en una carpeta de la lista
   const handleOpenFolder = (docId, docName) => {
     handleCloseModal();
+    // Guardar nombre para sobrevivir a F5
+    if (docId && docName) {
+      sessionStorage.setItem(`bibFolderName:${docId}`, docName);
+      setFolderName(docName);
+    }
     navigate(`/biblioteca/${docId}`, { state: { folderName: docName } });
   };
+
+  // ----------- NUEVO: función reutilizable para cargar contenido de la carpeta actual -----------
+  const fetchFolderContents = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/biblioteca/list/${id}?orden=asc`);
+      const data = await response.json();
+
+      const archivos = (data.contentFile || []).map(file => ({
+        nombre: file.nombre,
+        autor: file.autor?.nombre || "Desconocido",
+        size: `${(file.tamano / (1024 * 1024)).toFixed(2)} MB`,
+        tag: mapTipoArchivo(file.tipoArchivo),
+        url: file.url,
+        id: file._id
+      }));
+
+      const carpetas = (data.contentFolder || []).map(folder => ({
+        nombre: folder.nombre,
+        autor: "",
+        size: "",
+        tag: "carpeta",
+        id: folder._id
+      }));
+
+      setDocumentos([...carpetas, ...archivos]);
+      setDocumentosFiltrados([...carpetas, ...archivos]);
+    } catch (error) {
+      console.error("Error al obtener archivos:", error);
+    }
+  }, [id]);
+  // -----------------------------------------------------------------------------------------------
 
   // SUBIDA DE ARCHIVOS
   async function handleOnSubmit(params) {
@@ -193,13 +227,17 @@ export const Biblioteca = () => {
         duration: 8000,
       }
     );
+
+    // Tras subir, recarga el contenido de la carpeta actual
+    fetchFolderContents();
   }
 
   // SEARCH
   const [nombre, setNombre] = useState('');
   const publicoParam = (user?.tipoUsuario === 0 || user?.tipoUsuario === 1) ? '' : '&publico=true';
+
   const handleSearch = useCallback(async () => {
-  const q = nombre.trim();
+    const q = nombre.trim();
     if (q === '') return; // evita sobreescribir la vista de la carpeta al montar/refrescar
 
     try {
@@ -208,7 +246,7 @@ export const Biblioteca = () => {
       );
       const datos = await respuesta.json();
 
-      const archivos = datos.contentFile.map(file => ({
+      const archivos = (datos.contentFile || []).map(file => ({
         nombre: file.nombre,
         autor: file.autor?.nombre || "Desconocido",
         size: `${(file.tamano / (1024 * 1024)).toFixed(2)} MB`,
@@ -217,7 +255,7 @@ export const Biblioteca = () => {
         id: file._id
       }));
 
-      const carpetas = datos.contentFolder.map(folder => ({
+      const carpetas = (datos.contentFolder || []).map(folder => ({
         nombre: folder.nombre,
         autor: "",
         size: "",
@@ -232,7 +270,6 @@ export const Biblioteca = () => {
     }
   }, [nombre]);
 
-
   // Lanzar búsqueda automáticamente al escribir con debounce
   useEffect(() => {
     const q = nombre.trim();
@@ -244,37 +281,17 @@ export const Biblioteca = () => {
     return () => clearTimeout(delayDebounce);
   }, [nombre, handleSearch]);
 
-  // OBTENER TODOS LOS ARCHIVOS
+  // OBTENER CONTENIDO DE LA CARPETA ACTUAL
   useEffect(() => {
-    const obtenerArchivos = async () => {
-      try {
-        const response = await fetch(`${API_URL}/biblioteca/list/${id}?orden=asc`);
-        const data = await response.json();
-        const archivos = data.contentFile.map(file => ({
-          nombre: file.nombre,
-          autor: file.autor?.nombre || "Desconocido",
-          size: `${(file.tamano / (1024 * 1024)).toFixed(2)} MB`,
-          tag: mapTipoArchivo(file.tipoArchivo),
-          url: file.url,
-          id: file._id
-        }));
+    fetchFolderContents();
+  }, [fetchFolderContents]);
 
-        const carpetas = data.contentFolder.map(folder => ({
-          nombre: folder.nombre,
-          autor: "",
-          size: "",
-          tag: "carpeta",
-          id: folder._id
-        }));
-
-        setDocumentos([...carpetas, ...archivos]);
-        setDocumentosFiltrados([...carpetas, ...archivos]);
-
-      } catch (error) {
-        console.error("Error al obtener archivos:", error);
-      }
-    };
-    obtenerArchivos();
+  // Si venimos de navegación directa (F5), recupera el nombre de la carpeta del sessionStorage
+  useEffect(() => {
+    if (!location.state?.folderName && id && id !== '0') {
+      const memo = sessionStorage.getItem(`bibFolderName:${id}`);
+      if (memo) setFolderName(memo);
+    }
   }, [id, location.state?.folderName]);
 
   useEffect(() => {
@@ -296,15 +313,9 @@ export const Biblioteca = () => {
     return "otro";
   };
 
-  useEffect(() => {
-    const handlePopState = () => {
-      window.location.reload(); // fuerza el reload completo
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
+  // *** IMPORTANTE ***
+  // Se elimina el listener que hacía window.location.reload() en popstate
+  // (rompía la navegación de la SPA y contribuía al “salto” a la raíz).
 
   const [documentosFiltrados, setDocumentosFiltrados] = useState([]);
   const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState("");
@@ -357,10 +368,15 @@ export const Biblioteca = () => {
       }
     );
 
-    // Limpiar y cerrar
+    // Guardar el nombre si estamos dentro de una carpeta específica
+    if (id && id !== '0') {
+      sessionStorage.setItem(`bibFolderName:${id}`, folderName);
+    }
+
     setNombreCarpeta("");
     setMostrarModal(false);
-    window.location.reload();
+    // En vez de recargar toda la página, refrescamos la lista
+    fetchFolderContents();
   };
 
   return (
@@ -425,7 +441,6 @@ export const Biblioteca = () => {
               + Crear carpeta
             </button>
 
-            {/* Modal */}
             {mostrarModal && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                 <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
@@ -463,7 +478,6 @@ export const Biblioteca = () => {
       <div className="flex flex-wrap justify-center gap-4 w-full max-w-6xl p-4 text-black">
         <form className="flex flex-col md:flex-row gap-2 md:items-center w-full">
 
-          {/* <!-- Input de búsqueda --> */}
           <input
             type="text"
             placeholder="Buscar por nombre..."
@@ -472,7 +486,6 @@ export const Biblioteca = () => {
             onChange={(e) => setNombre(e.target.value)}
           />
 
-          {/* <!-- Select de etiquetas --> */}
           <select
             value={etiquetaSeleccionada}
             onChange={handleFiltroChange}
@@ -488,7 +501,6 @@ export const Biblioteca = () => {
             <option value="zip">Zip</option>
           </select>
 
-          {/* <!-- Botón de búsqueda --> */}
           <button
             className="w-full focus:ring focus:outline md:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
             onClick={(e) => { e.preventDefault(); handleSearch(); }}
