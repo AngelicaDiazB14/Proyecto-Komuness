@@ -6,6 +6,8 @@ import { API_URL } from "../utils/api";
 import "../CSS/perfilUsuario.css";
 import { useAuth } from "./context/AuthContext";
 import ModalCambioContrasena from "./modalCambioContra";
+import { Link } from "react-router-dom"; 
+import { FaListAlt } from "react-icons/fa";
 
 export const PerfilUsuario = () => {
   const navigate = useNavigate();
@@ -293,8 +295,20 @@ export const PerfilUsuario = () => {
       {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
         <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-6">
           <h1 className="text-black">Dashboard Administrativo</h1>
+             {user.tipoUsuario === 0 || user.tipoUsuario === 1 && (
+            <div className="mb-6">
+            <Link 
+              to="/admin/categorias" 
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+            >
+              <FaListAlt className="w-4 h-4 mr-2" />
+              Gestionar Categorías
+            </Link>
+          </div>
+          )}
 
           <div className="overflow-x-auto max-h-[300px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
+            
             <h2 className="text-lg font-semibold text-black mb-2">
               Publicaciones nuevas
             </h2>
@@ -424,8 +438,8 @@ export const PerfilUsuario = () => {
               </tbody>
             </table>
           </div>
-
-          {user.tipoUsuario === 0 && (
+          {/* AQUÍ ES DONDE SE CAMBIA EL ROL PARA QUIEN PUEDA OTORGAR ROLES */}
+          {user.tipoUsuario === 0 || user.tipoUsuario === 1 && (
             <div className="overflow-x-auto max-h-[300px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
               <h2 className="text-lg font-semibold text-black mb-2">Otorgar permisos</h2>
 

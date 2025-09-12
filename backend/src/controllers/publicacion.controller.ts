@@ -79,22 +79,26 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = parseInt(req.query.limit as string) || 10;
-    const { tag, publicado } = req.query as { tag?: string; publicado?: string };
-
-    const query: { tag?: string; publicado?: boolean } = {};
+    const { tag, publicado, categoria } = req.query as { tag?: string; publicado?: string, categoria?: string;};
+    
+    const query: any = {}; 
     if (tag) query.tag = tag;
     if (publicado !== undefined) query.publicado = (publicado === 'true');
-
+    
+    if (categoria) {
+      query.categoria = categoria;
+    }
     const [publicaciones, totalPublicaciones] = await Promise.all([
       modelPublicacion.find(query)
         .populate('autor', 'nombre')
+        .populate('categoria', 'nombre estado') 
         .sort({ createdAt: -1 })
         .skip(offset)
         .limit(limit),
       modelPublicacion.countDocuments(query),
     ]);
 
-    // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
+ // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
     res.status(200).json({
       data: publicaciones,
       pagination: {
@@ -115,7 +119,10 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
 export const getPublicacionById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const publicacion: IPublicacion | null = await modelPublicacion.findById(id);
+    const publicacion: IPublicacion | null = await modelPublicacion.findById(id)
+      .populate('autor', 'nombre')
+      .populate('categoria', 'nombre estado'); 
+
     if (!publicacion) {
       res.status(404).json({ message: 'Publicación no encontrada' });
       return;
@@ -139,8 +146,7 @@ export const getPublicacionesByCategoria = async (req: Request, res: Response): 
     const [publicaciones, total] = await Promise.all([
       modelPublicacion.find(query)
         .populate('autor', 'nombre')
-        .populate('categoria', 'nombre')
-        .sort({ createdAt: -1 })
+        .populate('categoria', 'nombre estado') 
         .skip(offset)
         .limit(limit),
       modelPublicacion.countDocuments(query)
@@ -265,6 +271,36 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
     }
 
     res.status(200).json(publicaciones);
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Obtener eventos por rango de fechas
+export const getEventosPorFecha = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      res.status(400).json({ message: 'Se requieren startDate y endDate' });
+      return;
+    }
+
+    const eventos = await modelPublicacion.find({
+      tag: 'evento',
+      publicado: true,
+      fechaEvento: {
+        $gte: startDate as string,
+        $lte: endDate as string
+      }
+    })
+    .populate('autor', 'nombre')
+    .populate('categoria', 'nombre')
+    .select('titulo fechaEvento horaEvento contenido adjunto _id')
+    .sort({ fechaEvento: 1}); 
+
+    res.status(200).json(eventos);
   } catch (error) {
     const err = error as Error;
     res.status(500).json({ message: err.message });

@@ -3,6 +3,7 @@ import { IoMdClose } from "react-icons/io";
 import { useAuth } from "../components/context/AuthContext";
 import { API_URL } from "../utils/api";
 import { toast } from "react-hot-toast";
+import CategoriaSelector from '../components/categoriaSelector';
 
 export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
   const { user } = useAuth();
@@ -153,6 +154,15 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
               </select>
             </div>
 
+             <div>
+              <label className="block font-semibold">Clasificación:</label>
+              <CategoriaSelector 
+                selectedCategoria={formData.categoria}
+                onCategoriaChange={handleChange}
+                required={true}
+              />
+            </div>
+
             {/* (Opcional) ID de categoría de Mongo (si decides mostrarlo) */}
             {/* 
             <div>
@@ -177,8 +187,8 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
                 onChange={handleChange}
                 className="w-full p-2 border rounded"
                 placeholder={`Numero de telefono:
-Enlace de contacto:
-Descripción del evento:`}
+                Enlace de contacto:
+                Descripción del evento:`}
                 rows="4"
                 required
               />
@@ -227,7 +237,7 @@ Descripción del evento:`}
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(index)}
-                        className="absolute top-0 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded-full"
+                        className="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded-full"
                       >
                         <IoMdClose />
                       </button>
