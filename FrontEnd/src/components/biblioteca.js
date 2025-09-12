@@ -188,7 +188,7 @@ export const Biblioteca = () => {
         }),
       {
         loading: 'Subiendo archivos...',
-        success: 'Archivos subidos con éxito, solicita a un administrador que lo publique 🎉',
+        success: '¡Archivos subidos con éxito!',
         error: (err) => `Error: ${err.message}`,
         duration: 8000,
       }
@@ -199,9 +199,15 @@ export const Biblioteca = () => {
   const [nombre, setNombre] = useState('');
   const publicoParam = (user?.tipoUsuario === 0 || user?.tipoUsuario === 1) ? '' : '&publico=true';
   const handleSearch = useCallback(async () => {
+  const q = nombre.trim();
+    if (q === '') return; // evita sobreescribir la vista de la carpeta al montar/refrescar
+
     try {
-      const respuesta = await fetch(`${API_URL}/biblioteca/list/0?nombre=${nombre}&orden=asc&global=true`);
+      const respuesta = await fetch(
+        `${API_URL}/biblioteca/list/0?nombre=${encodeURIComponent(q)}&orden=asc&global=true`
+      );
       const datos = await respuesta.json();
+
       const archivos = datos.contentFile.map(file => ({
         nombre: file.nombre,
         autor: file.autor?.nombre || "Desconocido",
@@ -226,8 +232,12 @@ export const Biblioteca = () => {
     }
   }, [nombre]);
 
+
   // Lanzar búsqueda automáticamente al escribir con debounce
   useEffect(() => {
+    const q = nombre.trim();
+    if (q === '') return; // no dispares búsqueda global sin término
+
     const delayDebounce = setTimeout(() => {
       handleSearch();
     }, 400);
