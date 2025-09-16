@@ -27,8 +27,10 @@ const publicacionSchema = new Schema(
     comentarios: { type: [comentarioSchema], required: false },
     tag: { type: String, required: true },
     publicado: { type: Boolean, required: true },
-    fechaEvento: { type: String, required: false },
 
+    // Evento
+    fechaEvento: { type: String, required: false },
+    horaEvento:  { type: String, required: false }, 
     precio: { type: Number, required: false },
 
     // categorías de área

@@ -25,6 +25,14 @@ function mustRequirePrecio(tag?: string): boolean {
   return tag === 'evento' || tag === 'emprendimiento';
 }
 
+// NUEVO: normaliza hora del evento en formato HH:mm (24h). Si no cumple, se ignora.
+function parseHoraEvento(input: any): string | undefined {
+  if (typeof input !== 'string') return undefined;
+  const t = input.trim();
+  // acepta "HH:mm"
+  return /^\d{2}:\d{2}$/.test(t) ? t : undefined;
+}
+
 // Crear una publicación (sin adjuntos)
 export const createPublicacion = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -32,9 +40,11 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
 
     const precio = parsePrecio(body.precio);
     const tag = body.tag;
+    const horaEvento = parseHoraEvento(body.horaEvento); // ← NUEVO
 
     if (LOG_ON) {
       console.log('[Publicaciones][createPublicacion] req.body.precio:', body.precio, '→ normalizado:', precio);
+      console.log('[Publicaciones][createPublicacion] req.body.horaEvento:', body.horaEvento, '→ normalizado:', horaEvento);
       console.log('[Publicaciones][createPublicacion] tag:', tag);
     }
 
@@ -46,13 +56,17 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
     const publicacion: IPublicacion = {
       ...body,
       publicado: `${(body as any).publicado}` === 'true',
-      precio, // ← sobrescribimos ya normalizado
+      precio,        // ← ya normalizado
+      horaEvento,    // ← NUEVO: solo se guarda si vino válido
     } as IPublicacion;
 
     const nuevaPublicacion = new modelPublicacion(publicacion);
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacion] doc a guardar (clave precio):', nuevaPublicacion.precio);
+      console.log('[Publicaciones][createPublicacion] doc a guardar (precio, horaEvento):', {
+        precio: nuevaPublicacion.precio,
+        horaEvento: (nuevaPublicacion as any).horaEvento,
+      });
     }
 
     const savePost = await nuevaPublicacion.save();
@@ -92,12 +106,15 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       }
     }
 
-    // --- Precio ---
+    // --- Precio (existente) ---
     const precio = parsePrecio((publicacion as any).precio);
     const tag = (publicacion as any).tag;
+    // --- Hora del evento (NUEVO) ---
+    const horaEvento = parseHoraEvento((publicacion as any).horaEvento);
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacionA] body.precio:', (publicacion as any).precio, '→ normalizado:', precio);
+      console.log('[Publicaciones][createPublicacionA] body.precio:', (publicacion as any).precio, '→', precio);
+      console.log('[Publicaciones][createPublicacionA] body.horaEvento:', (publicacion as any).horaEvento, '→', horaEvento);
       console.log('[Publicaciones][createPublicacionA] tag:', tag);
     }
 
@@ -123,11 +140,15 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       adjunto: adjuntos,
       // normalizaciones útiles:
       publicado: `${(publicacion as any).publicado}` === 'true',
-      precio, // ← sobrescribimos ya normalizado
+      precio,                 // ← ya normalizado
+      horaEvento,             // ← NUEVO: solo se guarda si vino válido
     });
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacionA] doc a guardar (clave precio):', nuevaPublicacion.precio);
+      console.log('[Publicaciones][createPublicacionA] doc a guardar (precio, horaEvento):', {
+        precio: nuevaPublicacion.precio,
+        horaEvento: (nuevaPublicacion as any).horaEvento,
+      });
     }
 
     const savePost = await nuevaPublicacion.save();
@@ -242,6 +263,19 @@ export const updatePublicacion = async (req: Request, res: Response): Promise<vo
         console.log('[Publicaciones][updatePublicacion] body.precio:', updatedData.precio, '→ normalizado:', parsed);
       }
       updatedData.precio = parsed;
+    }
+
+    // NUEVO: si viene horaEvento, normalizar a HH:mm (si no es válida, se quita del update para no pisar nada)
+    if (updatedData.hasOwnProperty('horaEvento')) {
+      const parsedHora = parseHoraEvento(updatedData.horaEvento);
+      if (LOG_ON) {
+        console.log('[Publicaciones][updatePublicacion] body.horaEvento:', updatedData.horaEvento, '→ normalizado:', parsedHora);
+      }
+      if (parsedHora !== undefined) {
+        updatedData.horaEvento = parsedHora;
+      } else {
+        delete updatedData.horaEvento;
+      }
     }
 
     // Si cambia tag a evento/emprendimiento y no trae precio válido:
@@ -375,7 +409,7 @@ export const getEventosPorFecha = async (req: Request, res: Response): Promise<v
     })
     .populate('autor', 'nombre')
     .populate('categoria', 'nombre')
-    // 🔁 CAMBIO: incluir precio en la selección
+    // incluye horaEvento y precio
     .select('titulo fechaEvento horaEvento contenido adjunto _id precio')
     .sort({ fechaEvento: 1}); 
 

@@ -11,6 +11,7 @@ export interface IPublicacion {
   tag: 'publicacion' | 'evento' | 'emprendimiento';
   publicado: boolean;
   fechaEvento?: string;
+  horaEvento?: string;
   precio?: number;
   categoria: string;             // ObjectId as string
   createdAt?: string;

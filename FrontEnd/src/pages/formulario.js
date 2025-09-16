@@ -18,8 +18,9 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     tag: "",
     publicado: false,
     fechaEvento: "",
+    horaEvento: "",   // <-- NUEVO
     precio: "",
-    categoria: "", // <- permitir setear si lo agregas al UI
+    categoria: "",
   };
 
   const [formData, setFormData] = useState({
@@ -60,9 +61,10 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     data.append("fecha", formData.fecha);
     data.append("tag", formData.tag);
     data.append("publicado", String(formData.publicado));
-    data.append("fechaEvento", formData.fechaEvento);
-    data.append("precio", formData.precio);
-    data.append("categoria", formData.categoria || ""); // <- si va vacío, backend puede usar DEFAULT_CATEGORIA_ID
+    data.append("fechaEvento", formData.fechaEvento || "");
+    data.append("horaEvento", formData.horaEvento || ""); // <-- NUEVO
+    data.append("precio", formData.precio || "");
+    data.append("categoria", formData.categoria || "");
 
     formData.archivos.forEach((archivo) => {
       data.append("archivos", archivo);
@@ -82,7 +84,6 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
         Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
       },
     }).then(async (response) => {
-      // Si viene HTML (nginx/502), evitar error de JSON
       const text = await response.text();
       let result;
       try {
@@ -154,7 +155,7 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
               </select>
             </div>
 
-             <div>
+            <div>
               <label className="block font-semibold">Clasificación:</label>
               <CategoriaSelector 
                 selectedCategoria={formData.categoria}
@@ -162,21 +163,6 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
                 required={true}
               />
             </div>
-
-            {/* (Opcional) ID de categoría de Mongo (si decides mostrarlo) */}
-            {/* 
-            <div>
-              <label className="block font-semibold">ID de categoría (Mongo):</label>
-              <input
-                type="text"
-                name="categoria"
-                value={formData.categoria}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="64f3... ObjectId"
-              />
-            </div>
-            */}
 
             {/* Descripción */}
             <div>
@@ -194,7 +180,7 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
               />
             </div>
 
-            {/* Precio */}
+            {/* Precio (ya existente) */}
             {(formData.tag === "evento" || formData.tag === "emprendimiento") && (
               <div>
                 <label className="block font-semibold">Precio en colones:</label>
@@ -247,19 +233,33 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
               </div>
             )}
 
-            {/* Fecha de evento */}
+            {/* Fecha + Hora del evento */}
             {formData.tag === "evento" && (
-              <div>
-                <label className="block font-semibold">Fecha del evento:</label>
-                <input
-                  type="date"
-                  name="fechaEvento"
-                  value={formData.fechaEvento}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block font-semibold">Fecha del evento:</label>
+                  <input
+                    type="date"
+                    name="fechaEvento"
+                    value={formData.fechaEvento}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold">Hora del evento:</label>
+                  <input
+                    type="time"
+                    name="horaEvento"
+                    value={formData.horaEvento}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+              </>
             )}
 
             {/* botones desktop */}
