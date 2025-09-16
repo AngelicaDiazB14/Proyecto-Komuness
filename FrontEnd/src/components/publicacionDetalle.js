@@ -70,6 +70,9 @@ export const PublicacionDetalle = () => {
     && (publicacion.tag === 'evento' || publicacion.tag === 'emprendimiento') 
     && Number.isFinite(precio);
 
+  // === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
+  const mostrarHora = publicacion?.tag === 'evento' && typeof publicacion?.horaEvento === 'string' && publicacion.horaEvento.trim() !== '';
+
   if (cargando) {
     return (
     <div className="flex flex-col items-center justify-center mt-10 bg-gray-800/80">
@@ -175,6 +178,13 @@ export const PublicacionDetalle = () => {
               <p className="text-white">
                 <strong>Tipo:</strong> {publicacion.tag}
               </p>
+
+              {/* Hora del evento si aplica */}
+              {mostrarHora && (
+                <p className="text-white">
+                  <strong>Hora del evento:</strong> {publicacion.horaEvento}
+                </p>
+              )}
 
               {/* Precio si aplica */}
               {mostrarPrecio && (
