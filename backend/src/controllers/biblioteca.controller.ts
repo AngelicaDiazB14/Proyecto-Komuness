@@ -1,15 +1,71 @@
 import { Request, Response } from 'express';
 import { Archivo } from '../models/archivo.model';
 import { Folder } from '../models/folder.model';
-import { uploadFile } from '../utils/digitalOceanSpace';
-import { uploadFileStorage } from '../utils/digitalOceanSpace';
+// import { uploadFile } from '../utils/digitalOceanSpace';
+// import { uploadFileStorage } from '../utils/digitalOceanSpace';
 import { IArchivo } from '../interfaces/archivo.interface';
 import mongoose from 'mongoose';
 
+/* ====================== NUEVO: dependencias para guardar en disco ====================== */
+import path from 'path';
+import fs from 'fs';
+import fsp from 'fs/promises';
+import multer from 'multer';
+
+/**
+ * Carpeta base para los binarios de la BIBLIOTECA en la VM.
+ * - Si existe LIBRARY_DIR en el .env, se usa esa.
+ * - Si no, se crea/usa /srv/uploads/biblioteca (derivado de UPLOAD_DIR si está definido).
+ */
+const LIB_DIR =
+  process.env.LIBRARY_DIR ||
+  path.join(process.env.UPLOAD_DIR || '/srv/uploads', 'biblioteca');
+
+/** Asegura subcarpeta por año/mes (ej: /srv/uploads/biblioteca/2025/09) */
+async function ensureDestDir(): Promise<string> {
+  const now = new Date();
+  const dir = path.join(
+    LIB_DIR,
+    String(now.getFullYear()),
+    String(now.getMonth() + 1).padStart(2, '0')
+  );
+  await fsp.mkdir(dir, { recursive: true });
+  return dir;
+}
+
+/** Sanitiza el nombre del archivo */
+function sanitizeName(name: string) {
+  return name.replace(/[^\w.\- ]+/g, '_');
+}
+
+/**
+ * Multer especializado para Biblioteca:
+ * - Guarda en disco (no en memoria)
+ * - Respeta la estructura por fecha
+ */
+export const uploadLibrary = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      try {
+        const dir = await ensureDestDir();
+        cb(null, dir);
+      } catch (err) {
+        cb(err as any, LIB_DIR);
+      }
+    },
+    filename: (_req, file, cb) => {
+      const safe = sanitizeName(file.originalname);
+      cb(null, `${Date.now()}-${safe}`);
+    },
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+});
+/* ====================== FIN NUEVO ====================== */
+
 class BibliotecaController {
     /**
-     * @description: Sube los archivos a la biblioteca en digitalOcean spaces y guarda los metadatos en la base de datos
-     * @route: POST /api/biblioteca/uploadFiles
+     * @description: Sube los archivos a la biblioteca ~en digitalOcean spaces~ **(AHORA EN DISCO LOCAL DE LA VM)** y guarda los metadatos en la base de datos
+     * @route: POST /api/biblioteca/upload
      * @param req: Request
      * @param res: Response
      * @returns: Response 
@@ -41,38 +97,45 @@ class BibliotecaController {
             const results = await Promise.all(files.map(async (file) => {
 
                 try {
-                    //subir archivo a digitalOcean spaces
-                    const result: { location: string, key: string } | null = await uploadFileStorage(file, folderId);
-                    if (!result) {
-                        return {
-                            success: false,
-                            nombre: file.originalname,
-                            message: 'Error al subir el archivo',
-                            content: null
-                        };
-                    }
+                    /* ===========================================================
+                     * NUEVO: Guardado en disco ya lo realizó Multer (file.path)
+                     * - Calculamos una "key" RELATIVA a LIB_DIR para guardarla en Atlas.
+                     * - Luego generamos una URL de descarga servida por el backend.
+                     * =========================================================== */
+                    const relKey = path
+                      .relative(LIB_DIR, file.path)
+                      .split(path.sep)
+                      .join('/');
 
-                    //guardar los metadatos del archivo en la base de datos
+
+                    // dentro del try de cada file en uploadFiles
+                    const folderValue =
+                        !folderId || folderId === '0' ? null : new mongoose.Types.ObjectId(folderId);
+                    const autorValue = new mongoose.Types.ObjectId(userId);
+
+                    // 1) Instancia (Mongoose ya asigna _id antes de guardar)
                     const archivo = new Archivo({
                         nombre: file.originalname,
                         fechaSubida: new Date(),
                         tipoArchivo: file.mimetype,
                         tamano: file.size,
-                        autor: userId,
-                        esPublico: false,
-                        url: result.location, // Asignar la URL devuelta
-                        key: result.key, // Asignar la key devuelta
-                        folder: folderId
+                        autor: autorValue,
+                        esPublico: true,              // <--- ÚNICO CAMBIO: todo queda publicado
+                        key: relKey,
+                        folder: folderValue,
                     });
-                    //guardar archivo en la base de datos
+
+                    // 2) Asigna la URL usando el _id generado y guarda una sola vez
+                    archivo.url = `${process.env.PUBLIC_BASE_URL || 'http://159.54.148.238'}/api/biblioteca/files/${archivo._id}`;
                     await archivo.save();
-                    //guardando el estado de la subida en digitalOcean spaces y en la base de datos
+
                     return {
                         success: true,
                         nombre: file.originalname,
                         message: 'Archivo subido correctamente',
                         content: archivo
                     };
+
                 } catch (error) {
                     console.error('Error detallado:', error); // Mejor logging
                     return {
@@ -227,7 +290,23 @@ class BibliotecaController {
 
             if (!archivo)
                 return false;
-            // Eliminar el archivo de la biblioteca
+
+            /* ====================== NUEVO: eliminar también del disco ====================== */
+            try {
+              if (archivo.key) {
+                const abs = path.resolve(LIB_DIR, archivo.key);
+                const libNorm = path.normalize(LIB_DIR + path.sep);
+                const absNorm = path.normalize(abs);
+                if (absNorm.startsWith(libNorm) && fs.existsSync(absNorm)) {
+                  await fsp.unlink(absNorm);
+                }
+              }
+            } catch (e) {
+              console.warn('No se pudo eliminar el binario en disco:', e);
+            }
+            /* ====================== FIN NUEVO ====================== */
+
+            // Eliminar el archivo de la biblioteca (documento en Atlas)
             await Archivo.findByIdAndDelete(id);
 
             return true;
@@ -239,7 +318,7 @@ class BibliotecaController {
 
     /**
      * @description: Elimina un archivo de la biblioteca
-     * @route: DELETE /api/biblioteca/deleteFile/:id
+     * @route: DELETE /api/biblioteca/delete/:id
      * @param req: Request
      * @param res: Response
      * @returns: Response
@@ -284,7 +363,7 @@ class BibliotecaController {
 
     /**
      * @description: Elimina una carpeta de la biblioteca
-     * @route: DELETE /api/biblioteca/deleteFolder/:id
+     * @route: DELETE /api/biblioteca/folder/:id
      * @param req: Request
      * @param res: Response
      * @returns: Response
@@ -422,6 +501,61 @@ class BibliotecaController {
             });
         }
     }
+
+    /* ====================== NUEVO: descarga del binario desde la VM ====================== */
+    /**
+     * @description: Descarga (o muestra inline) un archivo de la biblioteca (binario en VM)
+     * @route: GET /api/biblioteca/files/:id
+     * Query opcionales:
+     *   - ?inline=1     -> intenta mostrar en el navegador (imágenes/PDF)
+     *   - ?download=1   -> fuerza descarga
+     */
+    static async downloadArchivo(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const doc = await Archivo.findById(id);
+            if (!doc) {
+            res.status(404).json({ success: false, message: 'Archivo no encontrado' });
+            return;
+            }
+
+            const abs = path.resolve(LIB_DIR, String(doc.key || ''));
+            const libNorm = path.normalize(LIB_DIR + path.sep);
+            const absNorm = path.normalize(abs);
+
+            if (!absNorm.startsWith(libNorm)) {
+            res.status(403).json({ success: false, message: 'Ruta inválida' });
+            return;
+            }
+
+            if (doc.tipoArchivo) res.setHeader('Content-Type', doc.tipoArchivo);
+
+            /* ====================== NUEVO: decidir inline vs attachment ====================== */
+            const wantsDownload = req.query.download === '1';
+            const wantsInline  = req.query.inline === '1';
+            const isPreviewable =
+            !!doc.tipoArchivo &&
+            (doc.tipoArchivo.startsWith('image/') || doc.tipoArchivo === 'application/pdf');
+
+            const disposition =
+            (wantsDownload || (!wantsInline && !isPreviewable)) ? 'attachment' : 'inline';
+
+            if (doc.nombre) {
+            res.setHeader(
+                'Content-Disposition',
+                `${disposition}; filename="${encodeURIComponent(doc.nombre)}"`
+            );
+            }
+            /* ====================== FIN NUEVO ====================== */
+
+            const stream = fs.createReadStream(absNorm);
+            stream.on('error', () =>
+            res.status(404).json({ success: false, message: 'No se pudo abrir el archivo' })
+            );
+            stream.pipe(res);
+        } catch (error) {
+            res.status(500).json({ success: false, message: (error as Error).message });
+        }
+    }
 }
 export default BibliotecaController;
-

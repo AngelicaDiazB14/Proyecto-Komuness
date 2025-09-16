@@ -10,7 +10,6 @@ import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
 
-
 const app: Express = express();
 dotenv.config();
 
@@ -51,12 +50,10 @@ const port = process.env.PORT || 5000;
     console.log("✅ MongoDB conectado");
 })();
 
-
 export default app;
 
 // esto es para que no se ejecute el server al importarlo en otro archivo
 if (require.main === module) {
-    
     connectBD(process.env.BD_URL || '').then(() => {
         console.log('Connected to MongoDB');
         app.listen(port, () => {
