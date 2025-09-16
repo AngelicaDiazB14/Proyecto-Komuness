@@ -1,18 +1,22 @@
 import { Document, Types } from "mongoose";
 
-export interface IPublicacion extends Document {
-    titulo: string;
-    contenido: string;
-    autor: string;
-    categoria: Types.ObjectId | ICategoria; 
-    fecha: string;
-    adjunto: IAdjunto[];
-    comentarios: IComentario[]; // Array de comentarios
-    tag: string;
-    publicado: boolean;
-    fechaEvento?: string;
-    Precio?: number;
+export interface IPublicacion {
+  _id?: string;
+  titulo: string;
+  contenido: string;
+  autor: string;                 // ObjectId as string
+  fecha: string;
+  adjunto?: IAdjunto[];
+  comentarios?: IComentario[];
+  tag: 'publicacion' | 'evento' | 'emprendimiento';
+  publicado: boolean;
+  fechaEvento?: string;
+  precio?: number;
+  categoria: string;             // ObjectId as string
+  createdAt?: string;
+  updatedAt?: string;
 }
+
 
 export interface ICategoria {
     _id: Types.ObjectId;
