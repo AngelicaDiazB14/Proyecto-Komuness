@@ -60,7 +60,7 @@ export const PublicacionCard = ({ publicacion }) => {
                 {/* Chip de precio (solo evento/emprendimiento) */}
                 {mostrarPrecio && (
                   <div className="absolute top-2 left-2 z-10">
-                    <span className="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-semibold shadow">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-900 shadow ring-1 ring-gray-200">
                       ₡ {precio.toLocaleString('es-CR')}
                     </span>
                   </div>
