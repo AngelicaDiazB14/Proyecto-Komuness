@@ -4,11 +4,71 @@ import { modelPublicacion } from '../models/publicacion.model';
 import mongoose from 'mongoose';
 import { saveMulterFileToGridFS, saveBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
 
+const LOG_ON = process.env.LOG_PUBLICACION === '1';
+
+// Utilidad: normaliza precio (string → number | undefined)
+function parsePrecio(input: any): number | undefined {
+  if (input === undefined || input === null) return undefined;
+  if (typeof input === 'number' && Number.isFinite(input)) return input;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed) return undefined;
+    // elimina símbolos comunes y separadores de miles
+    const cleaned = trimmed.replace(/[₡$,]/g, '');
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
+function mustRequirePrecio(tag?: string): boolean {
+  return tag === 'evento' || tag === 'emprendimiento';
+}
+
+// NUEVO: normaliza hora del evento en formato HH:mm (24h). Si no cumple, se ignora.
+function parseHoraEvento(input: any): string | undefined {
+  if (typeof input !== 'string') return undefined;
+  const t = input.trim();
+  // acepta "HH:mm"
+  return /^\d{2}:\d{2}$/.test(t) ? t : undefined;
+}
+
 // Crear una publicación (sin adjuntos)
 export const createPublicacion = async (req: Request, res: Response): Promise<void> => {
   try {
-    const publicacion: IPublicacion = req.body;
+    const body = req.body as IPublicacion & Record<string, any>;
+
+    const precio = parsePrecio(body.precio);
+    const tag = body.tag;
+    const horaEvento = parseHoraEvento(body.horaEvento); // ← NUEVO
+
+    if (LOG_ON) {
+      console.log('[Publicaciones][createPublicacion] req.body.precio:', body.precio, '→ normalizado:', precio);
+      console.log('[Publicaciones][createPublicacion] req.body.horaEvento:', body.horaEvento, '→ normalizado:', horaEvento);
+      console.log('[Publicaciones][createPublicacion] tag:', tag);
+    }
+
+    if (mustRequirePrecio(tag) && (precio === undefined)) {
+      res.status(400).json({ message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+      return;
+    }
+
+    const publicacion: IPublicacion = {
+      ...body,
+      publicado: `${(body as any).publicado}` === 'true',
+      precio,        // ← ya normalizado
+      horaEvento,    // ← NUEVO: solo se guarda si vino válido
+    } as IPublicacion;
+
     const nuevaPublicacion = new modelPublicacion(publicacion);
+
+    if (LOG_ON) {
+      console.log('[Publicaciones][createPublicacion] doc a guardar (precio, horaEvento):', {
+        precio: nuevaPublicacion.precio,
+        horaEvento: (nuevaPublicacion as any).horaEvento,
+      });
+    }
+
     const savePost = await nuevaPublicacion.save();
     res.status(201).json(savePost);
   } catch (error) {
@@ -46,6 +106,23 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       }
     }
 
+    // --- Precio (existente) ---
+    const precio = parsePrecio((publicacion as any).precio);
+    const tag = (publicacion as any).tag;
+    // --- Hora del evento (NUEVO) ---
+    const horaEvento = parseHoraEvento((publicacion as any).horaEvento);
+
+    if (LOG_ON) {
+      console.log('[Publicaciones][createPublicacionA] body.precio:', (publicacion as any).precio, '→', precio);
+      console.log('[Publicaciones][createPublicacionA] body.horaEvento:', (publicacion as any).horaEvento, '→', horaEvento);
+      console.log('[Publicaciones][createPublicacionA] tag:', tag);
+    }
+
+    if (mustRequirePrecio(tag) && (precio === undefined)) {
+      res.status(400).json({ ok: false, message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+      return;
+    }
+
     // --- Subir adjuntos (0..N) ---
     const adjuntos: IAdjunto[] = [];
     for (const file of files) {
@@ -63,7 +140,16 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       adjunto: adjuntos,
       // normalizaciones útiles:
       publicado: `${(publicacion as any).publicado}` === 'true',
+      precio,                 // ← ya normalizado
+      horaEvento,             // ← NUEVO: solo se guarda si vino válido
     });
+
+    if (LOG_ON) {
+      console.log('[Publicaciones][createPublicacionA] doc a guardar (precio, horaEvento):', {
+        precio: nuevaPublicacion.precio,
+        horaEvento: (nuevaPublicacion as any).horaEvento,
+      });
+    }
 
     const savePost = await nuevaPublicacion.save();
     res.status(201).json(savePost);
@@ -98,7 +184,6 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
       modelPublicacion.countDocuments(query),
     ]);
 
- // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
     res.status(200).json({
       data: publicaciones,
       pagination: {
@@ -113,7 +198,6 @@ export const getPublicacionesByTag = async (req: Request, res: Response): Promis
     res.status(500).json({ message: err.message });
   }
 };
-
 
 // Obtener una publicación por su ID
 export const getPublicacionById = async (req: Request, res: Response): Promise<void> => {
@@ -171,7 +255,35 @@ export const getPublicacionesByCategoria = async (req: Request, res: Response): 
 export const updatePublicacion = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const updatedData: Partial<IPublicacion> = req.body;
+    const updatedData: Partial<IPublicacion> & Record<string, any> = { ...req.body };
+
+    if (updatedData.hasOwnProperty('precio')) {
+      const parsed = parsePrecio(updatedData.precio);
+      if (LOG_ON) {
+        console.log('[Publicaciones][updatePublicacion] body.precio:', updatedData.precio, '→ normalizado:', parsed);
+      }
+      updatedData.precio = parsed;
+    }
+
+    // NUEVO: si viene horaEvento, normalizar a HH:mm (si no es válida, se quita del update para no pisar nada)
+    if (updatedData.hasOwnProperty('horaEvento')) {
+      const parsedHora = parseHoraEvento(updatedData.horaEvento);
+      if (LOG_ON) {
+        console.log('[Publicaciones][updatePublicacion] body.horaEvento:', updatedData.horaEvento, '→ normalizado:', parsedHora);
+      }
+      if (parsedHora !== undefined) {
+        updatedData.horaEvento = parsedHora;
+      } else {
+        delete updatedData.horaEvento;
+      }
+    }
+
+    // Si cambia tag a evento/emprendimiento y no trae precio válido:
+    if (mustRequirePrecio(updatedData.tag) && (updatedData.precio === undefined)) {
+      res.status(400).json({ message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+      return;
+    }
+
     const publicacion = await modelPublicacion.findByIdAndUpdate(id, updatedData, { new: true });
     if (!publicacion) {
       res.status(404).json({ message: 'Publicación no encontrada' });
@@ -297,7 +409,8 @@ export const getEventosPorFecha = async (req: Request, res: Response): Promise<v
     })
     .populate('autor', 'nombre')
     .populate('categoria', 'nombre')
-    .select('titulo fechaEvento horaEvento contenido adjunto _id')
+    // incluye horaEvento y precio
+    .select('titulo fechaEvento horaEvento contenido adjunto _id precio')
     .sort({ fechaEvento: 1}); 
 
     res.status(200).json(eventos);

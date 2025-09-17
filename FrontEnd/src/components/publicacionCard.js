@@ -43,6 +43,12 @@ export const PublicacionCard = ({ publicacion }) => {
 
     const colorAutor = getColorFromInitial(getInicialAutor());
 
+    // === PRECIO (normalizado) ===
+    const rawPrecio = publicacion?.precio ?? publicacion?.Precio;
+    const precio = Number(rawPrecio);
+    const mostrarPrecio = (publicacion.tag === 'evento' || publicacion.tag === 'emprendimiento') 
+      && Number.isFinite(precio);
+
     return (
         <div className="card bg-white rounded-lg overflow-hidden shadow-lg flex flex-col h-full">
             <div className="relative flex-grow" onClick={handleClick}>
@@ -50,6 +56,15 @@ export const PublicacionCard = ({ publicacion }) => {
                 <div className="absolute top-2 right-2 z-10">
                     <CategoriaBadge categoria={publicacion.categoria} />
                 </div>
+
+                {/* Chip de precio (solo evento/emprendimiento) */}
+                {mostrarPrecio && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-semibold shadow">
+                      ₡ {precio.toLocaleString('es-CR')}
+                    </span>
+                  </div>
+                )}
 
                 {/* Espacio de imagen para publicaciones normales */}
                 {!esPublicacion && (

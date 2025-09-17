@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { API_URL, getCategoriaById } from "../utils/api";
 
-
 import Slider from "./slider";
 import ComentariosPub from "./comentariosPub";
 import PublicacionModal from "./publicacionModal";
@@ -20,7 +19,7 @@ export const PublicacionDetalle = () => {
   const [publicacion, setPublicacion] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-    const [categoriaCompleta, setCategoriaCompleta] = useState(null); // ← Nuevo estado
+  const [categoriaCompleta, setCategoriaCompleta] = useState(null); // ← Nuevo estado
   
   useEffect(() => {
     const obtenerPublicacion = async () => {
@@ -35,7 +34,7 @@ export const PublicacionDetalle = () => {
           throw new Error(data.mensaje || "No se encontró la publicación");
         }
        
-      if (data.categoria && typeof data.categoria === 'string') {
+        if (data.categoria && typeof data.categoria === 'string') {
           console.log('🔄 Obteniendo datos de categoría...');
           const categoriaData = await getCategoriaById(data.categoria);
           if (categoriaData) {
@@ -46,7 +45,7 @@ export const PublicacionDetalle = () => {
           setCategoriaCompleta(data.categoria);
         }
 
-      setPublicacion(data);
+        setPublicacion(data);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -63,6 +62,16 @@ export const PublicacionDetalle = () => {
       setComentarios(publicacion.comentarios);
     }
   }, [publicacion]);
+
+  // === PRECIO (normalizado) ===
+  const rawPrecio = publicacion?.precio ?? publicacion?.Precio;
+  const precio = Number(rawPrecio);
+  const mostrarPrecio = publicacion 
+    && (publicacion.tag === 'evento' || publicacion.tag === 'emprendimiento') 
+    && Number.isFinite(precio);
+
+  // === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
+  const mostrarHora = publicacion?.tag === 'evento' && typeof publicacion?.horaEvento === 'string' && publicacion.horaEvento.trim() !== '';
 
   if (cargando) {
     return (
@@ -169,6 +178,21 @@ export const PublicacionDetalle = () => {
               <p className="text-white">
                 <strong>Tipo:</strong> {publicacion.tag}
               </p>
+
+              {/* Hora del evento si aplica */}
+              {mostrarHora && (
+                <p className="text-white">
+                  <strong>Hora del evento:</strong> {publicacion.horaEvento}
+                </p>
+              )}
+
+              {/* Precio si aplica */}
+              {mostrarPrecio && (
+                <p className="text-white">
+                  <strong>Precio:</strong> ₡ {precio.toLocaleString('es-CR')}
+                </p>
+              )}
+
               <p className="mt-4 text-white whitespace-pre-line">{publicacion.contenido}</p>
             </div>
           </div>
