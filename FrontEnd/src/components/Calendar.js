@@ -8,6 +8,7 @@ import '../CSS/calendar.css';
 
 // Configurar moment en español
 moment.locale('es');
+const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
 
 const localizer = momentLocalizer(moment);
 
@@ -37,7 +38,7 @@ export const CalendarView = () => {
       const endOfMonth = dateMoment.endOf('month').format('YYYY-MM-DD');
       
       const response = await fetch(
-        `http://localhost:5000/api/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
+     `${API}/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
       );
       
       if (!response.ok) throw new Error('Error al cargar eventos');
