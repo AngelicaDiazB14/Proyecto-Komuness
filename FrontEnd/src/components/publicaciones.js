@@ -1,6 +1,7 @@
 // src/components/publicaciones.js
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { IoMdArrowRoundBack } from "react-icons/io"; // Importar el icono
 import '../CSS/publicaciones.css';
 import PublicacionCard from './publicacionCard';
 import FormularioPublicacion from '../pages/formulario';
@@ -19,9 +20,9 @@ export const Publicaciones = ({ tag: propTag }) => {
   const [cards, setCards] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
-  const [categoriaFilter, setCategoriaFilter] = useState(null); // Añade este estado
-  const [tag, setTag] = useState(propTag); // 
-  const limite = 10; // cuántas publicaciones por página
+  const [categoriaFilter, setCategoriaFilter] = useState(null);
+  const [tag, setTag] = useState(propTag);
+  const limite = 10;
   const [formulario, setFormulario] = useState(false);
 
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export const Publicaciones = ({ tag: propTag }) => {
   // Cambia el "modo" según la ruta
   useEffect(() => {
       const path = location.pathname;
-      let newTag = propTag; // ← Usa la prop directamente
+      let newTag = propTag;
       
       if (path === '/eventos') {
         setMostrar(0);
@@ -124,9 +125,40 @@ export const Publicaciones = ({ tag: propTag }) => {
     }
   };
 
+  // Función para obtener el título de la página según la ruta
+  const obtenerTituloPagina = () => {
+    const path = location.pathname;
+    if (path === '/eventos') return 'Eventos';
+    if (path === '/emprendimientos') return 'Emprendimientos';
+    if (path === '/publicaciones') return 'Publicaciones';
+    return 'Publicaciones';
+  };
+
+  // Función para determinar si mostrar el botón de volver
+  const mostrarBotonVolver = () => {
+    const path = location.pathname;
+    return path === '/eventos' || path === '/emprendimientos';
+  };
+
   return (
     <div className="bg-gray-800/80 pt-1 min-h-screen">
-      <CategoriaFilter />
+      <div className="relative">
+        <CategoriaFilter />
+        
+        {/* Botón de volver (solo en eventos y emprendimientos) */}
+        {mostrarBotonVolver() && (
+          <div className="absolute top-4 left-10 z-20">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-md"
+            >
+              <IoMdArrowRoundBack color="black" size={21} />
+            </button>
+          </div>
+        )}
+      </div>
+      
       <div className="card-container">
         {cards.length === 0 ? (
           <p className="text-white">No hay publicaciones para mostrar.</p>

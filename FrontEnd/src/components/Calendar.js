@@ -4,6 +4,7 @@ import moment from 'moment';
 import 'moment/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useNavigate } from 'react-router-dom';
+import { IoMdArrowRoundBack } from "react-icons/io";
 import '../CSS/calendar.css';
 
 // Configurar moment en español
@@ -90,7 +91,19 @@ export const CalendarView = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mx-2 md:mx-4 my-4">
+     <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mx-2 md:mx-4 my-4 relative">
+
+      {/* Botón de volver */}
+      <div className="absolute top-4 left-4 z-20">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors shadow-md"
+        >
+          <IoMdArrowRoundBack color="black" size={25} />
+        </button>
+      </div>
+
       {/* TÍTULO PRINCIPAL CENTRADO */}
       <div className="text-center mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800">
