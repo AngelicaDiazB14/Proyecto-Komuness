@@ -39,7 +39,7 @@ export const CalendarView = () => {
       const endOfMonth = dateMoment.endOf('month').format('YYYY-MM-DD');
       
       const response = await fetch(
-     `${API}/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
+        `${API}/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
       );
       
       if (!response.ok) throw new Error('Error al cargar eventos');
@@ -47,15 +47,21 @@ export const CalendarView = () => {
       const eventos = await response.json();
       
       const calendarEvents = eventos.map(evento => {
+        // Crear fecha base del evento
         const [year, month, day] = evento.fechaEvento.split('-');
-        const fechaEvento = new Date(year, month - 1, day);
+        
+        // Parsear la hora (formato HH:mm) - siempre existe porque es obligatoria
+        const [hours, minutes] = evento.horaEvento.split(':');
+        
+        // Crear fecha completa con hora de inicio
+        const startDateTime = new Date(year, month - 1, day, hours, minutes);
         
         return {
           id: evento._id,
           title: evento.titulo,
-          start: fechaEvento,
-          end: fechaEvento,
-          allDay: true,
+          start: startDateTime,
+          end: startDateTime, // Misma hora de inicio y fin (punto en el tiempo)
+          allDay: false,
           resource: evento
         };
       });
@@ -91,7 +97,7 @@ export const CalendarView = () => {
   }
 
   return (
-     <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mx-2 md:mx-4 my-4 relative">
+    <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mx-2 md:mx-4 my-4 relative">
 
       {/* Botón de volver */}
       <div className="absolute top-4 left-4 z-20">
