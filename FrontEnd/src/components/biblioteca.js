@@ -386,7 +386,7 @@ export const Biblioteca = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4  bg-gray-800/80 pt-16 min-h-screen p-4 sm:p-8">
+    <div className="flex flex-col items-center gap-4 bg-gray-800/80 pt-16 min-h-screen p-4 sm:p-8">
 
          {/* Botón de volver (solo si no estamos en la página principal de biblioteca) */}
       {mostrarBotonVolver() && (
@@ -530,23 +530,33 @@ export const Biblioteca = () => {
         </form>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4 w-full max-w-6xl p-4">
-        {documentosFiltrados.map((doc) => (
-          <DocumentCard
-            key={doc.id}
-            name={doc.nombre}
-            author={doc.autor}
-            size={doc.size}
-            type={doc.tag}
-            onClick={() => {
-              if (doc.tag === 'carpeta') {
-                handleOpenFolder(doc.id, doc.nombre);
-              } else {
-                handleOpenModal(doc);
-              }
-            }}
-          />
-        ))}
+      {/* CONTENEDOR CON SCROLL PARA ARCHIVOS Y CARPETAS */}
+      <div className="w-full max-w-6xl bg-white/10 rounded-xl p-4">
+        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-200 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-2">
+            {documentosFiltrados.map((doc) => (
+              <DocumentCard
+                key={doc.id}
+                name={doc.nombre}
+                author={doc.autor}
+                size={doc.size}
+                type={doc.tag}
+                onClick={() => {
+                  if (doc.tag === 'carpeta') {
+                    handleOpenFolder(doc.id, doc.nombre);
+                  } else {
+                    handleOpenModal(doc);
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        
+        {/* CONTADOR DE ARCHIVOS/CARPETAS */}
+        <div className="mt-2 text-center text-white text-sm">
+          Mostrando {documentosFiltrados.length} {documentosFiltrados.length === 1 ? 'elemento' : 'elementos'}
+        </div>
       </div>
 
       <DocumentModal

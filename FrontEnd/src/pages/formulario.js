@@ -140,7 +140,7 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
 
             {/* Tag (categoría funcional del sitio) */}
             <div>
-              <label className="block font-semibold">Categoría (tag):</label>
+              <label className="block font-semibold">Tipo (tag):</label>
               <select
                 name="tag"
                 value={formData.tag}

@@ -152,129 +152,137 @@ export const PublicacionDetalle = () => {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="text-gray-600 text-2xl font-bold"
+            className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-md"
           >
-            <IoMdArrowRoundBack color={"white"} size={35} />
+            <IoMdArrowRoundBack color="black" size={21} />
           </button>
         </div>
 
         {publicacion && (
           <>
-            {/* Clasificación */}
-            <div className="flex items-center gap-2 mb-1">
-              <strong className="text-white">Clasificación:</strong>
-              <CategoriaBadge categoria={categoriaCompleta} />
+            {/* HEADER CON CLASIFICACIÓN Y BOTÓN ELIMINAR EN MISMA LÍNEA */}
+            <div className="flex items-center justify-between mb-4">
+              {/* Clasificación alineada a la izquierda */}
+              <div className="flex items-center gap-2">
+                <strong className="text-white text-sm md:text-base">Clasificación:</strong>
+                <CategoriaBadge categoria={categoriaCompleta} mobile />
+              </div>
+
+              {/* Botón Eliminar alineado a la derecha */}
+              {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
+                <div>
+                  <button
+                    className="bg-red-600 py-1.5 px-3 rounded hover:bg-red-700 text-sm md:py-2 md:px-4 md:text-base"
+                    onClick={() => setSelectedPub(true)}
+                  >
+                    Eliminar
+                  </button>
+
+                  <PublicacionModal
+                    name={publicacion.titulo}
+                    date={publicacion.fecha}
+                    tag={publicacion.tag}
+                    id={publicacion._id}
+                    isOpen={selectedPub}
+                    onClose={() => setSelectedPub(false)}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Título centrado */}
-            <div className="flex items-center justify-between w-full mb-2">
+            {/* TÍTULO CON SALTO DE LÍNEA AUTOMÁTICO */}
+            <div className="flex items-center justify-center w-full mb-6">
               {/* Botón atrás (desktop) */}
-              <div className="w-1/3 flex justify-start">
+              <div className="w-1/4 flex justify-start">
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="hidden md:inline px-1 py-1 bg-white rounded-full"
+                  className="hidden md:inline p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-md"
                 >
-                  <IoMdArrowRoundBack color={"black"} size={25} />
+                  <IoMdArrowRoundBack color="black" size={21} />
                 </button>
               </div>
 
-              <h1 className="w-1/3 text-3xl font-bold text-white text-center mt-2">
+              {/* Título centrado con break-words */}
+              <h1 className="w-2/4 text-xl font-bold text-white text-center break-words leading-tight md:text-3xl">
                 {publicacion.titulo}
               </h1>
 
-              {/* Botón Eliminar (derecha) */}
+              {/* Espacio vacío para balancear el layout */}
+              <div className="w-1/4"></div>
+            </div>
 
-              <div className="w-1/3 flex justify-end">
-                {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-                  <div>
-                    <button
-                      className="bg-red-600 py-2 px-4 rounded hover:bg-red-600"
-                      onClick={() => setSelectedPub(true)}
-                    >
-                      Eliminar
-                    </button>
+            {/* SLIDER CON MÁRGEN SUPERIOR */}
+            <div className="mb-6">
+              <Slider key={publicacion._id} publicacion={publicacion} />
+            </div>
 
-                    <PublicacionModal
-                      name={publicacion.titulo}
-                      date={publicacion.fecha}
-                      tag={publicacion.tag}
-                      id={publicacion._id}
-                      isOpen={selectedPub}
-                      onClose={() => setSelectedPub(false)}
-                    />
-                  </div>
+            {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
+            <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
+              <h2 className="text-white text-sm md:text-base mb-3">
+                <strong>Autor:</strong>{" "}
+                {publicacion.autor?.nombre || "Autor desconocido"}
+              </h2>
+
+              {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
+              <div className="mb-4">
+                <p className="text-white text-sm md:text-base">
+                  <strong>Descripción:</strong>
+                </p>
+                <p className="text-white mt-2 whitespace-pre-line break-words leading-relaxed">
+                  {publicacion.contenido}
+                </p>
+              </div>
+
+              {/* INFORMACIÓN ADICIONAL EN GRID RESPONSIVE */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Precio */}
+                {mostrarPrecio && (
+                  <p className="text-white text-sm md:text-base">
+                    <strong>Precio:</strong>{" "}
+                    {`₡ ${precio.toLocaleString("es-CR")}`}
+                  </p>
                 )}
+
+                {/* Fecha de evento */}
+                {publicacion.fechaEvento && (
+                  <p className="text-white text-sm md:text-base">
+                    <strong>Fecha del evento:</strong>{" "}
+                    {formatFecha(publicacion.fechaEvento)}
+                  </p>
+                )}
+
+                {/* Hora de evento */}
+                {mostrarHora && (
+                  <p className="text-white text-sm md:text-base">
+                    <strong>Hora del evento:</strong> {publicacion.horaEvento}
+                  </p>
+                )}
+
+                {/* Fecha de publicación */}
+                {publicacion.fecha && (
+                  <p className="text-white text-sm md:text-base">
+                    <strong>Fecha de publicación:</strong>{" "}
+                    {formatFecha(publicacion.fecha)}
+                  </p>
+                )}
+
+                {/* Tipo */}
+                <p className="text-white text-sm md:text-base">
+                  <strong>Tipo:</strong> {publicacion.tag || "Sin tag"}
+                </p>
               </div>
             </div>
 
-            {/* Detalles principales */}
-            <h2 className="text-white">
-              <strong>Autor:</strong>{" "}
-              {publicacion.autor?.nombre || "Autor desconocido"}
-            </h2>
-
-            <Slider key={publicacion._id} publicacion={publicacion} />
-
-            <div className="text-white-600">
-              {/* Descripción y campos generales */}
-              <p className="mt-2 text-white">
-                <strong>Descripción:</strong>{" "}
-                <span className="whitespace-pre-line">
-                  {publicacion.contenido}
-                </span>
-              </p>
-
-              {/* Precio (normalizado y condicionado) */}
-              {mostrarPrecio && (
-                <p className="text-white">
-                  <strong>Precio:</strong>{" "}
-                  {`₡ ${precio.toLocaleString("es-CR")}`}
-                </p>
-              )}
-
-              {/* Fecha de evento (si existe un campo específico) */}
-              {publicacion.fechaEvento && (
-                <p className="text-white">
-                  <strong>Fecha del evento:</strong>{" "}
-                  {formatFecha(publicacion.fechaEvento)}
-                </p>
-              )}
-
-              {/* Hora de evento (si aplica) */}
-              {mostrarHora && (
-                <p className="text-white">
-                  <strong>Hora del evento:</strong> {publicacion.horaEvento}
-                </p>
-              )}
-
-              {/* Fecha de publicación (siempre que exista) */}
-              {publicacion.fecha && (
-                <p className="text-white">
-                  <strong>Fecha de publicación:</strong>{" "}
-                  {formatFecha(publicacion.fecha)}
-                </p>
-              )}
-
-              {/* Categoría y Tag */}
-              <p className="text-white">
-                <strong>Categoría:</strong>{" "}
-                {publicacion.categoria?.nombre ||
-                  categoriaCompleta?.nombre ||
-                  "Sin categoría"}
-              </p>
-              <p className="text-white">
-                <strong>Tag:</strong> {publicacion.tag || "Sin tag"}
-              </p>
+            {/* COMENTARIOS CON MÁRGEN SUPERIOR */}
+            <div className="mt-6">
+              <ComentariosPub
+                comentarios={comentarios}
+                setComentarios={setComentarios}
+                publicacionId={publicacion._id}
+                usuario={user}
+              />
             </div>
-
-            {/* COMENTARIOS */}
-            <ComentariosPub
-              comentarios={comentarios}
-              setComentarios={setComentarios}
-              publicacionId={publicacion._id}
-              usuario={user}
-            />
           </>
         )}
       </div>

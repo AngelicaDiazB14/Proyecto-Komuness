@@ -8,13 +8,11 @@
     background-color: #ffbf30;
     color: black;
     box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
-   
 }
 
 .menu{
     display: flex;
     align-items: center;
-    
 }
 
 .botonMovil{
@@ -23,59 +21,149 @@
 
 .menu li{
     padding: 1rem;
-    
+    transition: all 0.3s ease;
+    border-radius: 5px;
+}
+
+.menu li:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.menu li:active {
+    transform: translateY(0);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.menu li.activo {
+    background-color: #ffbf30; /* Naranja más oscuro */
+    color: white;
+}
+
+.menu li.activo:hover {
+    background-color: #e59400;
 }
 
 .navbar span{
    cursor: pointer;
     font-size: 0.8rem;
+    transition: color 0.3s ease;
 }
 
+.menu li.activo span {
+    color: white;
+    font-weight: 600;
+}
 
 .menu li svg{
     cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.menu li:hover svg {
+    transform: scale(1.1);
+}
+
+.menu li.activo svg {
+    color: white;
+}
+
+.user-icon{
+    cursor: pointer;
+    margin-top: 6px;
 }
 
 .logo{
     width: 200px;
     height: auto;
+    transition: transform 0.3s ease;
 }
 
+.logo:hover {
+    transform: scale(1.05);
+}
 
-
+/* Estilos para móviles - Mismo diseño horizontal pero más compacto */
 @media screen and (max-width: 720px){
-    .botonMovil{
-        display: block;
-        position: absolute;
-        right: 1rem;
-        cursor: pointer;
-        z-index: 10;
+    .navbar{
+        height: 60px;
+        padding: 0.5rem;
     }
 
-   .menu {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    justify-content: center;
-    left: -100%;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100vh;
+    .botonMovil{
+        display: none;
+    }
 
-    background-color: #ffbf30;
-    z-index: 10;
-    transition: left 1s;
-   }
+    .menu {
+        display: flex;
+        flex-direction: row;
+        position: static;
+        width: auto;
+        height: auto;
+        background-color: transparent;
+    }
 
-   .activo{
-    left: 0;
-   }
+    .logo{
+        width: 120px;
+        height: auto;
+    }
 
-   .navbar span{
-    font-size: 2rem;
+    .navbar span{
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .user-icon{
+        font-size: 1.2rem;
+        margin-top: 4px;
+    }
+
+    .menu li{
+        padding: 0.5rem;
+    }
     
-   }
-   
+    .menu li:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* Para pantallas muy pequeñas (menos de 500px) */
+@media screen and (max-width: 500px){
+    .navbar{
+        height: 50px;
+        padding: 0.3rem;
+    }
+
+    .logo{
+        width: 120px;
+        height: auto;
+    }
+    
+    .navbar span{
+        font-size: 0.5rem;
+    }
+    
+    .user-icon{
+        font-size: 1rem;
+        margin-top: 3px;
+    }
+    
+    .menu li{
+        padding: 0.3rem;
+    }
+}
+
+/* Para pantallas extremadamente pequeñas (menos de 400px) */
+@media screen and (max-width: 400px){
+    .navbar span{
+        font-size: 0.45rem;
+    }
+    
+    .logo{
+        width: 80px;
+    }
+    
+    .menu li{
+        padding: 0.2rem;
+    }
 }

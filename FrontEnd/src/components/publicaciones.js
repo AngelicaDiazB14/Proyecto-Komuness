@@ -22,7 +22,7 @@ export const Publicaciones = ({ tag: propTag }) => {
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
   const [tag, setTag] = useState(propTag);
-  const limite = 10;
+  const limite = 12;
   const [formulario, setFormulario] = useState(false);
 
   const { user } = useAuth();
