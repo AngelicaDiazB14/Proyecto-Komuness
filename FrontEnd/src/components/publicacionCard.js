@@ -98,15 +98,15 @@ export const PublicacionCard = ({ publicacion }) => {
   return (
     <div className="card bg-white rounded-lg overflow-hidden shadow-lg flex flex-col h-full">
       <div className="relative flex-grow" onClick={handleClick}>
-        {/* Badge de categoría */}
+        {/* Badge de categoría - MÁS PEQUEÑO EN MÓVIL */}
         <div className="absolute top-2 right-2 z-10">
-          <CategoriaBadge categoria={publicacion.categoria} />
+          <CategoriaBadge categoria={publicacion.categoria} mobile />
         </div>
 
-        {/* Chip de precio (solo evento/emprendimiento) */}
+        {/* Chip de precio - MÁS PEQUEÑO EN MÓVIL */}
         {mostrarPrecio && (
           <div className="absolute top-2 left-2 z-10">
-            <span className="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-semibold shadow">
+            <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-semibold shadow md:px-2 md:py-1 md:text-xs">
               ₡ {precio.toLocaleString("es-CR")}
             </span>
           </div>
@@ -200,11 +200,11 @@ export const PublicacionCard = ({ publicacion }) => {
             </div>
         </div>
 
-      {/* Botón de eliminar (solo para admins) */}
+      {/* Botón de eliminar (solo para admins) - MÁS PEQUEÑO EN MÓVIL */}
       {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-        <div className="p-4 border-t">
+        <div className="p-3 border-t md:p-4"> {/* Padding reducido en móvil */}
           <button
-            className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-600 transition-colors"
+            className="w-full bg-red-600 text-white py-1.5 px-3 rounded hover:bg-red-700 transition-colors text-sm md:py-2 md:px-4 md:text-base" /* Tamaño reducido en móvil */
             onClick={handleDeleteClick}
           >
             Eliminar

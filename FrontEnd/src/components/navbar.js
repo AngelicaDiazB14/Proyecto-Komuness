@@ -1,63 +1,77 @@
-import React, { useState } from "react";
+import React from "react";
 import "../CSS/navbar.css";
-import {
-  AiOutlineMenu,
-  AiOutlineClose,
-  AiOutlineUser,
-} from "react-icons/ai";
+import { AiOutlineUser } from "react-icons/ai";
 import logo from "../images/logo.png";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 
 export const Navbar = () => {
   var usuario = JSON.parse(localStorage.getItem("user"));
+  const location = useLocation();
 
- 
   var goToLogin;
   if(usuario !== null ){
     goToLogin = true;
   }else{
     goToLogin = false;
   }
-  
 
-
-  const [nav, setNav] = useState(false);
   const navigate = useNavigate();
 
   const handleNavigation = (path) => {
     navigate(path);
-    setNav(false); 
+  };
+
+  // Función para determinar si una ruta está activa
+  const isActive = (path) => {
+    if (path === "/" && location.pathname === "/") return true;
+    if (path !== "/" && location.pathname.startsWith(path)) return true;
+    return false;
   };
 
   return (
     <header className="navbar">
-     <Link to="/"><img src={logo} className="logo" alt="Logo Komuness" /></Link>
+      <Link to="/"><img src={logo} className="logo" alt="Logo Komuness" /></Link>
       <nav>
-        <ul className={nav ? ["menu", "activo"].join(" ") : ["menu"]}>
-          <li onClick={() => handleNavigation("/publicaciones")}>
+        <ul className="menu">
+          <li 
+            onClick={() => handleNavigation("/publicaciones")}
+            className={isActive("/publicaciones") ? "activo" : ""}
+          >
             <span>Publicaciones</span>
           </li>
-          <li onClick={() => handleNavigation("/eventos")}>
+          <li 
+            onClick={() => handleNavigation("/eventos")}
+            className={isActive("/eventos") ? "activo" : ""}
+          >
             <span>Eventos</span>
           </li>
-          <li onClick={() => handleNavigation("/emprendimientos")}>
+          <li 
+            onClick={() => handleNavigation("/emprendimientos")}
+            className={isActive("/emprendimientos") ? "activo" : ""}
+          >
             <span>Emprendimientos</span>
           </li>
-          <li onClick={() => handleNavigation("/biblioteca/0")}>
+          <li 
+            onClick={() => handleNavigation("/biblioteca/0")}
+            className={isActive("/biblioteca") ? "activo" : ""}
+          >
             <span>Biblioteca</span>
           </li> 
-          <li onClick={() => handleNavigation("/calendario")}> 
+          <li 
+            onClick={() => handleNavigation("/calendario")}
+            className={isActive("/calendario") ? "activo" : ""}
+          > 
             <span>Calendario</span>
           </li> 
          
-          <li onClick={() => handleNavigation(goToLogin ? "/perfilUsuario" : "/iniciarSesion")}>
-            <AiOutlineUser size={25} style={{ marginTop: "6px" }} />
-        </li>
+          <li 
+            onClick={() => handleNavigation(goToLogin ? "/perfilUsuario" : "/iniciarSesion")}
+            className={isActive("/perfilUsuario") || isActive("/iniciarSesion") ? "activo" : ""}
+          >
+            <AiOutlineUser className="user-icon" />
+          </li>
         </ul>
       </nav>
-      <div onClick={() => setNav(!nav)} className="botonMovil">
-        {nav ? <AiOutlineClose size={25} /> : <AiOutlineMenu size={25} />}
-      </div>
     </header>
   );
 };

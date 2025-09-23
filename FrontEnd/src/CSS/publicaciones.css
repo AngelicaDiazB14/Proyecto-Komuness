@@ -240,3 +240,32 @@ button:hover {
         margin: 0 auto;
     }
 }
+
+/* Estilos para badges pequeños en móvil */
+.precio-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+}
+
+@media screen and (min-width: 768px) {
+    .precio-badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Asegurar que los badges no se superpongan */
+.absolute.top-2 {
+    z-index: 10;
+}
+
+/* Espaciado mejorado para móviles */
+@media screen and (max-width: 768px) {
+    .card {
+        min-height: 160px; /* Reducir aún más la altura mínima */
+    }
+    
+    .imagen {
+        height: 100px; /* Reducir altura de imagen en móvil */
+    }
+}
