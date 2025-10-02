@@ -240,6 +240,7 @@ export const Biblioteca = () => {
   const handleSearch = useCallback(async () => {
     const q = nombre.trim();
     if (q === '') return; // evita sobreescribir la vista de la carpeta al montar/refrescar
+    const qLower = q.toLowerCase();
 
     try {
       const respuesta = await fetch(
@@ -264,23 +265,31 @@ export const Biblioteca = () => {
         id: folder._id
       }));
 
-      setDocumentos([...carpetas, ...archivos]);
-      setDocumentosFiltrados([...carpetas, ...archivos]);
+      // Filtrar por prefijo (comienzo del nombre) case-insensitive
+      const todos = [...carpetas, ...archivos];
+      const filtradosPorPrefijo = todos.filter(doc => doc.nombre.toLowerCase().startsWith(qLower));
+      setDocumentos(filtradosPorPrefijo);
+      setDocumentosFiltrados(filtradosPorPrefijo);
     } catch (error) {
       console.error("Error al obtener archivos:", error);
     }
   }, [nombre]);
 
   // Lanzar búsqueda automáticamente al escribir con debounce
+  // Si el campo queda vacío, restaurar el contenido original de la carpeta
   useEffect(() => {
     const q = nombre.trim();
-    if (q === '') return; // no dispares búsqueda global sin término
+    if (q === '') {
+      // Campo vacío -> restaurar vista original
+      fetchFolderContents();
+      return;
+    }
 
     const delayDebounce = setTimeout(() => {
       handleSearch();
     }, 400);
     return () => clearTimeout(delayDebounce);
-  }, [nombre, handleSearch]);
+  }, [nombre, handleSearch, fetchFolderContents]);
 
   // OBTENER CONTENIDO DE LA CARPETA ACTUAL
   useEffect(() => {
@@ -324,8 +333,10 @@ export const Biblioteca = () => {
   // Filtrado combinado por nombre y etiqueta
   useEffect(() => {
     let filtrados = documentos;
-    if (nombre.trim() !== "") {
-      filtrados = filtrados.filter(doc => doc.nombre.toLowerCase().includes(nombre.toLowerCase()));
+    const q = nombre.trim().toLowerCase();
+    if (q !== "") {
+      // Filtrar por prefijo (comienzo del nombre), case-insensitive
+      filtrados = filtrados.filter(doc => doc.nombre.toLowerCase().startsWith(q));
     }
     if (etiquetaSeleccionada !== "") {
       filtrados = filtrados.filter(doc => doc.tag.toLowerCase() === etiquetaSeleccionada);
