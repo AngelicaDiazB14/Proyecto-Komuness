@@ -44,7 +44,7 @@ function sanitizeName(name: string) {
  * - Respeta la estructura por fecha
  */
 export const uploadLibrary = multer({
-  storage: multer.diskStorage({
+    storage: multer.diskStorage({
     destination: async (_req, _file, cb) => {
       try {
         const dir = await ensureDestDir();
@@ -58,7 +58,8 @@ export const uploadLibrary = multer({
       cb(null, `${Date.now()}-${safe}`);
     },
   }),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    // File size limit (in bytes). Default configurable via env LIBRARY_MAX_FILE_SIZE_MB (MB).
+    limits: { fileSize: (parseInt(process.env.LIBRARY_MAX_FILE_SIZE_MB || '200', 10) * 1024 * 1024) },
 });
 /* ====================== FIN NUEVO ====================== */
 

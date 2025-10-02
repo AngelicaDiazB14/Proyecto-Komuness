@@ -2,6 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import multer from 'multer';
 
+// Tamaño máximo por archivo (MB). Prioriza UPLOAD_MAX_FILE_SIZE_MB, luego LIBRARY_MAX_FILE_SIZE_MB, por defecto 200MB
+const maxFileSizeMB = parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB || process.env.LIBRARY_MAX_FILE_SIZE_MB || '200', 10);
+// Cantidad máxima de archivos por subida
+const maxFilesPerUpload = parseInt(process.env.UPLOAD_MAX_FILES || '20', 10);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const folder = process.env.NODE_ENV === 'production'
@@ -26,7 +31,7 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // es la capacidad por archivo 100MB 
-    files: 20,                   
+    fileSize: maxFileSizeMB * 1024 * 1024, // capacidad por archivo configurable via env (MB)
+    files: maxFilesPerUpload,
   },
 });
