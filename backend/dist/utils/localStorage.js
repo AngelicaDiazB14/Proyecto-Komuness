@@ -12,49 +12,80 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveLocalFile = saveLocalFile;
+exports.getUploadsRoot = getUploadsRoot;
+exports.getLibraryDir = getLibraryDir;
+exports.saveLibraryFileToDisk = saveLibraryFileToDisk;
 exports.deleteLocalByKey = deleteLocalByKey;
 // src/utils/localStorage.ts
-const node_fs_1 = __importDefault(require("node:fs"));
-const node_path_1 = __importDefault(require("node:path"));
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://159.54.148.238';
-const BASE_DIR = process.env.BIBLIOTECA_DIR || '/var/komuness/library';
-/** Crea el directorio si no existe */
-function ensureDir(dir) {
-    if (!node_fs_1.default.existsSync(dir))
-        node_fs_1.default.mkdirSync(dir, { recursive: true });
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+/**
+ * Directorio raíz público de subidas que Nginx servirá en /uploads/
+ * Estructura esperada:
+ *   /srv/uploads/
+ *     └── biblioteca/
+ *         └── YYYY/MM/filename
+ */
+function getUploadsRoot() {
+    return process.env.UPLOAD_DIR || '/srv/uploads';
 }
 /**
- * Guarda un archivo de Multer en almacenamiento local permanente
- * @param file Multer.File (diskStorage: tiene .path)
- * @param folderId string | '0' para raíz
- * @returns { location, key }
+ * Directorio base para la Biblioteca
  */
-function saveLocalFile(file, folderId) {
+function getLibraryDir() {
+    // Permite sobreescribir con LIBRARY_DIR si quisieras moverla en el futuro
+    return process.env.LIBRARY_DIR || path_1.default.join(getUploadsRoot(), 'biblioteca');
+}
+function ensureDir(p) {
+    fs_1.default.mkdirSync(p, { recursive: true });
+}
+/** Limpia nombre de archivo para evitar caracteres problemáticos */
+function safeName(name) {
+    return name.replace(/[^\w.\-+@() ]+/g, '_');
+}
+/**
+ * Guarda un archivo de Multer en: /srv/uploads/biblioteca/YYYY/MM/<uniqueName>
+ * Devuelve:
+ *  - key: ruta relativa a /srv/uploads (p.ej. "biblioteca/2025/09/1234_nombre.pdf")
+ *  - url: URL pública que servirá Nginx (p.ej. "http://IP/uploads/biblioteca/2025/09/1234_nombre.pdf")
+ *  - absPath: ruta absoluta en el disco
+ */
+function saveLibraryFileToDisk(file) {
     return __awaiter(this, void 0, void 0, function* () {
-        const subdir = folderId && folderId !== '0' ? folderId : 'root';
-        const destDir = node_path_1.default.join(BASE_DIR, subdir);
-        ensureDir(destDir);
-        const safeExt = node_path_1.default.extname(file.originalname) || '';
-        const safeBase = node_path_1.default.basename(file.originalname, safeExt).replace(/[^\w\-\.]+/g, '_');
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}-${safeBase}${safeExt}`;
-        const destPath = node_path_1.default.join(destDir, uniqueName);
-        // mover del tmp de multer al destino final
-        yield node_fs_1.default.promises.rename(file.path, destPath);
-        const key = `${subdir}/${uniqueName}`;
-        const location = `${PUBLIC_BASE_URL}/biblioteca-files/${key}`;
-        return { location, key };
+        const now = new Date();
+        const yyyy = String(now.getFullYear());
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const base = getLibraryDir(); // /srv/uploads/biblioteca
+        const subdir = path_1.default.join(base, yyyy, mm); // /srv/uploads/biblioteca/2025/09
+        ensureDir(subdir);
+        const unique = `${Date.now()}_${safeName(file.originalname)}`;
+        const absPath = path_1.default.join(subdir, unique); // abs full path
+        // escribir en disco
+        yield fs_1.default.promises.writeFile(absPath, file.buffer);
+        // key relativa a /srv/uploads
+        const relFromUploads = path_1.default.relative(getUploadsRoot(), absPath).split(path_1.default.sep).join('/');
+        const publicBase = process.env.PUBLIC_BASE_URL || 'http://159.54.148.238';
+        const url = `${publicBase}/uploads/${relFromUploads}`;
+        return {
+            key: relFromUploads, // ejemplo: "biblioteca/2025/09/1694478123456_manual.pdf"
+            url,
+            absPath,
+        };
     });
 }
-/** Borra un archivo por key relativa (subdir/filename) */
+/** Borra un archivo usando la key relativa a /srv/uploads */
 function deleteLocalByKey(key) {
     return __awaiter(this, void 0, void 0, function* () {
-        const full = node_path_1.default.join(BASE_DIR, key);
+        const abs = path_1.default.join(getUploadsRoot(), key);
         try {
-            yield node_fs_1.default.promises.unlink(full);
+            yield fs_1.default.promises.unlink(abs);
+            return true;
         }
-        catch (_a) {
-            // si no existe, ignorar
+        catch (e) {
+            // Si no existe, lo ignoramos para no romper el flujo de borrado
+            if ((e === null || e === void 0 ? void 0 : e.code) === 'ENOENT')
+                return false;
+            throw e;
         }
     });
 }

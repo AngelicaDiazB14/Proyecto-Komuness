@@ -17,15 +17,17 @@ const adjuntoSchema = new mongoose_1.Schema({
 const publicacionSchema = new mongoose_1.Schema({
     titulo: { type: String, required: true },
     contenido: { type: String, required: true },
-    //id del autor
+    // id del autor
     autor: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     fecha: { type: String, required: true },
     adjunto: { type: [adjuntoSchema], required: false },
     comentarios: { type: [comentarioSchema], required: false },
     tag: { type: String, required: true },
     publicado: { type: Boolean, required: true },
+    // Evento
     fechaEvento: { type: String, required: false },
-    Precio: { type: Number, required: false },
+    horaEvento: { type: String, required: false },
+    precio: { type: Number, required: false },
     // categorías de área
     categoria: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Categoria', required: true }
 }, { timestamps: true });

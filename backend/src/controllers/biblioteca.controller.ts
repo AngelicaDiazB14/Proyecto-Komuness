@@ -43,6 +43,9 @@ function sanitizeName(name: string) {
  * - Guarda en disco (no en memoria)
  * - Respeta la estructura por fecha
  */
+const libraryMaxMB = parseInt(process.env.LIBRARY_MAX_FILE_SIZE_MB || '200', 10);
+const maxFileSizeSlackBytes = parseInt(process.env.UPLOAD_MAX_FILE_SIZE_SLACK_BYTES || String(1 * 1024 * 1024), 10); // 1MB slack
+
 export const uploadLibrary = multer({
     storage: multer.diskStorage({
     destination: async (_req, _file, cb) => {
@@ -59,7 +62,8 @@ export const uploadLibrary = multer({
     },
   }),
     // File size limit (in bytes). Default configurable via env LIBRARY_MAX_FILE_SIZE_MB (MB).
-    limits: { fileSize: (parseInt(process.env.LIBRARY_MAX_FILE_SIZE_MB || '200', 10) * 1024 * 1024) },
+    // Añadimos un pequeño slack para la sobrecarga multipart/form-data
+    limits: { fileSize: (libraryMaxMB * 1024 * 1024) + maxFileSizeSlackBytes },
 });
 /* ====================== FIN NUEVO ====================== */
 

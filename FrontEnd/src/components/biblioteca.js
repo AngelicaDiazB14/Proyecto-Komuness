@@ -76,7 +76,7 @@ export const Biblioteca = () => {
       fileRejections.forEach(({ file, errors }) => {
         errors.forEach(error => {
           if (error.code === 'file-too-large') {
-             toast.error(`El archivo ${file.name} es demasiado grande. Tamaño máximo permitido: 200 MB.`)
+             toast.error(`El archivo ${file.name} es demasiado grande. Tamaño máximo permitido: 201 MB.`)
           } else {
             toast.error(`Error al subir el archivo ${file.name}: ${error.message}`)
           }
@@ -209,46 +209,77 @@ export const Biblioteca = () => {
     data.append("userId", user._id)
     data.append("folderId", id)
 
-     await toast.promise(
-       (async () => {
-         const response = await fetch(`${API_URL}/biblioteca/upload/`, {
-           method: 'POST',
-           body: data,
-           headers: {
-             "Authorization": `Bearer ${localStorage.getItem("token")}`,
-           },
-         });
+    // Ejecutar la petición y usar toast.promise para el estado de la operación.
+    const result = await toast.promise(
+      (async () => {
+        const response = await fetch(`${API_URL}/biblioteca/upload/`, {
+          method: 'POST',
+          body: data,
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
 
-         // Manejo explícito de errores comunes
-         if (response.status === 413) {
-           // Intentar leer json si está disponible
-           let body = null;
-           try { body = await response.json(); } catch (_) { /* ignore */ }
-           throw new Error(body?.message || 'El archivo excede el límite permitido en el servidor (413).');
-         }
+        // Manejo explícito de errores comunes
+        if (response.status === 413) {
+          let body = null;
+          try { body = await response.json(); } catch (_) { /* ignore */ }
+          throw new Error(body?.message || 'El archivo excede el límite permitido en el servidor (413).');
+        }
 
-         if (!response.ok) {
-           let body = null;
-           try { body = await response.json(); } catch (_) { /* ignore */ }
-           throw new Error(body?.message || `Error al subir archivos (status ${response.status}).`);
-         }
+        if (!response.ok) {
+          let body = null;
+          try { body = await response.json(); } catch (_) { /* ignore */ }
+          throw new Error(body?.message || `Error al subir archivos (status ${response.status}).`);
+        }
 
-         return response.json();
-       })(),
-       {
-         loading: 'Subiendo archivos...',
-         success: '¡Archivos subidos con éxito!',
-         error: (err) => {
-           const msg = err instanceof Error ? err.message : String(err)
-           // Errores de conexión detectables por mensaje común
-           if (msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('ECONNRESET')) {
-             return 'Hubo un problema de conexión durante la carga. Verifica tu conexión e inténtalo de nuevo.'
-           }
-           return `Error: ${msg}`
-         },
-         duration: 8000,
-       }
-     )
+        return response.json();
+      })(),
+      {
+        loading: 'Subiendo archivos...',
+        error: (err) => {
+          const msg = err instanceof Error ? err.message : String(err)
+          if (msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('ECONNRESET')) {
+            return 'Error de conexión durante la carga. Verifica tu conexión e inténtalo de nuevo.'
+          }
+          // Mensaje genérico para errores de subida
+          return msg.includes('archivo') || msg.includes('Archivo')
+            ? `Error al subir el archivo: ${msg}`
+            : `Error al subir el archivo: ${msg}`
+        },
+        duration: 8000,
+      }
+    )
+
+    // Procesar la respuesta y mostrar mensajes más descriptivos por archivo
+    try {
+      if (result) {
+        // Si el backend devolvió un array de resultados por archivo
+        if (Array.isArray(result.results) && result.results.length > 0) {
+          const failed = result.results.filter(r => !r.success);
+          const succeeded = result.results.filter(r => r.success);
+
+          if (failed.length > 0) {
+            toast.error(`Algunos archivos no se pudieron subir (${failed.length}/${result.results.length}).`);
+            failed.forEach(f => {
+              toast.error(`Error al subir ${f.nombre || 'archivo'}: ${f.message || 'Error desconocido'}`);
+            });
+          }
+
+          if (succeeded.length > 0) {
+            toast.success(`${succeeded.length} archivo(s) subidos correctamente.`);
+          }
+        } else if (result.success === false) {
+          // Mensaje general de error
+          toast.error(result.message || 'Error al subir los archivos');
+        } else if (result.message) {
+          // Mensaje informativo del backend
+          toast.success(result.message);
+        }
+      }
+    } catch (e) {
+      console.error('Error procesando respuesta de subida:', e);
+    }
 
     fetchFolderContents()
   }
@@ -456,7 +487,7 @@ export const Biblioteca = () => {
 
           {fileRejections.length > 0 && (
             <div className="mt-4 text-red-600">
-              Algunos archivos no se pudieron subir por exceder el tamaño máximo permitido de 100 MB.
+              Algunos archivos no se pudieron subir por exceder el tamaño máximo permitido de 200 MB.
             </div>
           )}
 
