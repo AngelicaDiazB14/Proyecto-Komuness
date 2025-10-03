@@ -38,4 +38,5 @@ router.get('/categoria/:categoriaId', publicacion_controller_1.getPublicacionesB
 router.put('/:id', auth_middleware_1.authMiddleware, (0, roles_middleware_1.verificarRoles)([0, 1]), publicacion_controller_1.updatePublicacion);
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, roles_middleware_1.verificarRoles)([0, 1]), publicacion_controller_1.deletePublicacion);
 router.post('/:id/comentarios', auth_middleware_1.authMiddleware, (0, roles_middleware_1.verificarRoles)([0, 1, 2]), publicacion_controller_1.addComentario);
+router.get('/eventos/calendario', publicacion_controller_1.getEventosPorFecha);
 exports.default = router;

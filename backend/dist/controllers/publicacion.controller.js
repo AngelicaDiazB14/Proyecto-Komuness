@@ -12,15 +12,64 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.filterPublicaciones = exports.addComentario = exports.deletePublicacion = exports.updatePublicacion = exports.getPublicacionesByCategoria = exports.getPublicacionById = exports.getPublicacionesByTag = exports.createPublicacionA = exports.createPublicacion = void 0;
+exports.getEventosPorFecha = exports.filterPublicaciones = exports.addComentario = exports.deletePublicacion = exports.updatePublicacion = exports.getPublicacionesByCategoria = exports.getPublicacionById = exports.getPublicacionesByTag = exports.createPublicacionA = exports.createPublicacion = void 0;
 const publicacion_model_1 = require("../models/publicacion.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const gridfs_1 = require("../utils/gridfs");
+const LOG_ON = process.env.LOG_PUBLICACION === '1';
+// Utilidad: normaliza precio (string → number | undefined)
+function parsePrecio(input) {
+    if (input === undefined || input === null)
+        return undefined;
+    if (typeof input === 'number' && Number.isFinite(input))
+        return input;
+    if (typeof input === 'string') {
+        const trimmed = input.trim();
+        if (!trimmed)
+            return undefined;
+        // elimina símbolos comunes y separadores de miles
+        const cleaned = trimmed.replace(/[₡$,]/g, '');
+        const n = Number(cleaned);
+        return Number.isFinite(n) ? n : undefined;
+    }
+    return undefined;
+}
+function mustRequirePrecio(tag) {
+    return tag === 'evento' || tag === 'emprendimiento';
+}
+// NUEVO: normaliza hora del evento en formato HH:mm (24h). Si no cumple, se ignora.
+function parseHoraEvento(input) {
+    if (typeof input !== 'string')
+        return undefined;
+    const t = input.trim();
+    // acepta "HH:mm"
+    return /^\d{2}:\d{2}$/.test(t) ? t : undefined;
+}
 // Crear una publicación (sin adjuntos)
 const createPublicacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const publicacion = req.body;
+        const body = req.body;
+        const precio = parsePrecio(body.precio);
+        const tag = body.tag;
+        const horaEvento = parseHoraEvento(body.horaEvento); // ← NUEVO
+        if (LOG_ON) {
+            console.log('[Publicaciones][createPublicacion] req.body.precio:', body.precio, '→ normalizado:', precio);
+            console.log('[Publicaciones][createPublicacion] req.body.horaEvento:', body.horaEvento, '→ normalizado:', horaEvento);
+            console.log('[Publicaciones][createPublicacion] tag:', tag);
+        }
+        if (mustRequirePrecio(tag) && (precio === undefined)) {
+            res.status(400).json({ message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+            return;
+        }
+        const publicacion = Object.assign(Object.assign({}, body), { publicado: `${body.publicado}` === 'true', precio, // ← ya normalizado
+            horaEvento });
         const nuevaPublicacion = new publicacion_model_1.modelPublicacion(publicacion);
+        if (LOG_ON) {
+            console.log('[Publicaciones][createPublicacion] doc a guardar (precio, horaEvento):', {
+                precio: nuevaPublicacion.precio,
+                horaEvento: nuevaPublicacion.horaEvento,
+            });
+        }
         const savePost = yield nuevaPublicacion.save();
         res.status(201).json(savePost);
     }
@@ -59,6 +108,20 @@ const createPublicacionA = (req, res) => __awaiter(void 0, void 0, void 0, funct
                 return;
             }
         }
+        // --- Precio (existente) ---
+        const precio = parsePrecio(publicacion.precio);
+        const tag = publicacion.tag;
+        // --- Hora del evento (NUEVO) ---
+        const horaEvento = parseHoraEvento(publicacion.horaEvento);
+        if (LOG_ON) {
+            console.log('[Publicaciones][createPublicacionA] body.precio:', publicacion.precio, '→', precio);
+            console.log('[Publicaciones][createPublicacionA] body.horaEvento:', publicacion.horaEvento, '→', horaEvento);
+            console.log('[Publicaciones][createPublicacionA] tag:', tag);
+        }
+        if (mustRequirePrecio(tag) && (precio === undefined)) {
+            res.status(400).json({ ok: false, message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+            return;
+        }
         // --- Subir adjuntos (0..N) ---
         const adjuntos = [];
         for (const file of files) {
@@ -71,7 +134,14 @@ const createPublicacionA = (req, res) => __awaiter(void 0, void 0, void 0, funct
         // --- Crear documento y guardar ---
         const nuevaPublicacion = new publicacion_model_1.modelPublicacion(Object.assign(Object.assign({}, publicacion), { categoria, adjunto: adjuntos, 
             // normalizaciones útiles:
-            publicado: `${publicacion.publicado}` === 'true' }));
+            publicado: `${publicacion.publicado}` === 'true', precio, // ← ya normalizado
+            horaEvento }));
+        if (LOG_ON) {
+            console.log('[Publicaciones][createPublicacionA] doc a guardar (precio, horaEvento):', {
+                precio: nuevaPublicacion.precio,
+                horaEvento: nuevaPublicacion.horaEvento,
+            });
+        }
         const savePost = yield nuevaPublicacion.save();
         res.status(201).json(savePost);
     }
@@ -87,21 +157,24 @@ const getPublicacionesByTag = (req, res) => __awaiter(void 0, void 0, void 0, fu
     try {
         const offset = parseInt(req.query.offset) || 0;
         const limit = parseInt(req.query.limit) || 10;
-        const { tag, publicado } = req.query;
+        const { tag, publicado, categoria } = req.query;
         const query = {};
         if (tag)
             query.tag = tag;
         if (publicado !== undefined)
             query.publicado = (publicado === 'true');
+        if (categoria) {
+            query.categoria = categoria;
+        }
         const [publicaciones, totalPublicaciones] = yield Promise.all([
             publicacion_model_1.modelPublicacion.find(query)
                 .populate('autor', 'nombre')
+                .populate('categoria', 'nombre estado')
                 .sort({ createdAt: -1 })
                 .skip(offset)
                 .limit(limit),
             publicacion_model_1.modelPublicacion.countDocuments(query),
         ]);
-        // ✅ Nunca 404 por lista vacía. El FE ya maneja array vacío.
         res.status(200).json({
             data: publicaciones,
             pagination: {
@@ -122,7 +195,9 @@ exports.getPublicacionesByTag = getPublicacionesByTag;
 const getPublicacionById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const publicacion = yield publicacion_model_1.modelPublicacion.findById(id);
+        const publicacion = yield publicacion_model_1.modelPublicacion.findById(id)
+            .populate('autor', 'nombre')
+            .populate('categoria', 'nombre estado');
         if (!publicacion) {
             res.status(404).json({ message: 'Publicación no encontrada' });
             return;
@@ -145,8 +220,7 @@ const getPublicacionesByCategoria = (req, res) => __awaiter(void 0, void 0, void
         const [publicaciones, total] = yield Promise.all([
             publicacion_model_1.modelPublicacion.find(query)
                 .populate('autor', 'nombre')
-                .populate('categoria', 'nombre')
-                .sort({ createdAt: -1 })
+                .populate('categoria', 'nombre estado')
                 .skip(offset)
                 .limit(limit),
             publicacion_model_1.modelPublicacion.countDocuments(query)
@@ -171,7 +245,32 @@ exports.getPublicacionesByCategoria = getPublicacionesByCategoria;
 const updatePublicacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const updatedData = req.body;
+        const updatedData = Object.assign({}, req.body);
+        if (updatedData.hasOwnProperty('precio')) {
+            const parsed = parsePrecio(updatedData.precio);
+            if (LOG_ON) {
+                console.log('[Publicaciones][updatePublicacion] body.precio:', updatedData.precio, '→ normalizado:', parsed);
+            }
+            updatedData.precio = parsed;
+        }
+        // NUEVO: si viene horaEvento, normalizar a HH:mm (si no es válida, se quita del update para no pisar nada)
+        if (updatedData.hasOwnProperty('horaEvento')) {
+            const parsedHora = parseHoraEvento(updatedData.horaEvento);
+            if (LOG_ON) {
+                console.log('[Publicaciones][updatePublicacion] body.horaEvento:', updatedData.horaEvento, '→ normalizado:', parsedHora);
+            }
+            if (parsedHora !== undefined) {
+                updatedData.horaEvento = parsedHora;
+            }
+            else {
+                delete updatedData.horaEvento;
+            }
+        }
+        // Si cambia tag a evento/emprendimiento y no trae precio válido:
+        if (mustRequirePrecio(updatedData.tag) && (updatedData.precio === undefined)) {
+            res.status(400).json({ message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+            return;
+        }
         const publicacion = yield publicacion_model_1.modelPublicacion.findByIdAndUpdate(id, updatedData, { new: true });
         if (!publicacion) {
             res.status(404).json({ message: 'Publicación no encontrada' });
@@ -270,3 +369,32 @@ const filterPublicaciones = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.filterPublicaciones = filterPublicaciones;
+// Obtener eventos por rango de fechas
+const getEventosPorFecha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { startDate, endDate } = req.query;
+        if (!startDate || !endDate) {
+            res.status(400).json({ message: 'Se requieren startDate y endDate' });
+            return;
+        }
+        const eventos = yield publicacion_model_1.modelPublicacion.find({
+            tag: 'evento',
+            publicado: true,
+            fechaEvento: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        })
+            .populate('autor', 'nombre')
+            .populate('categoria', 'nombre')
+            // incluye horaEvento y precio
+            .select('titulo fechaEvento horaEvento contenido adjunto _id precio')
+            .sort({ fechaEvento: 1 });
+        res.status(200).json(eventos);
+    }
+    catch (error) {
+        const err = error;
+        res.status(500).json({ message: err.message });
+    }
+});
+exports.getEventosPorFecha = getEventosPorFecha;
