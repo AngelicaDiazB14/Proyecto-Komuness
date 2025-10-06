@@ -13,7 +13,6 @@ import {NuevaContra} from './nuevaContra'
 import {CrearUsuario} from './crearUsuario'
 import CalendarView from './Calendar';
 import AdminCategorias from './adminCategorias';
-import PaypalPayment from './payments/PaypalPayment';
 
 export const Rutas = () =>{
     
