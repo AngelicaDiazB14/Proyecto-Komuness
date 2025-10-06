@@ -10,6 +10,7 @@ import categoriaRoutes from "./routes/categoria.routes";//importación de rutas 
 import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
+import paypalRoutes from "./routes/paypal.routes";
 
 const app: Express = express();
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/usuario', usuarioRoutes);
 app.use('/api/publicaciones', publicacionRoutes);
 app.use('/api/biblioteca', bibliotecaRoutes);
 app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
+app.use("/api/paypal", paypalRoutes);
 app.use('/api', filesRouter);
 
 app.get('/api/', (req: Request, res: Response) => {
