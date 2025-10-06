@@ -34,7 +34,6 @@ export const Rutas = () =>{
                 <Route path = "/crearUsr" element= {<CrearUsuario/>}/>
                 <Route path="/calendario" element={<CalendarView />} />
                 <Route path="/admin/categorias" element={<AdminCategorias />} />
-                <Route path="/pago" element={<PaypalPayment />} />
 
 
 
