@@ -14,6 +14,7 @@ import {
 } from '../controllers/publicacion.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { verificarRoles } from '../middlewares/roles.middleware';
+import { validarLimitePublicaciones } from '../middlewares/limitePublicaciones.middleware';
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -28,10 +29,12 @@ const multiFields = upload.fields([
 
 const router = Router();
 
-router.post('/', createPublicacion);
+// Las rutas de creación ahora incluyen validación de límites
+// El middleware se aplica DESPUÉS de authMiddleware
+router.post('/', authMiddleware, validarLimitePublicaciones, createPublicacion);
 
 // Handler robusto para capturar errores de Multer (p.ej. límite de tamaño)
-router.post('/v2', (req, res, next) => {
+router.post('/v2', authMiddleware, validarLimitePublicaciones, (req, res, next) => {
   multiFields(req, res, (err: any) => {
     if (err) {
       const msg = err?.message || 'Error al subir archivos';

@@ -265,3 +265,96 @@ export async function enviarCorreoRecuperacion(req: Request, res: Response): Pro
     }
 }
 
+/**
+ * Actualizar límite personalizado de publicaciones para un usuario específico (solo admins)
+ */
+export const actualizarLimiteUsuario = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { limitePublicaciones } = req.body;
+
+        if (limitePublicaciones !== undefined && limitePublicaciones !== null) {
+            if (typeof limitePublicaciones !== 'number' || limitePublicaciones < 0) {
+                res.status(400).json({
+                    success: false,
+                    message: 'limitePublicaciones debe ser un número mayor o igual a 0'
+                });
+                return;
+            }
+        }
+
+        const usuario = await modelUsuario.findByIdAndUpdate(
+            id,
+            { limitePublicaciones },
+            { new: true }
+        ).select('-password');
+
+        if (!usuario) {
+            res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Límite personalizado actualizado correctamente',
+            data: usuario
+        });
+    } catch (error) {
+        const err = error as Error;
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+/**
+ * Actualizar fecha de vencimiento premium para un usuario (solo admins)
+ */
+export const actualizarVencimientoPremium = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { fechaVencimientoPremium } = req.body;
+
+        if (!fechaVencimientoPremium) {
+            res.status(400).json({
+                success: false,
+                message: 'Se requiere la fecha de vencimiento'
+            });
+            return;
+        }
+
+        const usuario = await modelUsuario.findByIdAndUpdate(
+            id,
+            { 
+                fechaVencimientoPremium: new Date(fechaVencimientoPremium),
+                tipoUsuario: 3 // Asegurar que sea premium
+            },
+            { new: true }
+        ).select('-password');
+
+        if (!usuario) {
+            res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Fecha de vencimiento premium actualizada correctamente',
+            data: usuario
+        });
+    } catch (error) {
+        const err = error as Error;
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
