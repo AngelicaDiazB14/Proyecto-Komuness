@@ -6,6 +6,7 @@ import usuarioRoutes from './routes/usuario.routes';
 import publicacionRoutes from './routes/publicaciones.routes';
 import bibliotecaRoutes from './routes/biblioteca.routes';
 import categoriaRoutes from "./routes/categoria.routes";//importación de rutas para categoría
+import configuracionRoutes from "./routes/configuracion.routes";//importación de rutas para configuración
 import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
@@ -36,6 +37,7 @@ app.use('/api/usuario', usuarioRoutes);
 app.use('/api/publicaciones', publicacionRoutes);
 app.use('/api/biblioteca', bibliotecaRoutes);
 app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
+app.use("/api/configuracion", configuracionRoutes); // nueva ruta para configuración de límites
 app.use('/api', filesRouter);
 
 app.get('/api/', (req: Request, res: Response) => {
