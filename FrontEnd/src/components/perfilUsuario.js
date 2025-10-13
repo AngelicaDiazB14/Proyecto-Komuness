@@ -8,6 +8,8 @@ import { useAuth } from "./context/AuthContext";
 import ModalCambioContrasena from "./modalCambioContra";
 import { Link } from "react-router-dom"; 
 import { FaListAlt } from "react-icons/fa";
+import { FiSettings } from "react-icons/fi";
+import ModalLimitesPublicaciones from "./modalLimitesPublicaciones";
 
 export const PerfilUsuario = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export const PerfilUsuario = () => {
   const [usuarios, setUsuarios] = useState([]);
   const { user, logout } = useAuth();
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalLimitesAbierto, setModalLimitesAbierto] = useState(false);
   useEffect(() => {
     if (!user) {
       navigate("/");
@@ -296,7 +299,7 @@ export const PerfilUsuario = () => {
         <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-6">
           <h1 className="text-black">Dashboard Administrativo</h1>
              {user.tipoUsuario === 0 || user.tipoUsuario === 1 && (
-            <div className="mb-6">
+            <div className="mb-6 flex gap-4">
             <Link 
               to="/admin/categorias" 
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
@@ -304,8 +307,22 @@ export const PerfilUsuario = () => {
               <FaListAlt className="w-4 h-4 mr-2" />
               Gestionar Categorías
             </Link>
+            
+            <button
+              onClick={() => setModalLimitesAbierto(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 font-medium"
+            >
+              <FiSettings className="w-4 h-4 mr-2" />
+              Configurar Límites de Publicaciones
+            </button>
           </div>
           )}
+
+          {/* Modal de Límites de Publicaciones */}
+          <ModalLimitesPublicaciones 
+            isOpen={modalLimitesAbierto} 
+            onClose={() => setModalLimitesAbierto(false)} 
+          />
 
           <div className="overflow-x-auto max-h-[300px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
             
