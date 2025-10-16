@@ -8,8 +8,8 @@ import {
   extractUserId,
 } from "../utils/paypal";
 
-const USERS_COL = "usuarios"; // cambia si tu colección tiene otro nombre
-const PAY_COL = "payments";   // registros de pagos e idempotencia
+const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
+const PAY_COL = "payments";   // colección de auditoría/idempotencia
 
 async function setUserRolePremium(args: { id?: string; email?: string }) {
   const { id, email } = args;
@@ -27,23 +27,26 @@ async function setUserRolePremium(args: { id?: string; email?: string }) {
 
 async function savePayment(doc: any) {
   const col = mongoose.connection.collection(PAY_COL);
-  // índices para idempotencia (se crean 1 vez; si existen, ignora error)
+  // índices para idempotencia (si ya existen, ignora el error)
   try { await col.createIndex({ captureId: 1 }, { unique: true, sparse: true }); } catch {}
   try { await col.createIndex({ eventId: 1 },   { unique: true, sparse: true }); } catch {}
   try {
     await col.insertOne(doc);
     return { idempotent: false };
   } catch (e: any) {
-    if (e?.code === 11000) return { idempotent: true };
+    if (e?.code === 11000) return { idempotent: true }; // duplicado
     throw e;
   }
 }
 
 /** POST /api/paypal/capture  body: { orderId }  (opcional) */
-export const captureAndUpgrade: RequestHandler = async (req, res) => {
+export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void> => {
   try {
     const { orderId } = req.body as { orderId?: string };
-    if (!orderId) return res.status(400).json({ error: "orderId requerido" });
+    if (!orderId) {
+      res.status(400).json({ error: "orderId requerido" });
+      return;
+    }
 
     const data = await captureOrder(orderId);
     const resource = data;
@@ -67,17 +70,22 @@ export const captureAndUpgrade: RequestHandler = async (req, res) => {
       await setUserRolePremium({ id: userId, email: info.email ?? undefined });
     }
 
-    return res.json({ ok: true, status: info.status, idempotent: saved.idempotent });
+    res.json({ ok: true, status: info.status, idempotent: saved.idempotent });
+    return;
   } catch (e: any) {
-    return res.status(500).json({ error: "capture_failed", message: e?.message });
+    res.status(500).json({ error: "capture_failed", message: e?.message });
+    return;
   }
 };
 
 /** POST /api/paypal/webhook  (URL configurada en PayPal) */
-export const webhook: RequestHandler = async (req, res) => {
+export const webhook: RequestHandler = async (req, res): Promise<void> => {
   try {
     const valid = await verifyWebhookSignature(req.headers as any, req.body);
-    if (!valid) return res.status(400).json({ error: "invalid_signature" });
+    if (!valid) {
+      res.status(400).json({ error: "invalid_signature" });
+      return;
+    }
 
     const event = req.body;
     const eventId: string | undefined = event?.id;
@@ -105,8 +113,10 @@ export const webhook: RequestHandler = async (req, res) => {
       await setUserRolePremium({ id: userId, email: info.email ?? undefined });
     }
 
-    return res.json({ ok: true, idempotent: saved.idempotent });
+    res.json({ ok: true, idempotent: saved.idempotent });
+    return;
   } catch (e: any) {
-    return res.status(500).json({ error: "webhook_failed", message: e?.message });
+    res.status(500).json({ error: "webhook_failed", message: e?.message });
+    return;
   }
 };
