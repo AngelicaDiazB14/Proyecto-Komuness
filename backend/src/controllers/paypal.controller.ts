@@ -11,9 +11,9 @@ import {
 const USERS_COL = "usuarios";  // cambia si tu colección tiene otro nombre
 const PAY_COL   = "payments";  // registros de pagos e idempotencia
 
-async function markUserPremiumBy({ id, email }: { id?: string; email?: string }) {
+async function setUserRolePremium({ id, email }: { id?: string; email?: string }) {
   const users = mongoose.connection.collection(USERS_COL);
-  const update = { $set: { premium: true, premiumAt: new Date() } } as any;
+  const update = { $set: { tipoUsuario: 3 } } as any; // PREMIUM = 3
   if (id) {
     await users.updateOne({ _id: new mongoose.Types.ObjectId(id) }, update);
     return;
@@ -63,7 +63,7 @@ export async function captureAndUpgrade(req: Request, res: Response) {
     });
 
     if ((info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
-      await markUserPremiumBy({ id: userId, email: info.email ?? undefined });
+      await setUserRolePremium({ id: userId, email: info.email ?? undefined });
     }
 
     return res.json({ ok: true, status: info.status, idempotent: saved.idempotent });
@@ -101,7 +101,7 @@ export async function webhook(req: Request, res: Response) {
 
     const okTypes = new Set(["PAYMENT.CAPTURE.COMPLETED", "CHECKOUT.ORDER.APPROVED"]);
     if (okTypes.has(event?.event_type) && (info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
-      await markUserPremiumBy({ id: userId, email: info.email ?? undefined });
+      await setUserRolePremium({ id: userId, email: info.email ?? undefined });
     }
 
     return res.json({ ok: true, idempotent: saved.idempotent });
