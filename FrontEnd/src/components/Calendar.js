@@ -8,12 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdArrowRoundBack } from "react-icons/io";
 import '../CSS/calendar.css';
 
-// Configurar moment en español
 moment.locale('es');
 
-// URL base del backend: usa REACT_APP_BACKEND_URL o el mismo origen de la página (si no está definida)
-const API_BASE = (process.env.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/+$/, '');
-const API = `${API_BASE}/api`;
+// Base de API robusta (evita /api/api)
+const RAW = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+const BASE = (RAW || '').replace(/\/+$/, '');
+const API = BASE.endsWith('/api') ? BASE : `${BASE}/api`;
 
 const localizer = momentLocalizer(moment);
 
@@ -21,55 +21,35 @@ export const CalendarView = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('month');
-  
-  // Fecha actual correcta
+
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   });
-  
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchEvents(currentDate);
-  }, [currentDate]);
+  useEffect(() => { fetchEvents(currentDate); }, [currentDate]);
 
   const fetchEvents = async (date) => {
     try {
       setLoading(true);
-      
       const dateMoment = moment(date);
       const startOfMonth = dateMoment.startOf('month').format('YYYY-MM-DD');
       const endOfMonth = dateMoment.endOf('month').format('YYYY-MM-DD');
-      
+
       const response = await fetch(
         `${API}/publicaciones/eventos/calendario?startDate=${startOfMonth}&endDate=${endOfMonth}`
       );
-      
       if (!response.ok) throw new Error('Error al cargar eventos');
-      
+
       const eventos = await response.json();
-      
       const calendarEvents = eventos.map(evento => {
-        // Crear fecha base del evento
         const [year, month, day] = evento.fechaEvento.split('-');
-        
-        // Parsear la hora (formato HH:mm) - siempre existe porque es obligatoria
         const [hours, minutes] = evento.horaEvento.split(':');
-        
-        // Crear fecha completa con hora de inicio
         const startDateTime = new Date(year, month - 1, day, hours, minutes);
-        
-        return {
-          id: evento._id,
-          title: evento.titulo,
-          start: startDateTime,
-          end: startDateTime, // Misma hora de inicio y fin (punto en el tiempo)
-          allDay: false,
-          resource: evento
-        };
+        return { id: evento._id, title: evento.titulo, start: startDateTime, end: startDateTime, allDay: false, resource: evento };
       });
-      
       setEvents(calendarEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -78,15 +58,9 @@ export const CalendarView = () => {
     }
   };
 
-  const handleSelectEvent = (event) => {
-    navigate(`/publicaciones/${event.id}`);
-  };
+  const handleSelectEvent = (event) => { navigate(`/publicaciones/${event.id}`); };
+  const handleNavigate = (newDate) => { setCurrentDate(newDate); };
 
-  const handleNavigate = (newDate) => {
-    setCurrentDate(newDate);
-  };
-
-  // Fecha actual SIN zona horaria
   const getTodayDate = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -102,28 +76,19 @@ export const CalendarView = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mx-2 md:mx-4 my-4 relative">
-
-      {/* Botón de volver */}
       <div className="absolute top-4 left-4 z-20">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors shadow-md"
-        >
+        <button type="button" onClick={() => navigate(-1)} className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors shadow-md">
           <IoMdArrowRoundBack color="black" size={25} />
         </button>
       </div>
 
-      {/* TÍTULO PRINCIPAL CENTRADO */}
       <div className="text-center mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-          Calendario de Eventos
-        </h2>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Calendario de Eventos</h2>
         <p className="text-lg md:text-xl text-gray-600 mt-2">
           {moment(currentDate).format('MMMM YYYY').replace(/^\w/, c => c.toUpperCase())}
         </p>
       </div>
-      
+
       <div className="h-[400px] md:h-[600px]">
         <Calendar
           localizer={localizer}
@@ -139,16 +104,9 @@ export const CalendarView = () => {
           views={['month', 'agenda']}
           style={{ height: '100%' }}
           messages={{
-            next: "Siguiente",
-            previous: "Anterior", 
-            today: "Hoy",
-            month: "Mes",
-            week: "Semana",
-            day: "Día",
-            agenda: "Agenda",
-            date: "Fecha",
-            time: "Hora",
-            event: "Evento",
+            next: "Siguiente", previous: "Anterior", today: "Hoy",
+            month: "Mes", week: "Semana", day: "Día", agenda: "Agenda",
+            date: "Fecha", time: "Hora", event: "Evento",
             noEventsInRange: "No hay eventos en este rango de fechas",
             showMore: total => `+ Ver más (${total})`
           }}

@@ -1,16 +1,17 @@
 // src/components/publicaciones.js
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { IoMdArrowRoundBack } from "react-icons/io"; // Importar el icono
+import { IoMdArrowRoundBack } from "react-icons/io";
 import '../CSS/publicaciones.css';
 import PublicacionCard from './publicacionCard';
 import FormularioPublicacion from '../pages/formulario';
 import { useAuth } from './context/AuthContext';
 import CategoriaFilter from './categoriaFilter';
 
-// URL base del backend: usa REACT_APP_BACKEND_URL o el mismo origen de la página (si no está definida)
-const API_BASE = (process.env.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/+$/, '');
-const API = `${API_BASE}/api`;
+// Base de API robusta (evita /api/api)
+const RAW = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+const BASE = (RAW || '').replace(/\/+$/, '');
+const API = BASE.endsWith('/api') ? BASE : `${BASE}/api`;
 
 export const Publicaciones = ({ tag: propTag }) => {
   const navigate = useNavigate();
@@ -29,53 +30,43 @@ export const Publicaciones = ({ tag: propTag }) => {
   const { user } = useAuth();
   const [publicaciones, setPublicaciones] = useState([]);
 
-  // Obtener categoría de los query parameters
   useEffect(() => {
     const categoriaId = searchParams.get('categoria');
     setCategoriaFilter(categoriaId);
   }, [searchParams]);
 
-  // Cambia el "modo" según la ruta
   useEffect(() => {
-      const path = location.pathname;
-      let newTag = propTag;
-      
-      if (path === '/eventos') {
-        setMostrar(0);
-        newTag = 'evento';
-      } else if (path === '/emprendimientos') {
-        setMostrar(1);
-        newTag = 'emprendimiento';
-      } else if (path === '/publicaciones') {
-        setMostrar(2);
-        newTag = 'publicacion';
-      } else if (path === '/perfilUsuario') {
-        setMostrar(3);
-        newTag = null;
-      }
-      
-      setTag(newTag);
-      setPublicaciones([]);
-      setPaginaActual(1);
-      setTotalPaginas(1);
-    }, [location.pathname, propTag]);
+    const path = location.pathname;
+    let newTag = propTag;
 
-  // Cuando hay tag definido o cambia el filtro de categoría, trae la primera página
-  useEffect(() => {
-    if (tag) {
-      obtenerPublicaciones(tag, 1, limite, categoriaFilter);
+    if (path === '/eventos') {
+      setMostrar(0); newTag = 'evento';
+    } else if (path === '/emprendimientos') {
+      setMostrar(1); newTag = 'emprendimiento';
+    } else if (path === '/publicaciones') {
+      setMostrar(2); newTag = 'publicacion';
+    } else if (path === '/perfilUsuario') {
+      setMostrar(3); newTag = null;
     }
+
+    setTag(newTag);
+    setPublicaciones([]);
+    setPaginaActual(1);
+    setTotalPaginas(1);
+  }, [location.pathname, propTag]);
+
+  useEffect(() => {
+    if (tag) obtenerPublicaciones(tag, 1, limite, categoriaFilter);
   }, [tag, categoriaFilter]);
 
-  // Filtra localmente según "mostrar" (por si el backend devuelve mezcla)
   useEffect(() => {
     if (mostrar === 3) {
       setCards(publicaciones);
     } else {
-      const newCards = publicaciones.filter((publicacion) => {
-        if (mostrar === 0) return publicacion.tag === 'evento';
-        if (mostrar === 1) return publicacion.tag === 'emprendimiento';
-        return publicacion.tag === 'publicacion';
+      const newCards = publicaciones.filter((p) => {
+        if (mostrar === 0) return p.tag === 'evento';
+        if (mostrar === 1) return p.tag === 'emprendimiento';
+        return p.tag === 'publicacion';
       });
       setCards(newCards);
     }
@@ -84,58 +75,31 @@ export const Publicaciones = ({ tag: propTag }) => {
   const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId = null) => {
     try {
       const offset = (page - 1) * limit;
-
       const params = new URLSearchParams();
       if (tag) params.set('tag', tag);
       params.set('offset', String(offset));
       params.set('limit', String(limit));
       params.set('publicado', 'true');
-      
-      // Añadir filtro por categoría si existe
-      if (categoriaId) {
-        params.set('categoria', categoriaId);
-      }
+      if (categoriaId) params.set('categoria', categoriaId);
 
-      const resp = await fetch(`${API}/publicaciones?${params.toString()}`, {
-        method: 'GET',
-      });
-
-      // Si el backend responde 404 cuando no hay resultados:
+      const resp = await fetch(`${API}/publicaciones?${params.toString()}`);
       if (resp.status === 404) {
-        setPublicaciones([]);
-        setPaginaActual(1);
-        setTotalPaginas(1);
-        return;
+        setPublicaciones([]); setPaginaActual(1); setTotalPaginas(1); return;
       }
-
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error(`HTTP ${resp.status}: ${text}`);
       }
-
       const data = await resp.json();
       setPublicaciones(data.data || []);
       setPaginaActual(page);
       setTotalPaginas(data.pagination?.pages ?? 1);
     } catch (error) {
       console.error('Error al obtener publicaciones:', error);
-      // deja la UI en estado vacío en caso de error
-      setPublicaciones([]);
-      setPaginaActual(1);
-      setTotalPaginas(1);
+      setPublicaciones([]); setPaginaActual(1); setTotalPaginas(1);
     }
   };
 
-  // Función para obtener el título de la página según la ruta
-  const obtenerTituloPagina = () => {
-    const path = location.pathname;
-    if (path === '/eventos') return 'Eventos';
-    if (path === '/emprendimientos') return 'Emprendimientos';
-    if (path === '/publicaciones') return 'Publicaciones';
-    return 'Publicaciones';
-  };
-
-  // Función para determinar si mostrar el botón de volver
   const mostrarBotonVolver = () => {
     const path = location.pathname;
     return path === '/eventos' || path === '/emprendimientos';
@@ -145,8 +109,6 @@ export const Publicaciones = ({ tag: propTag }) => {
     <div className="bg-gray-800/80 pt-1 min-h-screen">
       <div className="relative">
         <CategoriaFilter />
-        
-        {/* Botón de volver (solo en eventos y emprendimientos) */}
         {mostrarBotonVolver() && (
           <div className="absolute top-4 left-10 z-20">
             <button
@@ -159,7 +121,7 @@ export const Publicaciones = ({ tag: propTag }) => {
           </div>
         )}
       </div>
-      
+
       <div className="card-container">
         {cards.length === 0 ? (
           <p className="text-white">No hay publicaciones para mostrar.</p>
@@ -181,24 +143,13 @@ export const Publicaciones = ({ tag: propTag }) => {
         )}
 
         {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-          .filter(
-            (p) =>
-              p === 1 ||
-              p === totalPaginas ||
-              (p >= paginaActual - 2 && p <= paginaActual + 2)
-          )
+          .filter(p => p === 1 || p === totalPaginas || (p >= paginaActual - 2 && p <= paginaActual + 2))
           .map((p, i, arr) => (
             <React.Fragment key={p}>
-              {i > 0 && p - arr[i - 1] > 1 && (
-                <span className="px-2 py-1 text-gray-500">...</span>
-              )}
+              {i > 0 && p - arr[i - 1] > 1 && (<span className="px-2 py-1 text-gray-500">...</span>)}
               <button
                 onClick={() => obtenerPublicaciones(tag, p, limite, categoriaFilter)}
-                className={`px-3 py-1 rounded text-sm ${
-                  p === paginaActual
-                    ? 'bg-[#5445FF] text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`px-3 py-1 rounded text-sm ${p === paginaActual ? 'bg-[#5445FF] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               >
                 {p}
               </button>
@@ -216,13 +167,7 @@ export const Publicaciones = ({ tag: propTag }) => {
       </div>
 
       <button
-        onClick={() => {
-          if (user) {
-            setFormulario(true);
-          } else {
-            navigate('/iniciarSesion');
-          }
-        }}
+        onClick={() => { if (user) setFormulario(true); else navigate('/iniciarSesion'); }}
         className="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-blue-600 text-white w-14 h-14 md:w-16 md:h-16 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 z-50 flex items-center justify-center text-2xl"
       >
         +
