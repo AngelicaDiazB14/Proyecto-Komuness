@@ -8,8 +8,9 @@ import FormularioPublicacion from '../pages/formulario';
 import { useAuth } from './context/AuthContext';
 import CategoriaFilter from './categoriaFilter';
 
-// URL base del backend (usa .env en build o IP directa)
-const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
+// URL base del backend: usa REACT_APP_BACKEND_URL o el mismo origen de la página (si no está definida)
+const API_BASE = (process.env.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/+$/, '');
+const API = `${API_BASE}/api`;
 
 export const Publicaciones = ({ tag: propTag }) => {
   const navigate = useNavigate();

@@ -1,3 +1,4 @@
+// src/components/Calendar.js
 import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -9,7 +10,10 @@ import '../CSS/calendar.css';
 
 // Configurar moment en español
 moment.locale('es');
-const API = process.env.REACT_APP_BACKEND_URL || 'http://159.54.148.238/api';
+
+// URL base del backend: usa REACT_APP_BACKEND_URL o el mismo origen de la página (si no está definida)
+const API_BASE = (process.env.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/+$/, '');
+const API = `${API_BASE}/api`;
 
 const localizer = momentLocalizer(moment);
 
