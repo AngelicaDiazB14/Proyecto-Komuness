@@ -36,7 +36,6 @@ export const Rutas = () =>{
 
 
 
-
                 <Route path="*" element={<Navigate to="/publicaciones" />} />
             </Routes>
         </Router>
