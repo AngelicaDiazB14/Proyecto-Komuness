@@ -1,17 +1,18 @@
 // src/controllers/paypal.controller.ts
-import { Request, Response } from "express";
+import type { RequestHandler } from "express";
 import mongoose from "mongoose";
 import {
   captureOrder,
   verifyWebhookSignature,
   extractPaymentInfo,
-  extractUserId
+  extractUserId,
 } from "../utils/paypal";
 
-const USERS_COL = "usuarios";  // cambia si tu colección tiene otro nombre
-const PAY_COL   = "payments";  // registros de pagos e idempotencia
+const USERS_COL = "usuarios"; // cambia si tu colección tiene otro nombre
+const PAY_COL = "payments";   // registros de pagos e idempotencia
 
-async function setUserRolePremium({ id, email }: { id?: string; email?: string }) {
+async function setUserRolePremium(args: { id?: string; email?: string }) {
+  const { id, email } = args;
   const users = mongoose.connection.collection(USERS_COL);
   const update = { $set: { tipoUsuario: 3 } } as any; // PREMIUM = 3
   if (id) {
@@ -39,9 +40,9 @@ async function savePayment(doc: any) {
 }
 
 /** POST /api/paypal/capture  body: { orderId }  (opcional) */
-export async function captureAndUpgrade(req: Request, res: Response) {
+export const captureAndUpgrade: RequestHandler = async (req, res) => {
   try {
-    const { orderId } = req.body;
+    const { orderId } = req.body as { orderId?: string };
     if (!orderId) return res.status(400).json({ error: "orderId requerido" });
 
     const data = await captureOrder(orderId);
@@ -70,10 +71,10 @@ export async function captureAndUpgrade(req: Request, res: Response) {
   } catch (e: any) {
     return res.status(500).json({ error: "capture_failed", message: e?.message });
   }
-}
+};
 
 /** POST /api/paypal/webhook  (URL configurada en PayPal) */
-export async function webhook(req: Request, res: Response) {
+export const webhook: RequestHandler = async (req, res) => {
   try {
     const valid = await verifyWebhookSignature(req.headers as any, req.body);
     if (!valid) return res.status(400).json({ error: "invalid_signature" });
@@ -108,4 +109,4 @@ export async function webhook(req: Request, res: Response) {
   } catch (e: any) {
     return res.status(500).json({ error: "webhook_failed", message: e?.message });
   }
-}
+};
