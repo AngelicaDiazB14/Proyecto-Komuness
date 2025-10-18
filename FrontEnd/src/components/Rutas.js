@@ -13,6 +13,8 @@ import {NuevaContra} from './nuevaContra'
 import {CrearUsuario} from './crearUsuario'
 import CalendarView from './Calendar';
 import AdminCategorias from './adminCategorias';
+import AcercaDe from './AcercaDe';
+import Footer from './Footer';
 
 export const Rutas = () =>{
     
@@ -33,12 +35,11 @@ export const Rutas = () =>{
                 <Route path = "/crearUsr" element= {<CrearUsuario/>}/>
                 <Route path="/calendario" element={<CalendarView />} />
                 <Route path="/admin/categorias" element={<AdminCategorias />} />
-
-
-
+                <Route path="/acerca-de" element={<AcercaDe />} />
 
                 <Route path="*" element={<Navigate to="/publicaciones" />} />
             </Routes>
+            <Footer />
         </Router>
     )
 }
