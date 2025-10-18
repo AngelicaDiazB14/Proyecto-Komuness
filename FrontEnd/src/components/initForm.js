@@ -49,11 +49,16 @@ export const InitForm = () => {
     }
   };
 
+  // Función para manejar el mostrar/ocultar contraseña
+  const toggleMostrarContrasena = () => {
+    setMostrarContrasena(!mostrarContrasena);
+  };
+
   return (
     <div className="min-h-screen flex items-start justify-center bg-gray-800/80 px-6 py-12 pt-24">
       <div className="w-full max-w-xl bg-[#12143d] text-[#f0f0f0] rounded-2xl shadow-2xl p-10">
         <h2 className="text-4xl font-bold mb-8 text-center text-[#ffbf30]">
-          ¡Bienvenido!
+          ¡Bienvenido(a)!
         </h2>
 
         {/* Mostrar mensaje de error si existe */}
@@ -94,12 +99,10 @@ export const InitForm = () => {
               />
               <button
                 type="button"
-                onMouseDown={() => setMostrarContrasena(true)}
-                onMouseUp={() => setMostrarContrasena(false)}
-                onMouseLeave={() => setMostrarContrasena(false)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-[#ffbf30] hover:underline"
+                onClick={toggleMostrarContrasena}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-[#ffbf30] outline-none focus:outline-none"
               >
-                Ver
+                {mostrarContrasena ? 'Ocultar' : 'Ver'}
               </button>
             </div>
             <div className="text-right mt-2">
