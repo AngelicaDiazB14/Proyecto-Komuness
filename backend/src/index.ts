@@ -11,6 +11,9 @@ import configuracionRoutes from "./routes/configuracion.routes";//importación d
 import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
+import seccionAcercaRoutes from './routes/seccionAcerca.routes';
+import path from 'path';
+
 
 const app: Express = express();
 dotenv.config();
@@ -40,6 +43,8 @@ app.use('/api/biblioteca', bibliotecaRoutes);
 app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
 app.use("/api/configuracion", configuracionRoutes); // nueva ruta para configuración de límites
 app.use('/api', filesRouter);
+app.use('/api/acerca-de', seccionAcercaRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
 app.get('/api/', (req: Request, res: Response) => {
     res.send('Hello World');
