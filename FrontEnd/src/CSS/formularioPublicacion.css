@@ -1,0 +1,368 @@
+/* Contenedor principal del formulario */
+.formulario-publicacion-container {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+/* Contenedor del formulario */
+.formulario-publicacion {
+  width: 100%;
+  max-width: 48rem; /* max-w-3xl */
+  background-color: white;
+  color: #09090b; /* text-zinc-950 */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+}
+
+/* Header móvil */
+.formulario-mobile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+/* Grid del formulario */
+.formulario-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Grupos de campos */
+.campo-grupo {
+  width: 100%;
+}
+
+.campo-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.campo-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+.campo-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.campo-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  background-color: white;
+}
+
+/* Sección de precios */
+.precios-seccion {
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.precios-titulo {
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Enlaces externos */
+.enlaces-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.enlace-fila {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.enlace-input {
+  flex: 1;
+  min-width: 0; /* Para evitar problemas de flexbox */
+}
+
+/* Previsualización de imágenes */
+.previsualizacion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.previsualizacion-item {
+  position: relative;
+}
+
+.previsualizacion-imagen {
+  width: 100%;
+  height: 5rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  border: 1px solid #d1d5db;
+}
+
+/* Botones */
+.boton-mobile {
+  background-color: #2563eb;
+  color: white;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+}
+
+.boton-eliminar-imagen {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #dc2626;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+}
+
+.boton-eliminar-enlace {
+  padding: 0.5rem;
+  color: #dc2626;
+  background: none;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boton-eliminar-enlace:hover {
+  background-color: #fef2f2;
+}
+
+.boton-eliminar-enlace:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton-agregar-enlace {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #2563eb;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.boton-agregar-enlace:hover {
+  color: #1e40af;
+}
+
+/* Botones desktop */
+.botones-desktop {
+  display: none;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.boton-volver {
+  background-color: #9ca3af;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.boton-publicar {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.boton-volver:hover {
+  background-color: #6b7280;
+}
+
+.boton-publicar:hover {
+  background-color: #1d4ed8;
+}
+
+/* Texto de ayuda */
+.texto-ayuda {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.texto-contador {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* ===== MEDIA QUERIES ===== */
+
+/* Tabletas pequeñas (≥640px) */
+@media (min-width: 640px) {
+  .formulario-publicacion-container {
+    padding-top: 2.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .formulario-publicacion {
+    padding: 1.5rem;
+  }
+  
+  .previsualizacion-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .previsualizacion-imagen {
+    height: 6rem;
+  }
+}
+
+/* Tabletas (≥768px) */
+@media (min-width: 768px) {
+  .formulario-mobile-header {
+    display: none;
+  }
+  
+  .botones-desktop {
+    display: flex;
+  }
+  
+  .boton-volver,
+  .boton-publicar {
+    width: auto;
+  }
+  
+  .previsualizacion-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .enlace-fila {
+    gap: 0.75rem;
+  }
+}
+
+/* Desktop pequeño (≥1024px) */
+@media (min-width: 1024px) {
+  .formulario-publicacion-container {
+    padding-top: 5rem;
+  }
+  
+  .formulario-grid {
+    gap: 1.5rem;
+  }
+  
+  .campo-input,
+  .campo-textarea,
+  .campo-select {
+    padding: 0.75rem;
+    font-size: 1.125rem;
+  }
+  
+  .campo-textarea {
+    min-height: 8rem;
+  }
+}
+
+/* Desktop grande (≥1280px) */
+@media (min-width: 1280px) {
+  .formulario-publicacion {
+    max-width: 56rem; /* max-w-4xl */
+  }
+  
+  .precios-seccion {
+    padding: 1rem;
+  }
+}
+
+/* Pantallas muy grandes (≥1536px) */
+@media (min-width: 1536px) {
+  .formulario-publicacion {
+    max-width: 64rem; /* max-w-5xl */
+  }
+}
+
+/* ===== ESTADOS ESPECIALES ===== */
+
+/* Focus states */
+.campo-input:focus,
+.campo-textarea:focus,
+.campo-select:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Estados de hover para botones */
+.boton-mobile:hover {
+  background-color: #1d4ed8;
+}
+
+.boton-eliminar-imagen:hover {
+  background-color: #b91c1c;
+}
+
+/* Estados disabled */
+.campo-input:disabled,
+.campo-textarea:disabled,
+.campo-select:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Scroll personalizado para el contenedor */
+.formulario-publicacion-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.formulario-publicacion-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.formulario-publicacion-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.formulario-publicacion-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

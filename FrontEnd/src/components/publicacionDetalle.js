@@ -1,4 +1,14 @@
-import { IoMdArrowRoundBack } from "react-icons/io";
+import { 
+  IoMdArrowRoundBack, 
+  IoMdCall, 
+  IoMdLink, 
+  IoMdPerson, 
+  IoMdSchool, 
+  IoMdStar, 
+  IoMdMail,   
+  IoLogoFacebook, 
+  IoLogoInstagram, 
+  IoLogoWhatsapp   } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { API_URL, getCategoriaById } from "../utils/api";
@@ -104,19 +114,72 @@ export const PublicacionDetalle = () => {
   }, [publicacion]);
 
   // === PRECIO (normalizado) ===
-  const rawPrecio = publicacion?.precio ?? publicacion?.Precio;
-  const precio = Number(rawPrecio);
-  const mostrarPrecio =
-    publicacion &&
-    (publicacion.tag === "evento" || publicacion.tag === "emprendimiento") &&
-    Number.isFinite(precio);
+ const formatPrecio = (precio) => {
+    if (precio === 0 || precio === '0') return 'Gratis';
+    if (Number.isFinite(Number(precio))) {
+      return `₡ ${Number(precio).toLocaleString("es-CR")}`;
+    }
+    return 'No especificado';
+  };
 
+  const precioRegular = publicacion?.precio;
+  const precioEstudiante = publicacion?.precioEstudiante;
+  const precioCiudadanoOro = publicacion?.precioCiudadanoOro;
+
+  const mostrarPrecios = publicacion && 
+    (publicacion.tag === "evento" || publicacion.tag === "emprendimiento");
   // === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
   const mostrarHora =
     publicacion?.tag === "evento" &&
     typeof publicacion?.horaEvento === "string" &&
     publicacion.horaEvento.trim() !== "";
 
+    // === TELÉFONO ===
+  const telefono = publicacion?.telefono;
+
+  // === ENLACES EXTERNOS ===
+  const enlacesExternos = publicacion?.enlacesExternos || [];
+
+
+  
+  // Función para formatear correctamente los enlaces
+  const formatearEnlace = (url) => {
+    // Si es un correo sin mailto:, agregar el prefijo
+    if (url.includes('@') && !url.startsWith('mailto:')) {
+      return `mailto:${url}`;
+    }
+    // Si es un teléfono sin tel:, agregar el prefijo
+    if (/^[\d\s\-\+\(\)]+$/.test(url.replace(/\s/g, '')) && !url.startsWith('tel:')) {
+      return `tel:${url}`;
+    }
+    // Si no tiene protocolo y parece una URL, agregar https://
+    if (!url.startsWith('http://') && !url.startsWith('https://') && 
+        !url.startsWith('mailto:') && !url.startsWith('tel:') &&
+        url.includes('.') && !url.includes(' ')) {
+      return `https://${url}`;
+    }
+    return url;
+  };
+
+  // Función para determinar el ícono según el tipo de enlace
+  const obtenerIconoEnlace = (url) => {
+    if (url.includes('@') || url.startsWith('mailto:')) {
+      return <IoMdMail className="mr-1" size={14} />;
+    }
+    if (url.includes('tel:') || /^[\d\s\-\+\(\)]+$/.test(url.replace(/\s/g, ''))) {
+      return <IoMdCall className="mr-1" size={14} />;
+    }
+    if (url.includes('facebook.com')) {
+      return <IoLogoFacebook className="mr-1" size={14} />;
+    }
+    if (url.includes('instagram.com')) {
+      return <IoLogoInstagram className="mr-1" size={14} />;
+    }
+    if (url.includes('whatsapp.com') || url.includes('wa.me')) {
+      return <IoLogoWhatsapp className="mr-1" size={14} />;
+    }
+    return <IoMdLink className="mr-1" size={14} />;
+  };
   if (cargando) {
     return (
       <div className="flex flex-col items-center justify-center mt-10 bg-gray-800/80">
@@ -162,7 +225,7 @@ export const PublicacionDetalle = () => {
           <>
             {/* HEADER CON CLASIFICACIÓN Y BOTÓN ELIMINAR EN MISMA LÍNEA */}
             <div className="flex items-center justify-between mb-4">
-              {/* Clasificación alineada a la izquierda */}
+               {/* Clasificación alineada a la izquierda */}
               <div className="flex items-center gap-2">
                 <strong className="text-white text-sm md:text-base">Clasificación:</strong>
                 <CategoriaBadge categoria={categoriaCompleta} mobile />
@@ -192,7 +255,7 @@ export const PublicacionDetalle = () => {
 
             {/* TÍTULO CON SALTO DE LÍNEA AUTOMÁTICO */}
             <div className="flex items-center justify-center w-full mb-6">
-              {/* Botón atrás (desktop) */}
+               {/* Botón atrás (desktop) */}
               <div className="w-1/4 flex justify-start">
                 <button
                   type="button"
@@ -203,28 +266,29 @@ export const PublicacionDetalle = () => {
                 </button>
               </div>
 
-              {/* Título centrado con break-words */}
+            {/* Título centrado con break-words */}
               <h1 className="w-2/4 text-xl font-bold text-white text-center break-words leading-tight md:text-3xl">
                 {publicacion.titulo}
               </h1>
 
-              {/* Espacio vacío para balancear el layout */}
+            {/* Espacio vacío para balancear el layout */}
               <div className="w-1/4"></div>
             </div>
 
-            {/* SLIDER CON MÁRGEN SUPERIOR */}
+             {/* SLIDER CON MÁRGEN SUPERIOR */}
             <div className="mb-6">
               <Slider key={publicacion._id} publicacion={publicacion} />
             </div>
 
-            {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
+           {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
             <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
               <h2 className="text-white text-sm md:text-base mb-3">
+                <IoMdPerson className="inline mr-2" />
                 <strong>Autor:</strong>{" "}
                 {publicacion.autor?.nombre || "Autor desconocido"}
               </h2>
 
-              {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
+               {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
               <div className="mb-4">
                 <p className="text-white text-sm md:text-base">
                   <strong>Descripción:</strong>
@@ -234,43 +298,111 @@ export const PublicacionDetalle = () => {
                 </p>
               </div>
 
-              {/* INFORMACIÓN ADICIONAL EN GRID RESPONSIVE */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Precio */}
-                {mostrarPrecio && (
-                  <p className="text-white text-sm md:text-base">
-                    <strong>Precio:</strong>{" "}
-                    {`₡ ${precio.toLocaleString("es-CR")}`}
-                  </p>
+              {/* INFORMACIÓN ADICIONAL */}
+              <div className="space-y-3">
+                {/* PRECIOS */}
+                {mostrarPrecios && (
+                  <div className="bg-gray-600/30 rounded p-3">
+                    <h3 className="text-white font-semibold mb-2">Precios:</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="flex items-center text-white">
+                        <IoMdPerson className="mr-2 text-blue-400" />
+                        <span className="font-medium">Precio regular:</span>
+                        <span className="ml-2">{formatPrecio(precioRegular)}</span>
+                      </div>
+                      
+                      {precioEstudiante !== undefined && precioEstudiante !== null && (
+                        <div className="flex items-center text-white">
+                          <IoMdSchool className="mr-2 text-green-400" />
+                          <span className="font-medium">Estudiante:</span>
+                          <span className="ml-2">{formatPrecio(precioEstudiante)}</span>
+                        </div>
+                      )}
+                      
+                      {precioCiudadanoOro !== undefined && precioCiudadanoOro !== null && (
+                        <div className="flex items-center text-white">
+                          <IoMdStar className="mr-2 text-yellow-400" />
+                          <span className="font-medium">Ciudadano de oro:</span>
+                          <span className="ml-2">{formatPrecio(precioCiudadanoOro)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {/* Fecha de evento */}
                 {publicacion.fechaEvento && (
-                  <p className="text-white text-sm md:text-base">
-                    <strong>Fecha del evento:</strong>{" "}
+                  <div className="flex items-center text-white">
+                    <strong className="mr-2">Fecha del evento:</strong>
                     {formatFecha(publicacion.fechaEvento)}
-                  </p>
+                  </div>
                 )}
 
                 {/* Hora de evento */}
                 {mostrarHora && (
-                  <p className="text-white text-sm md:text-base">
-                    <strong>Hora del evento:</strong> {publicacion.horaEvento}
-                  </p>
+                  <div className="flex items-center text-white">
+                    <strong className="mr-2">Hora del evento:</strong>
+                    {publicacion.horaEvento}
+                  </div>
                 )}
 
                 {/* Fecha de publicación */}
                 {publicacion.fecha && (
-                  <p className="text-white text-sm md:text-base">
-                    <strong>Fecha de publicación:</strong>{" "}
+                  <div className="flex items-center text-white">
+                    <strong className="mr-2">Fecha de publicación:</strong>
                     {formatFecha(publicacion.fecha)}
-                  </p>
+                  </div>
                 )}
 
-                {/* Tipo */}
-                <p className="text-white text-sm md:text-base">
-                  <strong>Tipo:</strong> {publicacion.tag || "Sin tag"}
-                </p>
+                {/* TIPO */}
+                <div className="flex items-center text-white">
+                  <strong className="mr-2">Tipo:</strong>
+                  {publicacion.tag || "Sin tag"}
+                </div>
+
+                {/* TELÉFONO */}
+                {telefono && (
+                  <div className="flex items-center text-white">
+                    <IoMdCall className="mr-2 text-green-400" />
+                    <strong className="mr-2">Teléfono:</strong>
+                    <a 
+                      href={`tel:${telefono}`}
+                      className="text-blue-300 hover:text-blue-200 underline"
+                    >
+                      {telefono}
+                    </a>
+                  </div>
+                )}
+
+              {/* ENLACES EXTERNOS */}
+              {enlacesExternos.length > 0 && (
+                <div>
+                  <h3 className="text-white font-semibold mb-2 flex items-center">
+                    <IoMdLink className="mr-2 text-purple-400" />
+                    Enlaces externos:
+                  </h3>
+                  <div className="space-y-2">
+                    {enlacesExternos.map((enlace, index) => {
+                      const enlaceFormateado = formatearEnlace(enlace.url);
+                      const icono = obtenerIconoEnlace(enlace.url);
+                      
+                      return (
+                        <div key={index} className="flex items-center">
+                          <a
+                            href={enlaceFormateado}
+                            target={enlaceFormateado.startsWith('http') ? "_blank" : "_self"}
+                            rel={enlaceFormateado.startsWith('http') ? "noopener noreferrer" : ""}
+                            className="text-blue-300 hover:text-blue-200 underline flex items-center"
+                          >
+                            {icono}
+                            {enlace.nombre}
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               </div>
             </div>
 

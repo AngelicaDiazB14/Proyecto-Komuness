@@ -1,0 +1,129 @@
+/* Estilos específicos para el footer */
+footer a, 
+footer button {
+  cursor: pointer;
+}
+
+/* Grid del footer */
+.footer-grid {
+  display: grid;
+  align-items: start;
+}
+
+/* Secciones del footer */
+.footer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* En móvil: todo centrado */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    text-align: center;
+  }
+  
+  .footer-section {
+    align-items: center;
+  }
+  
+  .footer-section ul {
+    align-items: center !important;
+  }
+  
+  .footer-contact {
+    align-items: center;
+  }
+}
+
+/* En desktop: distribución equilibrada */
+@media (min-width: 769px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3rem;
+  }
+  
+  /* Primera columna: alineada a la izquierda */
+  .footer-section:first-child {
+    text-align: left;
+    align-items: flex-start;
+  }
+  
+  /* Segunda columna (Enlaces rápidos): CENTRADA */
+  .footer-section:nth-child(2) {
+    text-align: center;
+    align-items: center;
+  }
+  
+  /* Tercera columna: alineada según contenido */
+  .footer-section:last-child {
+    text-align: left;
+    align-items: flex-start;
+  }
+}
+
+/* Efectos hover*/
+.footer-link {
+  transition: all 0.3s ease;
+  padding: 0.25rem 0;
+}
+
+.footer-link:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos para los botones de contacto */
+.contact-button {
+  transition: all 0.3s ease;
+  border: none;
+  outline: none;
+}
+
+.contact-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para los enlaces de redes sociales */
+footer a[aria-label] {
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+footer a[aria-label]:hover {
+  transform: scale(1.1);
+}
+
+/* Asegurar que los textos sean legibles */
+footer .text-gray-300 {
+  color: #d1d5db;
+}
+
+footer .hover\\:text-white:hover {
+  color: #ffffff;
+}
+
+/* Espaciado consistente para listas */
+footer ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+footer ul li {
+  margin-bottom: 0.75rem;
+}
+
+/* Mejorar la legibilidad del email */
+footer a[href^="mailto:"] {
+  word-break: break-word;
+}
+
+/* Responsive para tablets */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .footer-grid {
+    gap: 2rem;
+  }
+}

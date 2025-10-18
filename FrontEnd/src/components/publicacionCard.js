@@ -49,6 +49,14 @@ export const PublicacionCard = ({ publicacion }) => {
   const [selectedPub, setSelectedPub] = useState(false);
   const { user } = useAuth();
 
+  const formatPrecioCard = (precio) => {
+    if (precio === 0 || precio === '0') return 'Gratis';
+    if (Number.isFinite(Number(precio))) {
+      return `₡ ${Number(precio).toLocaleString("es-CR")}`;
+    }
+    return 'No especificado';
+  };
+
   const handleClick = () => {
     navigate(`/publicaciones/${publicacion._id}`);
   };
@@ -107,7 +115,7 @@ export const PublicacionCard = ({ publicacion }) => {
         {mostrarPrecio && (
           <div className="absolute top-2 left-2 z-10">
             <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-semibold shadow md:px-2 md:py-1 md:text-xs">
-              ₡ {precio.toLocaleString("es-CR")}
+              {formatPrecioCard(precio)}
             </span>
           </div>
         )}

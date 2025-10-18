@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { IoMdClose } from "react-icons/io";
+import { IoMdClose, IoMdRemove, IoMdAdd } from "react-icons/io";
 import { useAuth } from "../components/context/AuthContext";
 import { API_URL } from "../utils/api";
 import { toast } from "react-hot-toast";
 import CategoriaSelector from '../components/categoriaSelector';
 import AlertaLimitePublicaciones from '../components/AlertaLimitePublicaciones';
+import '../CSS/formularioPublicacion.css';
 
 export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
   const { user } = useAuth();
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
+  const [enlacesExternos, setEnlacesExternos] = useState([{ nombre: '', url: '' }]);
 
   const valoresIniciales = {
     titulo: "",
@@ -22,6 +24,9 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     fechaEvento: "",
     horaEvento: "",   // <-- NUEVO
     precio: "",
+    precioEstudiante: "",
+    precioCiudadanoOro: "",
+    telefono: "",
     categoria: "",
   };
 
@@ -30,11 +35,28 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     tag: openTag || "",
   });
 
-  useEffect(() => {
+   useEffect(() => {
     if (isOpen) {
-      setFormData({ ...valoresIniciales, tag: openTag || "" });
+      setFormData({ 
+        titulo: "",
+        contenido: "",
+        autor: "",
+        fecha: new Date().toLocaleDateString(),
+        archivos: [],
+        comentarios: [],
+        tag: openTag || "",
+        publicado: false,
+        fechaEvento: "",
+        horaEvento: "",
+        precio: "",
+        precioEstudiante: "",
+        precioCiudadanoOro: "",
+        telefono: "",
+        categoria: "",
+      });
+      setEnlacesExternos([{ nombre: '', url: '' }]);
     }
-  }, [isOpen, openTag]);
+  }, [isOpen, openTag]); 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,6 +75,28 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     }));
   };
 
+  // Manejo de enlaces externos
+  const handleEnlaceChange = (index, field, value) => {
+    const updatedEnlaces = [...enlacesExternos];
+    updatedEnlaces[index][field] = value;
+    setEnlacesExternos(updatedEnlaces);
+  };
+
+  const addEnlace = () => {
+    setEnlacesExternos([...enlacesExternos, { nombre: '', url: '' }]);
+  };
+
+  const removeEnlace = (index) => {
+    if (enlacesExternos.length > 1) {
+      setEnlacesExternos(enlacesExternos.filter((_, i) => i !== index));
+    }
+  };
+
+    // Filtrar enlaces válidos (con nombre y URL)
+  const enlacesValidos = enlacesExternos.filter(
+      enlace => enlace.nombre.trim() !== '' && enlace.url.trim() !== ''
+    );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -66,7 +110,15 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     data.append("fechaEvento", formData.fechaEvento || "");
     data.append("horaEvento", formData.horaEvento || ""); // <-- NUEVO
     data.append("precio", formData.precio || "");
+    data.append("precioEstudiante", formData.precioEstudiante || "");
+    data.append("precioCiudadanoOro", formData.precioCiudadanoOro || "");
+    data.append("telefono", formData.telefono || "");
     data.append("categoria", formData.categoria || "");
+
+      // Agregar enlaces externos como JSON
+    if (enlacesValidos.length > 0) {
+      data.append("enlacesExternos", JSON.stringify(enlacesValidos));
+    }
 
     formData.archivos.forEach((archivo) => {
       data.append("archivos", archivo);
@@ -129,44 +181,44 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
 
   if (!isOpen) return null;
 
-  return (
+return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-10 px-4 overflow-y-auto">
-        <div className="max-w-3xl w-full bg-white text-zinc-950 shadow-md rounded-lg p-4 md:p-6">
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            {/* móvil */}
-            <div className="md:hidden flex justify-between w-full  mb-4">
+      <div className="formulario-publicacion-container">
+        <div className="formulario-publicacion">
+          <form onSubmit={handleSubmit} className="formulario-grid">
+            {/* Header móvil */}
+            <div className="formulario-mobile-header">
               <button type="button" onClick={onClose} className="text-gray-600 text-2xl font-bold">
                 <IoMdClose size={35} />
               </button>
-              <button type="submit" className="bg-blue-600 text-white text-sm px-3 py-1 rounded">
+              <button type="submit" className="boton-mobile">
                 Publicar
               </button>
             </div>
 
             {/* Título */}
-            <div>
-              <label className="block font-semibold">Título:</label>
+            <div className="campo-grupo">
+              <label className="campo-label">Título:</label>
               <input
                 type="text"
                 name="titulo"
                 value={formData.titulo}
                 onChange={handleChange}
                 maxLength={100}
-                className="w-full p-2 border rounded"
+                className="campo-input"
                 required
               />
-              <p className="text-sm text-gray-500">{formData.titulo.length}/100 caracteres</p>
+              <p className="texto-contador">{formData.titulo.length}/100 caracteres</p>
             </div>
 
-            {/* Tag (categoría funcional del sitio) */}
-            <div>
-              <label className="block font-semibold">Tipo (tag):</label>
+            {/* Tag */}
+            <div className="campo-grupo">
+              <label className="campo-label">Tipo (tag):</label>
               <select
                 name="tag"
                 value={formData.tag}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
+                className="campo-select"
                 required
               >
                 <option value="">Selecciona una categoría</option>
@@ -176,8 +228,9 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
               </select>
             </div>
 
-            <div>
-              <label className="block font-semibold">Clasificación:</label>
+            {/* Clasificación */}
+            <div className="campo-grupo">
+              <label className="campo-label">Clasificación:</label>
               <CategoriaSelector 
                 selectedCategoria={formData.categoria}
                 onCategoriaChange={handleChange}
@@ -186,65 +239,150 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
             </div>
 
             {/* Descripción */}
-            <div>
-              <label className="block font-semibold">Descripción:</label>
+            <div className="campo-grupo">
+              <label className="campo-label">Descripción:</label>
               <textarea
                 name="contenido"
                 value={formData.contenido}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder={`Numero de telefono:
-                Enlace de contacto:
-                Descripción del evento:`}
+                className="campo-textarea"
+                placeholder={`Descripción del evento`}
                 rows="4"
                 required
               />
             </div>
 
-            {/* Precio (ya existente) */}
+            {/* Precios para eventos y emprendimientos */}
             {(formData.tag === "evento" || formData.tag === "emprendimiento") && (
-              <div>
-                <label className="block font-semibold">Precio en colones:</label>
-                <input
-                  type="number"
-                  name="precio"
-                  value={formData.precio}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
+              <div className="precios-seccion">
+                <h3 className="precios-titulo">Precios</h3>
+                
+                {/* Precio Regular */}
+                <div className="campo-grupo">
+                  <label className="campo-label">Precio regular *:</label>
+                  <input
+                    type="number"
+                    name="precio"
+                    value={formData.precio}
+                    onChange={handleChange}
+                    className="campo-input"
+                    required
+                    placeholder="Ej: 10000"
+                  />
+                </div>
+
+                {/* Precio Estudiante */}
+                <div className="campo-grupo">
+                  <label className="campo-label">Precio estudiante (opcional):</label>
+                  <input
+                    type="number"
+                    name="precioEstudiante"
+                    value={formData.precioEstudiante}
+                    onChange={handleChange}
+                    className="campo-input"
+                    placeholder="Ej: 5000"
+                  />
+                </div>
+
+                {/* Precio Ciudadano de Oro */}
+                <div className="campo-grupo">
+                  <label className="campo-label">Precio ciudadano de oro (opcional):</label>
+                  <input
+                    type="number"
+                    name="precioCiudadanoOro"
+                    value={formData.precioCiudadanoOro}
+                    onChange={handleChange}
+                    className="campo-input"
+                    placeholder="Ej: 7000"
+                  />
+                </div>
               </div>
             )}
 
+            {/* Teléfono */}
+            <div className="campo-grupo">
+              <label className="campo-label">Teléfono de contacto (opcional):</label>
+              <input
+                type="tel"
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                className="campo-input"
+                placeholder="Ej: 88888888"
+              />
+            </div>
+
+            {/* Enlaces externos */}
+            <div className="enlaces-seccion">
+              <label className="campo-label">Enlaces externos (opcional):</label>
+              <p className="texto-ayuda">
+                Puedes agregar: URLs, correos, enlaces de WhatsApp, etc.
+              </p>
+              {enlacesExternos.map((enlace, index) => (
+                <div key={index} className="enlace-fila">
+                  <input
+                    type="text"
+                    placeholder="Ej: Facebook, Correo, WhatsApp"
+                    value={enlace.nombre}
+                    onChange={(e) => handleEnlaceChange(index, 'nombre', e.target.value)}
+                    className="campo-input enlace-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="https://..., correo@gmail.com,"
+                    value={enlace.url}
+                    onChange={(e) => handleEnlaceChange(index, 'url', e.target.value)}
+                    className="campo-input enlace-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeEnlace(index)}
+                    className="boton-eliminar-enlace"
+                    disabled={enlacesExternos.length === 1}
+                  >
+                    <IoMdRemove size={20} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addEnlace}
+                className="boton-agregar-enlace"
+              >
+                <IoMdAdd size={16} />
+                Agregar otro enlace
+              </button>
+            </div>
+
             {/* Imágenes */}
-            <div>
-              <label className="block font-semibold">Imágenes:</label>
+            <div className="campo-grupo">
+              <label className="campo-label">Imágenes:</label>
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handleImageChange}
-                className="w-full p-2 border rounded"
+                className="campo-input"
                 required={formData.tag !== "publicacion"}
               />
             </div>
 
             {/* Previsualización */}
             {formData.archivos.length > 0 && (
-              <div className="mt-3">
-                <h3 className="font-semibold mb-2">Vista previa:</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="campo-grupo">
+                <h3 className="campo-label">Vista previa:</h3>
+                <div className="previsualizacion-grid">
                   {formData.archivos.map((img, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="previsualizacion-item">
                       <img
                         src={URL.createObjectURL(img)}
                         alt={`Imagen ${index + 1}`}
-                        className="w-full h-20 object-cover rounded border"
+                        className="previsualizacion-imagen"
                       />
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(index)}
-                        className="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded-full"
+                        className="boton-eliminar-imagen"
                       >
                         <IoMdClose />
                       </button>
@@ -257,38 +395,38 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
             {/* Fecha + Hora del evento */}
             {formData.tag === "evento" && (
               <>
-                <div>
-                  <label className="block font-semibold">Fecha del evento:</label>
+                <div className="campo-grupo">
+                  <label className="campo-label">Fecha del evento:</label>
                   <input
                     type="date"
                     name="fechaEvento"
                     value={formData.fechaEvento}
                     onChange={handleChange}
-                    className="w-full p-2 border rounded"
+                    className="campo-input"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block font-semibold">Hora del evento:</label>
+                <div className="campo-grupo">
+                  <label className="campo-label">Hora del evento:</label>
                   <input
                     type="time"
                     name="horaEvento"
                     value={formData.horaEvento}
                     onChange={handleChange}
-                    className="w-full p-2 border rounded"
+                    className="campo-input"
                     required
                   />
                 </div>
               </>
             )}
 
-            {/* botones desktop */}
-            <div className="hidden md:flex justify-between gap-3 mt-4">
-              <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-400 text-white rounded w-full md:w-auto">
+            {/* Botones desktop */}
+            <div className="botones-desktop">
+              <button type="button" onClick={onClose} className="boton-volver">
                 Volver
               </button>
-              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded w-full md:w-auto">
+              <button type="submit" className="boton-publicar">
                 Publicar
               </button>
             </div>

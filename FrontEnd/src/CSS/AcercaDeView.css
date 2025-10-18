@@ -1,0 +1,914 @@
+/* Estilos base para texto responsivo */
+.text-responsive {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.6;
+}
+
+.whitespace-pre-line {
+  white-space: pre-line;
+}
+
+/* Paleta de colores más profesional */
+:root {
+  --primary-dark: #1a202c;
+  --secondary-dark: #2d3748;
+  --accent-gold: #d4af37;
+  --accent-blue: #3182ce;
+  --accent-green: #38a169;
+  --text-light: #e2e8f0;
+  --text-lighter: #a0aec0;
+}
+
+/* Mejoras para información bancaria - MÁS ELEGANTE Y COMPACTA */
+.bank-info-section {
+  background: linear-gradient(135deg, var(--secondary-dark), var(--primary-dark));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.bank-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.bank-item:last-child {
+  border-bottom: none;
+}
+
+.bank-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.bank-label {
+  font-weight: 600;
+  color: var(--accent-gold);
+  font-size: 0.85rem;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.bank-value {
+  color: var(--text-light);
+  text-align: right;
+  word-break: break-word;
+  flex: 1;
+  margin-left: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Contacto - COMPONENTES MÁS PEQUEÑOS Y ELEGANTES */
+.contact-section {
+  background: linear-gradient(135deg, #4c51bf, #2d3748);
+}
+
+.contact-item {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.25rem 1rem !important;
+  transition: all 0.3s ease;
+  min-height: auto;
+  cursor: pointer;
+}
+
+.contact-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.contact-item .text-3xl {
+  font-size: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.contact-item h3 {
+  font-size: 0.9rem !important;
+  margin-bottom: 0.25rem !important;
+  font-weight: 600;
+}
+
+.contact-item p {
+  font-size: 0.8rem !important;
+  color: var(--text-lighter);
+}
+
+/* Acordeón */
+.accordion-item {
+  background: linear-gradient(135deg, var(--secondary-dark), var(--primary-dark));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.accordion-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.accordion-content {
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* Formas de Colaborar - MÁS ELEGANTE */
+.collaboration-section {
+  background: linear-gradient(135deg, var(--primary-dark), #2d3748);
+}
+
+.collaboration-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.collaboration-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Equipo - 4 POR FILA Y TAMAÑOS UNIFORMES */
+.team-section {
+  background: var(--primary-dark);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.team-member {
+  background: linear-gradient(135deg, var(--secondary-dark), var(--primary-dark));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.team-member:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.team-member-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.team-member-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.team-member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-member-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+.team-member-position {
+  font-size: 0.85rem;
+  color: var(--accent-gold);
+  font-weight: 500;
+  word-wrap: break-word;
+  line-height: 1.2;
+}
+
+.team-member-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.team-member-description {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.team-member-expanded {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+}
+
+/* Carrusel*/
+.carousel-container {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+}
+
+.carousel-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+}
+
+.carousel-nav-button {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.carousel-nav-button:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.1);
+}
+
+/* Breakpoint para móviles (≤768px) */
+@media (max-width: 768px) {
+  /* Ajustes generales */
+  .min-h-screen {
+    min-height: 100vh;
+  }
+
+  .max-w-6xl,
+  .max-w-4xl,
+  .max-w-7xl {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .px-4,
+  .px-6 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Hero Section */
+  .py-20 {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .text-4xl {
+    font-size: 2rem;
+  }
+
+  .text-6xl {
+    font-size: 2.5rem;
+  }
+
+  .text-xl {
+    font-size: 1.1rem;
+  }
+
+  /* Información bancaria para móviles */
+  .bank-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.6rem 0;
+  }
+
+  .bank-label {
+    min-width: auto;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .bank-value {
+    text-align: left;
+    margin-left: 0;
+    font-size: 0.85rem;
+    width: 100%;
+  }
+
+  /* Contacto para móviles */
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .contact-item {
+    padding: 1rem 0.75rem !important;
+  }
+
+  /* Equipo - 1 columna en móviles */
+  .team-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .team-member {
+    max-width: 100%;
+  }
+
+  /* Formas de Colaborar - 1 columna */
+  .collaboration-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Acordeón para móviles */
+  .accordion-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .accordion-content {
+    padding: 1.25rem;
+  }
+
+  /* Carrusel para móviles */
+  .carousel-image {
+    height: 250px;
+  }
+
+  .carousel-nav-button {
+    padding: 0.5rem;
+  }
+
+  .carousel-nav-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Breakpoint para tablets (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .max-w-6xl,
+  .max-w-4xl,
+  .max-w-7xl {
+    max-width: 90%;
+  }
+
+  /* Equipo - 2 columnas en tablets */
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  /* Formas de Colaborar - 2 columnas */
+  .collaboration-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  /* Contacto - 2 columnas */
+  .contact-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* Información bancaria para tablets */
+  .bank-item {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .bank-value {
+    text-align: right;
+    margin-left: 1rem;
+  }
+}
+
+/* Breakpoint para laptops (1025px - 1440px) */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .team-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Breakpoint para escritorios grandes (≥1441px) */
+@media (min-width: 1441px) {
+  .team-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+
+  .max-w-7xl {
+    max-width: 1400px;
+  }
+}
+
+/* Utilidades de espaciado */
+.section-padding {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.section-padding-lg {
+  padding-top: 6rem;
+  padding-bottom: 6rem;
+}
+
+/* Mejoras de tipografía */
+.heading-primary {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.heading-secondary {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.heading-tertiary {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Estados de hover */
+.hover-lift {
+  transition: all 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus states para accesibilidad */
+button:focus,
+a:focus {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Mejoras para texto largo en todos los dispositivos */
+.text-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.6;
+}
+
+/* Ajustes específicos para pantallas muy pequeñas (≤500px) */
+@media (max-width: 500px) {
+  .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .bank-info-section {
+    padding: 1rem;
+  }
+
+  .contact-item {
+    padding: 0.875rem 0.5rem !important;
+  }
+
+  .team-member {
+    padding: 1.25rem;
+  }
+
+  .team-member-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .team-member-avatar {
+    align-self: center;
+  }
+
+  .heading-primary {
+    font-size: 2rem;
+  }
+
+  .heading-secondary {
+    font-size: 1.75rem;
+  }
+}
+
+/* Utilidades de texto */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Gradientes sutiles */
+.subtle-gradient {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary-dark) 100%);
+}
+
+.subtle-gradient-accent {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, #2d3748 50%, var(--primary-dark) 100%);
+}
+
+/* Carrusel para pantallas pequeñas */
+.carousel-mobile {
+  height: 200px !important;
+}
+
+.carousel-tablet {
+  height: 300px !important;
+}
+
+.carousel-desktop {
+  height: 400px !important;
+}
+
+/* Ajustes específicos para el carrusel en móviles */
+@media (max-width: 768px) {
+  /* Carrusel más pequeño en móviles */
+  .h-96 {
+    height: 200px !important;
+  }
+  
+  .md\:h-\[500px\] {
+    height: 250px !important;
+  }
+
+  /* Botones de navegación más pequeños */
+  .carousel-nav-button {
+    padding: 0.4rem !important;
+  }
+
+  .carousel-nav-button svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* Indicadores más pequeños */
+  .carousel-indicators {
+    margin-top: 0.5rem !important;
+  }
+
+  .carousel-indicators button {
+    width: 6px !important;
+    height: 6px !important;
+  }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .h-96 {
+    height: 300px !important;
+  }
+  
+  .md\:h-\[500px\] {
+    height: 350px !important;
+  }
+}
+
+/* Ajustes para pantallas muy pequeñas (≤500px) */
+@media (max-width: 500px) {
+  .h-96 {
+    height: 180px !important;
+  }
+  
+  .md\:h-\[500px\] {
+    height: 200px !important;
+  }
+
+  .carousel-nav-button {
+    padding: 0.3rem !important;
+  }
+
+  .carousel-nav-button svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+}
+
+/* Agrega esto al final de tu AcercaDeView.css */
+
+/* Estilos para el modal de imagen */
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  padding: 1rem;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 60;
+}
+
+.modal-close-btn:hover {
+  background: #b91c1c;
+  transform: scale(1.1);
+}
+
+.modal-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 60;
+}
+
+.modal-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.modal-nav-btn.prev {
+  left: 1rem;
+}
+
+.modal-nav-btn.next {
+  right: 1rem;
+}
+
+.modal-indicators {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 60;
+}
+
+.modal-counter {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  z-index: 60;
+}
+
+/* Overlay para indicar que la imagen es clickeable */
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.image-overlay:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.zoom-indicator {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-overlay:hover .zoom-indicator {
+  opacity: 1;
+}
+
+/* Mejoras responsive para el modal */
+@media (max-width: 768px) {
+  .image-modal {
+    padding: 0.5rem;
+  }
+  
+  .modal-close-btn {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .modal-nav-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .modal-nav-btn.prev {
+    left: 0.5rem;
+  }
+  
+  .modal-nav-btn.next {
+    right: 0.5rem;
+  }
+  
+  .modal-indicators {
+    bottom: 0.5rem;
+  }
+  
+  .modal-counter {
+    bottom: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .modal-close-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .modal-nav-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .modal-nav-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Prevenir scroll del body cuando el modal está abierto */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Estilos para el botón de editar en el título */
+.edit-title-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #197aab 0%, #24055f 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 
+    0 4px 12px rgba(25, 122, 171, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.edit-title-button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 8px 20px rgba(25, 122, 171, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #1e90c2 0%, #2a0a6e 100%);
+}
+
+.edit-title-button:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 
+    0 2px 8px rgba(25, 122, 171, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.edit-title-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+}
+
+/* Responsive para el botón del título */
+@media (max-width: 768px) {
+  .edit-title-button {
+    padding: 8px 10px;
+    min-width: 40px;
+    height: 40px;
+  }
+  
+  .edit-title-icon {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-title-button {
+    padding: 6px 8px;
+    min-width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  
+  .edit-title-icon {
+    font-size: 14px;
+  }
+}

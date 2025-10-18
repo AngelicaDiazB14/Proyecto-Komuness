@@ -13,6 +13,10 @@ export interface IPublicacion {
   fechaEvento?: string;
   horaEvento?: string;
   precio?: number;
+  precioEstudiante?: number;     
+  precioCiudadanoOro?: number;   
+  enlacesExternos?: IEnlaceExterno[]; 
+  telefono?: string;            
   categoria: string;             // ObjectId as string
   createdAt?: string;
   updatedAt?: string;
@@ -33,4 +37,9 @@ export interface IComentario {
 export interface IAdjunto {
     url: string;
     key: string;
+}
+
+export interface IEnlaceExterno {
+    nombre: string;
+    url: string;
 }
