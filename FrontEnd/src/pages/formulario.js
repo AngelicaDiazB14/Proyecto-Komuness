@@ -4,9 +4,11 @@ import { useAuth } from "../components/context/AuthContext";
 import { API_URL } from "../utils/api";
 import { toast } from "react-hot-toast";
 import CategoriaSelector from '../components/categoriaSelector';
+import AlertaLimitePublicaciones from '../components/AlertaLimitePublicaciones';
 
 export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
   const { user } = useAuth();
+  const [mostrarAlerta, setMostrarAlerta] = useState(false);
 
   const valoresIniciales = {
     titulo: "",
@@ -73,37 +75,56 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     try {
       await enviarPublicacion(data);
       onClose?.();
-    } catch {}
+    } catch (error) {
+      // Si el error es por límite de publicaciones (403), solo mostrar modal premium
+      // No mostrar ninguna otra alerta
+      if (error.status === 403) {
+        setMostrarAlerta(true);
+        // No re-lanzar el error para evitar mensajes adicionales
+        return;
+      }
+      // Para otros errores, el toast.promise ya los manejó
+    }
   };
 
   const enviarPublicacion = async (data) => {
-    const promise = fetch(`${API_URL}/publicaciones/v2/`, {
+    // Primero hacemos la petición sin toast para poder manejar el 403 de manera especial
+    const response = await fetch(`${API_URL}/publicaciones/v2/`, {
       method: "POST",
       body: data,
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
       },
-    }).then(async (response) => {
-      const text = await response.text();
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch {
-        throw new Error("Respuesta inesperada del servidor.");
-      }
-
-      if (!response.ok) {
-        throw new Error(result?.message || result?.mensaje || "Error al enviar publicación.");
-      }
-      return result;
     });
 
-    return toast.promise(promise, {
-      loading: "Enviando publicación...",
-      success: "Publicación enviada con éxito, solicita a un administrador que la publique 🎉",
-      error: (err) => err.message || "Error al enviar la publicación",
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error("Respuesta inesperada del servidor.");
+    }
+
+    if (!response.ok) {
+      const error = new Error(result?.message || result?.mensaje || "Error al enviar publicación.");
+      error.status = response.status;
+      
+      // Si es error 403, lanzarlo sin mostrar toast
+      if (response.status === 403) {
+        throw error;
+      }
+      
+      // Para otros errores, mostrar toast
+      toast.error(error.message);
+      throw error;
+    }
+
+    // Si fue exitoso, mostrar toast de éxito
+    toast.success("Publicación enviada con éxito, solicita a un administrador que la publique 🎉", {
       duration: 8000,
     });
+    
+    return result;
   };
 
   if (!isOpen) return null;
@@ -274,6 +295,12 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
           </form>
         </div>
       </div>
+
+      {/* Alerta de límite de publicaciones */}
+      <AlertaLimitePublicaciones 
+        show={mostrarAlerta} 
+        onClose={() => setMostrarAlerta(false)} 
+      />
     </>
   );
 };
