@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { IAdjunto, IComentario, IPublicacion } from '../interfaces/publicacion.interface';
+import { IAdjunto, IComentario, IEnlaceExterno, IPublicacion } from '../interfaces/publicacion.interface';
 import { modelPublicacion } from '../models/publicacion.model';
 import mongoose from 'mongoose';
 import { saveMulterFileToGridFS, saveBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
@@ -21,6 +21,57 @@ function parsePrecio(input: any): number | undefined {
   return undefined;
 }
 
+// función para validar teléfono
+function parseTelefono(input: any): string | undefined {
+  if (typeof input !== 'string') return undefined;
+  const trimmed = input.trim();
+  return trimmed || undefined;
+}
+
+// función para validar enlaces externos
+// En publicacion.controller.ts
+function parseEnlacesExternos(input: any): IEnlaceExterno[] | undefined {
+  if (!input) return undefined;
+  try {
+    if (typeof input === 'string') {
+      const parsed = JSON.parse(input);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((enlace: any) => 
+          enlace && 
+          typeof enlace.nombre === 'string' && 
+          typeof enlace.url === 'string' &&
+          enlace.nombre.trim() !== '' &&
+          enlace.url.trim() !== ''
+        ).map((enlace: any) => ({
+          ...enlace,
+          // Formatear automáticamente correos y teléfonos
+          url: formatearUrlEnlace(enlace.url)
+        }));
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function formatearUrlEnlace(url: string): string {
+  const urlLimpia = url.trim();
+  
+  // Si es un correo sin mailto:
+  if (urlLimpia.includes('@') && !urlLimpia.startsWith('mailto:')) {
+    return `mailto:${urlLimpia}`;
+  }
+  
+  // Si es un teléfono sin tel: (solo números, espacios, +, -, (, ))
+  const soloNumeros = urlLimpia.replace(/[\s\-\+\(\)]/g, '');
+  if (/^\d+$/.test(soloNumeros) && !urlLimpia.startsWith('tel:')) {
+    return `tel:${urlLimpia}`;
+  }
+  
+  return urlLimpia;
+}
+
 function mustRequirePrecio(tag?: string): boolean {
   return tag === 'evento' || tag === 'emprendimiento';
 }
@@ -39,33 +90,47 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
     const body = req.body as IPublicacion & Record<string, any>;
 
     const precio = parsePrecio(body.precio);
+    const precioEstudiante = parsePrecio(body.precioEstudiante);
+    const precioCiudadanoOro = parsePrecio(body.precioCiudadanoOro);
     const tag = body.tag;
-    const horaEvento = parseHoraEvento(body.horaEvento); // ← NUEVO
+    const horaEvento = parseHoraEvento(body.horaEvento);
+    const telefono = parseTelefono(body.telefono);
+    const enlacesExternos = parseEnlacesExternos(body.enlacesExternos);
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacion] req.body.precio:', body.precio, '→ normalizado:', precio);
-      console.log('[Publicaciones][createPublicacion] req.body.horaEvento:', body.horaEvento, '→ normalizado:', horaEvento);
-      console.log('[Publicaciones][createPublicacion] tag:', tag);
+      console.log('[Publicaciones][createPublicacion] req.body.precios:', {
+        regular: { valor: body.precio, normalizado: precio },
+        estudiante: { valor: body.precioEstudiante, normalizado: precioEstudiante },
+        ciudadanoOro: { valor: body.precioCiudadanoOro, normalizado: precioCiudadanoOro }
+      });
+      console.log('[Publicaciones][createPublicacion] telefono:', body.telefono, '→ normalizado:', telefono);
     }
 
     if (mustRequirePrecio(tag) && (precio === undefined)) {
-      res.status(400).json({ message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+      res.status(400).json({ message: 'El campo precio regular es obligatorio y debe ser numérico para eventos/emprendimientos.' });
       return;
     }
 
     const publicacion: IPublicacion = {
       ...body,
       publicado: `${(body as any).publicado}` === 'true',
-      precio,        // ← ya normalizado
-      horaEvento,    // ← NUEVO: solo se guarda si vino válido
+      precio,                    // Precio regular
+      precioEstudiante,          
+      precioCiudadanoOro,        
+      horaEvento,                // Hora del evento
+      telefono,                  
+      enlacesExternos,           
     } as IPublicacion;
 
     const nuevaPublicacion = new modelPublicacion(publicacion);
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacion] doc a guardar (precio, horaEvento):', {
+      console.log('[Publicaciones][createPublicacion] doc a guardar:', {
         precio: nuevaPublicacion.precio,
-        horaEvento: (nuevaPublicacion as any).horaEvento,
+        precioEstudiante: nuevaPublicacion.precioEstudiante,
+        precioCiudadanoOro: nuevaPublicacion.precioCiudadanoOro,
+        telefono: nuevaPublicacion.telefono,
+        enlacesExternos: nuevaPublicacion.enlacesExternos,
       });
     }
 
@@ -108,20 +173,28 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
 
     // --- Precio (existente) ---
     const precio = parsePrecio((publicacion as any).precio);
+    const precioEstudiante = parsePrecio((publicacion as any).precioEstudiante);
+    const precioCiudadanoOro = parsePrecio((publicacion as any).precioCiudadanoOro);
     const tag = (publicacion as any).tag;
     // --- Hora del evento (NUEVO) ---
     const horaEvento = parseHoraEvento((publicacion as any).horaEvento);
+    const telefono = parseTelefono((publicacion as any).telefono);
+    const enlacesExternos = parseEnlacesExternos((publicacion as any).enlacesExternos); 
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacionA] body.precio:', (publicacion as any).precio, '→', precio);
-      console.log('[Publicaciones][createPublicacionA] body.horaEvento:', (publicacion as any).horaEvento, '→', horaEvento);
-      console.log('[Publicaciones][createPublicacionA] tag:', tag);
+      console.log('[Publicaciones][createPublicacionA] body.precios:', {
+        regular: { valor: (publicacion as any).precio, normalizado: precio },
+        estudiante: { valor: (publicacion as any).precioEstudiante, normalizado: precioEstudiante },
+        ciudadanoOro: { valor: (publicacion as any).precioCiudadanoOro, normalizado: precioCiudadanoOro }
+      });
+      console.log('[Publicaciones][createPublicacionA] telefono:', (publicacion as any).telefono, '→ normalizado:', telefono);
     }
 
     if (mustRequirePrecio(tag) && (precio === undefined)) {
-      res.status(400).json({ ok: false, message: 'El campo precio es obligatorio y debe ser numérico para eventos/emprendimientos.' });
+      res.status(400).json({ ok: false, message: 'El campo precio regular es obligatorio y debe ser numérico para eventos/emprendimientos.' });
       return;
     }
+
 
     // --- Subir adjuntos (0..N) ---
     const adjuntos: IAdjunto[] = [];
@@ -141,7 +214,11 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       // normalizaciones útiles:
       publicado: `${(publicacion as any).publicado}` === 'true',
       precio,                 // ← ya normalizado
+      precioEstudiante,
+      precioCiudadanoOro,  
       horaEvento,             // ← NUEVO: solo se guarda si vino válido
+      telefono,                 
+      enlacesExternos,          
     });
 
     if (LOG_ON) {

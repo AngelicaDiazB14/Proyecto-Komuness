@@ -1,4 +1,4 @@
-import { IComentario, IPublicacion } from "@/interfaces/publicacion.interface";
+import { IComentario, IPublicacion, IEnlaceExterno } from "@/interfaces/publicacion.interface";
 import { IAdjunto } from "@/interfaces/publicacion.interface";
 import { model, Schema } from 'mongoose';
 
@@ -13,6 +13,11 @@ const comentarioSchema = new Schema<IComentario>({
 const adjuntoSchema = new Schema<IAdjunto>({
   url: { type: String, required: true },
   key: { type: String, required: true }
+});
+
+const enlaceExternoSchema = new Schema<IEnlaceExterno>({
+  nombre: { type: String, required: true },
+  url: { type: String, required: true }
 });
 
 //schema publicación
@@ -31,7 +36,11 @@ const publicacionSchema = new Schema(
     // Evento
     fechaEvento: { type: String, required: false },
     horaEvento:  { type: String, required: false }, 
-    precio: { type: Number, required: false },
+    precio: { type: Number, required: false }, // Precio regular
+    precioEstudiante: { type: Number, required: false },
+    precioCiudadanoOro: { type: Number, required: false }, 
+    enlacesExternos: { type: [enlaceExternoSchema], required: false },
+    telefono: { type: String, required: false },
 
     // categorías de área
     categoria: { type: Schema.Types.ObjectId, ref: 'Categoria', required: true }
