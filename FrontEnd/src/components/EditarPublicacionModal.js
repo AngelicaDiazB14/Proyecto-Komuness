@@ -25,6 +25,9 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
   const [nuevasImagenes, setNuevasImagenes] = useState([]);
   const [cargando, setCargando] = useState(false);
 
+  // Verificar si se alcanzó el límite de ediciones
+  const haAlcanzadoLimite = (publicacion.editCount || 0) >= 3;
+
   // Inicializar datos cuando se abre el modal
   useEffect(() => {
     if (isOpen && publicacion) {
@@ -125,7 +128,6 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
 
       const data = new FormData();
       
-      // CORRECCIÓN: Agregar todos los campos como strings
       data.append("titulo", formData.titulo);
       data.append("contenido", formData.contenido);
       data.append("fechaEvento", formData.fechaEvento || "");
@@ -198,11 +200,16 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
       onClose?.();
 
     } catch (error) {
-      console.error(' Error al enviar solicitud:', error);
-      if (error.name === 'AbortError') {
-        toast.error("La solicitud tardó demasiado tiempo. Intenta nuevamente.");
+      if (error.message.includes('alcanzado el límite máximo')) {
+        // No hacer console.error para este caso específico, solo mostrar toast
+        toast.error(error.message);
       } else {
-        toast.error(error.message || "Error al enviar solicitud de edición");
+        console.error(' Error al enviar solicitud:', error);
+        if (error.name === 'AbortError') {
+          toast.error("La solicitud tardó demasiado tiempo. Intenta nuevamente.");
+        } else {
+          toast.error(error.message || "Error al enviar solicitud de edición");
+        }
       }
     } finally {
       setCargando(false);
@@ -211,6 +218,58 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
 
   if (!isOpen) return null;
 
+  // Mostrar mensaje de límite alcanzado en lugar del formulario
+  if (haAlcanzadoLimite) {
+    return (
+      <div className="formulario-publicacion-container">
+        <div className="formulario-publicacion">
+          <div className="p-6">
+            {/* Header móvil */}
+            <div className="formulario-mobile-header">
+              <button type="button" onClick={onClose} className="text-gray-600 text-2xl font-bold">
+                <IoMdClose size={35} />
+              </button>
+              <h2 className="text-xl font-bold text-white">Límite de Ediciones Alcanzado</h2>
+              <div className="w-10"></div> {/* Espacio para balancear */}
+            </div>
+
+            {/* Mensaje de límite alcanzado */}
+            <div className="text-center py-8">
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-6 py-8 rounded-lg mb-6">
+                <div className="text-5xl mb-4">⚠️</div>
+                <h3 className="text-2xl font-bold text-yellow-800 mb-4">
+                  Límite de Ediciones Alcanzado
+                </h3>
+                <p className="text-lg text-yellow-700 mb-4">
+                  Esta publicación ha alcanzado el límite máximo de <strong>3 ediciones</strong> permitidas.
+                </p>
+                <p className="text-yellow-600">
+                  Para realizar más cambios, por favor contacte al administrador del sistema.
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-blue-800 mb-2">Información de la publicación:</h4>
+                <p className="text-blue-700"><strong>Título:</strong> {publicacion.titulo}</p>
+                <p className="text-blue-700"><strong>Ediciones realizadas:</strong> {publicacion.editCount || 0}/3</p>
+                <p className="text-blue-700"><strong>Última edición:</strong> {publicacion.lastEditRequest ? new Date(publicacion.lastEditRequest).toLocaleDateString() : 'No disponible'}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar formulario normal si no ha alcanzado el límite
   return (
     <div className="formulario-publicacion-container">
       <div className="formulario-publicacion">
