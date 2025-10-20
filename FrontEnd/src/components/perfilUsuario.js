@@ -371,91 +371,290 @@ export const PerfilUsuario = () => {
 
 
   // Función para mostrar cambios propuestos
-  const renderCambiosPropuestos = (publicacion) => {
-    if (!publicacion.pendingUpdate) return null;
+const renderCambiosPropuestos = (publicacion) => {
+  if (!publicacion.pendingUpdate) return null;
 
-    const cambios = [];
-    const update = publicacion.pendingUpdate;
+  const cambios = [];
+  const update = publicacion.pendingUpdate;
 
-    if (update.titulo && update.titulo !== publicacion.titulo) {
-      cambios.push(
-        <div key="titulo" className="mb-2">
-          <strong className="text-gray-800">Título:</strong> 
-          <span className="line-through text-red-600 ml-2 mr-2">{publicacion.titulo}</span>
-          <span className="text-green-600">→ {update.titulo}</span>
-        </div>
-      );
-    }
-
-    if (update.contenido && update.contenido !== publicacion.contenido) {
-      cambios.push(
-        <div key="contenido" className="mb-2">
-          <strong className="text-gray-800">Descripción:</strong>
-          <div className="text-sm mt-1">
-            <div className="text-red-600 line-through mb-1">
-              {publicacion.contenido.substring(0, 100)}...
-            </div>
-            <div className="text-green-600">
-              {update.contenido.substring(0, 100)}...
-            </div>
+  // Título
+  if (update.titulo && update.titulo !== publicacion.titulo) {
+    cambios.push(
+      <div key="titulo" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Título:</strong> 
+        <div className="space-y-2">
+          <div className="line-through text-red-600 text-sm break-words bg-red-50 p-2 rounded">
+            {publicacion.titulo || "Sin título"}
+          </div>
+          <div className="text-green-600 text-sm break-words bg-green-50 p-2 rounded">
+            {update.titulo}
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (update.precio !== undefined && update.precio !== publicacion.precio) {
-      cambios.push(
-        <div key="precio" className="mb-2">
-          <strong className="text-gray-800">Precio:</strong> 
-          <span className="line-through text-red-600 ml-2 mr-2">
-            {publicacion.precio || 'No especificado'}
-          </span>
-          <span className="text-green-600">→ {update.precio}</span>
+  // Contenido/Descripción
+  if (update.contenido && update.contenido !== publicacion.contenido) {
+    cambios.push(
+      <div key="contenido" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Descripción:</strong>
+        <div className="space-y-2">
+          <div className="text-red-600 line-through text-sm break-words bg-red-50 p-2 rounded whitespace-pre-wrap">
+            {publicacion.contenido || "Sin descripción"}
+          </div>
+          <div className="text-green-600 text-sm break-words bg-green-50 p-2 rounded whitespace-pre-wrap">
+            {update.contenido}
+          </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (update.fechaEvento && update.fechaEvento !== publicacion.fechaEvento) {
-      cambios.push(
-        <div key="fechaEvento" className="mb-2">
-          <strong className="text-gray-800">Fecha Evento:</strong> 
-          <span className="line-through text-red-600 ml-2 mr-2">
+  // Precio
+  if (update.precio !== undefined && update.precio !== publicacion.precio) {
+    cambios.push(
+      <div key="precio" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Precio Regular:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
+            {publicacion.precio !== undefined && publicacion.precio !== null ? `₡${publicacion.precio}` : 'No especificado'}
+          </span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            ₡{update.precio}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Precio Estudiante
+  if (update.precioEstudiante !== undefined && update.precioEstudiante !== publicacion.precioEstudiante) {
+    cambios.push(
+      <div key="precioEstudiante" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Precio Estudiante:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
+            {publicacion.precioEstudiante !== undefined && publicacion.precioEstudiante !== null ? `₡${publicacion.precioEstudiante}` : 'No especificado'}
+          </span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.precioEstudiante !== null ? `₡${update.precioEstudiante}` : 'Eliminado'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Precio Ciudadano de Oro
+  if (update.precioCiudadanoOro !== undefined && update.precioCiudadanoOro !== publicacion.precioCiudadanoOro) {
+    cambios.push(
+      <div key="precioCiudadanoOro" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Precio Ciudadano de Oro:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
+            {publicacion.precioCiudadanoOro !== undefined && publicacion.precioCiudadanoOro !== null ? `₡${publicacion.precioCiudadanoOro}` : 'No especificado'}
+          </span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.precioCiudadanoOro !== null ? `₡${update.precioCiudadanoOro}` : 'Eliminado'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Fecha Evento
+  if (update.fechaEvento && update.fechaEvento !== publicacion.fechaEvento) {
+    cambios.push(
+      <div key="fechaEvento" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Fecha del Evento:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
             {publicacion.fechaEvento || 'No especificado'}
           </span>
-          <span className="text-green-600">→ {update.fechaEvento}</span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.fechaEvento}
+          </span>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (update.horaEvento && update.horaEvento !== publicacion.horaEvento) {
-      cambios.push(
-        <div key="horaEvento" className="mb-2">
-          <strong className="text-gray-800">Hora Evento:</strong> 
-          <span className="line-through text-red-600 ml-2 mr-2">
+  // Hora Evento
+  if (update.horaEvento && update.horaEvento !== publicacion.horaEvento) {
+    cambios.push(
+      <div key="horaEvento" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Hora del Evento:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
             {publicacion.horaEvento || 'No especificado'}
           </span>
-          <span className="text-green-600">→ {update.horaEvento}</span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.horaEvento}
+          </span>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (update.telefono && update.telefono !== publicacion.telefono) {
-      cambios.push(
-        <div key="telefono" className="mb-2">
-          <strong className="text-gray-800">Teléfono:</strong> 
-          <span className="line-through text-red-600 ml-2 mr-2">
+  // Teléfono
+  if (update.telefono && update.telefono !== publicacion.telefono) {
+    cambios.push(
+      <div key="telefono" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Teléfono:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
             {publicacion.telefono || 'No especificado'}
           </span>
-          <span className="text-green-600">→ {update.telefono}</span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.telefono}
+          </span>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    return cambios;
-  };
+  // Categoría
+  if (update.categoria && update.categoria !== publicacion.categoria?._id && update.categoria !== publicacion.categoria) {
+    cambios.push(
+      <div key="categoria" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Categoría:</strong> 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="line-through text-red-600 bg-red-50 px-2 py-1 rounded">
+            {publicacion.categoria?.nombre || 'Sin categoría'}
+          </span>
+          <span className="text-gray-500">→</span>
+          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
+            {update.categoria?.nombre || 'Categoría actualizada'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Enlaces Externos
+  if (update.enlacesExternos && JSON.stringify(update.enlacesExternos) !== JSON.stringify(publicacion.enlacesExternos)) {
+    cambios.push(
+      <div key="enlacesExternos" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Enlaces Externos:</strong>
+        
+        {/* Enlaces actuales (eliminados/modificados) */}
+        {(publicacion.enlacesExternos && publicacion.enlacesExternos.length > 0) && (
+          <div className="mb-2">
+            <span className="text-xs text-gray-600 font-medium">Enlaces actuales:</span>
+            {publicacion.enlacesExternos.map((enlace, index) => (
+              <div key={`old-${index}`} className="line-through text-red-600 text-sm break-words bg-red-50 p-2 rounded mt-1">
+                <strong>{enlace.nombre}:</strong> {enlace.url}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Enlaces nuevos */}
+        {(update.enlacesExternos && update.enlacesExternos.length > 0) && (
+          <div>
+            <span className="text-xs text-gray-600 font-medium">Enlaces propuestos:</span>
+            {update.enlacesExternos.map((enlace, index) => (
+              <div key={`new-${index}`} className="text-green-600 text-sm break-words bg-green-50 p-2 rounded mt-1">
+                <strong>{enlace.nombre}:</strong> {enlace.url}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Caso especial: eliminación de todos los enlaces */}
+        {(!update.enlacesExternos || update.enlacesExternos.length === 0) && publicacion.enlacesExternos && publicacion.enlacesExternos.length > 0 && (
+          <div className="text-green-600 text-sm bg-green-50 p-2 rounded">
+            Todos los enlaces serán eliminados
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Adjuntos/Imágenes
+  if (update.adjunto && JSON.stringify(update.adjunto) !== JSON.stringify(publicacion.adjunto)) {
+    cambios.push(
+      <div key="adjunto" className="mb-3 p-3 bg-white rounded border">
+        <strong className="text-gray-800 block mb-2 text-sm font-semibold">Imágenes:</strong>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Imágenes eliminadas */}
+          {publicacion.adjunto && publicacion.adjunto.map((img, index) => {
+            const stillExists = update.adjunto.some(newImg => newImg.url === img.url || newImg.key === img.key);
+            if (!stillExists) {
+              return (
+                <div key={`removed-${index}`} className="relative border-2 border-red-300 rounded p-2">
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    ✕
+                  </div>
+                  <img 
+                    src={img.url} 
+                    alt={`Imagen eliminada ${index + 1}`}
+                    className="w-full h-24 object-cover rounded opacity-60"
+                  />
+                  <p className="text-xs text-red-600 text-center mt-1">Eliminada</p>
+                </div>
+              );
+            }
+            return null;
+          })}
+
+          {/* Imágenes nuevas */}
+          {update.adjunto.map((img, index) => {
+            const isNew = !publicacion.adjunto || !publicacion.adjunto.some(oldImg => oldImg.url === img.url || oldImg.key === img.key);
+            if (isNew) {
+              return (
+                <div key={`new-${index}`} className="relative border-2 border-green-300 rounded p-2">
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    +
+                  </div>
+                  <img 
+                    src={img.url} 
+                    alt={`Nueva imagen ${index + 1}`}
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <p className="text-xs text-green-600 text-center mt-1">Nueva</p>
+                </div>
+              );
+            }
+            return null;
+          })}
+
+          {/* Imágenes mantenidas */}
+          {update.adjunto.map((img, index) => {
+            const wasInOriginal = publicacion.adjunto && publicacion.adjunto.some(oldImg => oldImg.url === img.url || oldImg.key === img.key);
+            if (wasInOriginal) {
+              return (
+                <div key={`kept-${index}`} className="relative border border-gray-300 rounded p-2">
+                  <img 
+                    src={img.url} 
+                    alt={`Imagen mantenida ${index + 1}`}
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <p className="text-xs text-gray-600 text-center mt-1">Mantenida</p>
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return cambios.length > 0 ? cambios : (
+    <p className="text-gray-500 text-sm">No se detectaron cambios visibles en los campos principales.</p>
+  );
+};
 
   return (
-    <div className={`flex flex-col md:flex-row gap-6 w-full min-h-screen bg-gray-800/80 p-6
+    <div className={`flex flex-col md:flex-row gap-6 w-full min-h-screen bg-gray-800/80 p-4 md:p-6
       ${user?.tipoUsuario === 2 ? "justify-center" : "md:flex-row gap-6"}`}>
       
       {/* Sección de perfil del usuario (sin cambios) */}
@@ -503,15 +702,15 @@ export const PerfilUsuario = () => {
       </div>
 
       {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-        <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-6">
+        <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-4 md:p-6 dashboard-scroll-container">
           <h1 className="text-2xl font-bold text-black mb-4">Dashboard Administrativo</h1>
           
           {/* Botones de configuración */}
           {user.tipoUsuario === 0 || user.tipoUsuario === 1 && (
-            <div className="mb-6 flex gap-4 flex-wrap">
+             <div className="config-buttons flex flex-wrap gap-2 mb-4">
               <Link 
                 to="/admin/categorias" 
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm"
               >
                 <FaListAlt className="w-4 h-4 mr-2" />
                 Gestionar Categorías
@@ -519,10 +718,10 @@ export const PerfilUsuario = () => {
               
               <button
                 onClick={() => setModalLimitesAbierto(true)}
-                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 font-medium"
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 font-medium text-sm"
               >
                 <FiSettings className="w-4 h-4 mr-2" />
-                Configurar Límites de Publicaciones
+                Configurar Límites
               </button>
             </div>
           )}
@@ -533,11 +732,10 @@ export const PerfilUsuario = () => {
           />
 
           {/* Pestañas para navegación */}
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="flex space-x-8">
+          <div className="dashboard-tabs flex flex-wrap gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('publicaciones')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'publicaciones'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -549,7 +747,7 @@ export const PerfilUsuario = () => {
               
               <button
                 onClick={() => setActiveTab('actualizaciones')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'actualizaciones'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -561,7 +759,7 @@ export const PerfilUsuario = () => {
 
               <button
                 onClick={() => setActiveTab('archivos')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'archivos'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -573,7 +771,7 @@ export const PerfilUsuario = () => {
 
               <button
                 onClick={() => setActiveTab('usuarios')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'usuarios'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -582,76 +780,80 @@ export const PerfilUsuario = () => {
                 <AiOutlineUser className="inline w-4 h-4 mr-2" />
                 Gestión de Usuarios
               </button>
-            </nav>
+            
           </div>
 
           {/* Contenido de las pestañas */}
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden min-h-0 ">
             {/* Pestaña: Publicaciones Nuevas */}
             {activeTab === 'publicaciones' && (
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
+              <div className="tab-table-container h-full overflow-auto">
                 <h2 className="text-lg font-semibold text-black mb-4">
                   Publicaciones nuevas por aprobar
                 </h2>
                 {publicaciones && publicaciones.length > 0 ? (
-                  <table className="min-w-full text-black text-sm">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="text-left px-4 py-2">Autor</th>
-                        <th className="text-left px-4 py-2">Título</th>
-                        <th className="text-left px-4 py-2">Tipo</th>
-                        <th className="text-left px-4 py-2">Fecha</th>
-                        <th className="text-left px-4 py-2">Vista Previa</th>
-                        <th className="text-left px-4 py-2">Decisión</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {publicaciones.map((item) => (
-                        <tr key={item._id} className="border-t hover:bg-gray-50">
-                          <td className="px-4 py-2">
-                            {item.autor ? item.autor.nombre : "Sin autor"}
-                          </td>
-                          <td className="px-4 py-2">{item.titulo}</td>
-                          <td className="px-4 py-2">
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              item.tag === 'evento' ? 'bg-blue-100 text-blue-800' :
-                              item.tag === 'emprendimiento' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {item.tag}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2">{item.fecha}</td>
-                          <td className="px-4 py-2">
-                            <a
-                              href={`/publicaciones/${item._id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline"
-                            >
-                              Ver publicación
-                            </a>
-                          </td>
-                          <td className="px-4 py-2">
-                            <div className="flex flex-col gap-2">
-                              <button
-                                onClick={() => aceptarPost(item._id)}
-                                className="bg-green-500 hover:bg-green-600 text-white font-medium px-3 py-1 rounded text-sm"
-                              >
-                                Aceptar
-                              </button>
-                              <button
-                                onClick={() => rechazarPost(item._id)}
-                                className="bg-red-500 hover:bg-red-600 text-white font-medium px-3 py-1 rounded text-sm"
-                              >
-                                Rechazar
-                              </button>
-                            </div>
-                          </td>
+                 <div className="overflow-x-auto">
+                   <table className="responsive-table min-w-full">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="text-left px-3 py-2 text-sm">Autor</th>
+                          <th className="text-left px-3 py-2 text-sm">Título</th>
+                          <th className="text-left px-3 py-2 text-sm">Tipo</th>
+                          <th className="text-left px-3 py-2 text-sm">Fecha</th>
+                          <th className="text-left px-3 py-2 text-sm">Vista Previa</th>
+                          <th className="text-left px-3 py-2 text-sm">Decisión</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {publicaciones.map((item) => (
+                          <tr key={item._id} className="border-t hover:bg-gray-50">
+                            <td className="px-3 py-2 text-sm">
+                              {item.autor ? item.autor.nombre : "Sin autor"}
+                            </td>
+                            <td className="px-3 py-2 text-sm break-words max-w-[150px]" title={item.titulo}>
+                              {item.titulo}
+                            </td>
+                            <td className="px-3 py-2 text-sm">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                item.tag === 'evento' ? 'bg-blue-100 text-blue-800' :
+                                item.tag === 'emprendimiento' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {item.tag}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-sm">{item.fecha}</td>
+                            <td className="px-3 py-2 text-sm">
+                              <a
+                                href={`/publicaciones/${item._id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline text-sm"
+                              >
+                                Ver publicación
+                              </a>
+                            </td>
+                            <td className="px-3 py-2 text-sm">
+                              <div className="table-actions flex flex-col sm:flex-row gap-1">
+                                <button
+                                  onClick={() => aceptarPost(item._id)}
+                                  className="bg-green-500 hover:bg-green-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
+                                >
+                                  Aceptar
+                                </button>
+                                <button
+                                  onClick={() => rechazarPost(item._id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
+                                >
+                                  Rechazar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No hay publicaciones pendientes de aprobación.
@@ -660,75 +862,78 @@ export const PerfilUsuario = () => {
               </div>
             )}
 
-            {/*  Actualizaciones Pendientes */}
+           {/* Actualizaciones Pendientes */}
             {activeTab === 'actualizaciones' && (
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
+              <div className="tab-table-container h-full flex flex-col">
                 <h2 className="text-lg font-semibold text-black mb-4">
                   Actualizaciones pendientes de revisión
                 </h2>
                 {pendingUpdates && pendingUpdates.length > 0 ? (
-                  <div className="space-y-4">
-                    {pendingUpdates.map((publicacion) => (
-                      <div key={publicacion._id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold text-lg text-black">{publicacion.titulo}</h3>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                publicacion.tag === 'evento' ? 'bg-blue-100 text-blue-800' :
-                                publicacion.tag === 'emprendimiento' ? 'bg-green-100 text-green-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {publicacion.tag}
-                              </span>
+                  <div className="flex-1 overflow-y-auto" style={{ maxHeight: '400px' }}> {/* Scroll vertical específico */}
+                    <div className="space-y-4 p-1">
+                      {pendingUpdates.map((publicacion) => (
+                        <div key={publicacion._id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                          {/* Encabezado */}
+                          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-start gap-2 mb-2">
+                                <h3 className="font-semibold text-lg text-black break-words w-full">
+                                  {publicacion.titulo}
+                                </h3>
+                                <span className={`px-2 py-1 rounded text-xs whitespace-nowrap flex-shrink-0 ${
+                                  publicacion.tag === 'evento' ? 'bg-blue-100 text-blue-800' :
+                                  publicacion.tag === 'emprendimiento' ? 'bg-green-100 text-green-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {publicacion.tag}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 break-words">
+                                <strong>Autor:</strong> {publicacion.autor?.nombre} • 
+                                <strong> Solicitado:</strong> {new Date(publicacion.lastEditRequest).toLocaleDateString()} • 
+                                <strong> Ediciones:</strong> {publicacion.editCount || 0}/3
+                              </p>
                             </div>
-                            <p className="text-sm text-gray-600">
-                              <strong>Autor:</strong> {publicacion.autor?.nombre} • 
-                              <strong> Solicitado:</strong> {new Date(publicacion.lastEditRequest).toLocaleDateString()} • 
-                              <strong> Ediciones realizadas:</strong> {publicacion.editCount || 0}/3
-                            </p>
+                            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                              <button
+                                onClick={() => aprobarActualizacion(publicacion._id)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm whitespace-nowrap transition-colors flex-1 min-w-[100px]"
+                              >
+                                Aprobar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Razón del rechazo (opcional):');
+                                  rechazarActualizacion(publicacion._id, reason);
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm whitespace-nowrap transition-colors flex-1 min-w-[100px]"
+                              >
+                                Rechazar
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex gap-2 ml-4">
-                            <button
-                              onClick={() => aprobarActualizacion(publicacion._id)}
-                              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+
+                          {/* Mostrar cambios propuestos */}
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                            <h4 className="font-medium text-black mb-3 text-lg">Cambios propuestos:</h4>
+                            <div className="space-y-3">
+                              {renderCambiosPropuestos(publicacion)}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t">
+                            <a
+                              href={`/publicaciones/${publicacion._id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline text-sm break-words inline-block font-medium"
                             >
-                              Aprobar
-                            </button>
-                            <button
-                              onClick={() => {
-                                const reason = prompt('Razón del rechazo (opcional):');
-                                rechazarActualizacion(publicacion._id, reason);
-                              }}
-                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                            >
-                              Rechazar
-                            </button>
+                              Ver publicación actual
+                            </a>
                           </div>
                         </div>
-
-                        {/* Mostrar cambios propuestos */}
-                        <div className="mt-3 p-3 bg-gray-50 rounded border">
-                          <h4 className="font-medium text-black mb-2">Cambios propuestos:</h4>
-                          {renderCambiosPropuestos(publicacion)}
-                          
-                          {publicacion.pendingUpdate && Object.keys(publicacion.pendingUpdate).length === 2 && (
-                            <p className="text-gray-500 text-sm">No se detectaron cambios visibles en los campos principales.</p>
-                          )}
-                        </div>
-
-                        <div className="mt-2 flex gap-2">
-                          <a
-                            href={`/publicaciones/${publicacion._id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline text-sm"
-                          >
-                            Ver publicación actual
-                          </a>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -740,56 +945,58 @@ export const PerfilUsuario = () => {
 
             {/* Pestaña: Archivos Nuevos */}
             {activeTab === 'archivos' && (
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
+               <div className="tab-table-container h-full overflow-auto">
                 <h2 className="text-lg font-semibold text-black mb-4">
                   Archivos nuevos por aprobar
                 </h2>
                 {archivos && archivos.length > 0 ? (
-                  <table className="min-w-full text-black text-sm">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="text-left px-4 py-2">Autor</th>
-                        <th className="text-left px-4 py-2">Título</th>
-                        <th className="text-left px-4 py-2">Tamaño</th>
-                        <th className="text-left px-4 py-2">Fecha</th>
-                        <th className="text-left px-4 py-2">Decisión</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {archivos.map((item) => (
-                        <tr key={item._id} className="border-t hover:bg-gray-50">
-                          <td className="px-4 py-2">
-                            {item.autor ? item.autor.nombre : "Sin autor"}
-                          </td>
-                          <td className="px-4 py-2">{item.nombre}</td>
-                          <td className="px-4 py-2">
-                            {formatearTamano(item.tamano)}
-                          </td>
-                          <td className="px-4 py-2">
-                            {item.fechaSubida
-                              ? new Date(item.fechaSubida).toLocaleDateString("es-ES")
-                              : "Fecha no disponible"}
-                          </td>
-                          <td className="px-4 py-2">
-                            <div className="flex flex-col gap-2">
-                              <button
-                                onClick={() => aceptarArchivo(item._id)}
-                                className="bg-green-500 hover:bg-green-600 text-white font-medium px-3 py-1 rounded text-sm"
-                              >
-                                Aceptar
-                              </button>
-                              <button
-                                onClick={() => rechazarArchivo(item._id)}
-                                className="bg-red-500 hover:bg-red-600 text-white font-medium px-3 py-1 rounded text-sm"
-                              >
-                                Rechazar
-                              </button>
-                            </div>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-black text-sm">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="text-left px-3 py-2">Autor</th>
+                          <th className="text-left px-3 py-2">Título</th>
+                          <th className="text-left px-3 py-2">Tamaño</th>
+                          <th className="text-left px-3 py-2">Fecha</th>
+                          <th className="text-left px-3 py-2">Decisión</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {archivos.map((item) => (
+                          <tr key={item._id} className="border-t hover:bg-gray-50">
+                            <td className="px-3 py-2 break-words">
+                              {item.autor ? item.autor.nombre : "Sin autor"}
+                            </td>
+                            <td className="px-3 py-2 break-words max-w-[150px]">{item.nombre}</td>
+                            <td className="px-3 py-2">
+                              {formatearTamano(item.tamano)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {item.fechaSubida
+                                ? new Date(item.fechaSubida).toLocaleDateString("es-ES")
+                                : "Fecha no disponible"}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  onClick={() => aceptarArchivo(item._id)}
+                                  className="bg-green-500 hover:bg-green-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
+                                >
+                                  Aceptar
+                                </button>
+                                <button
+                                  onClick={() => rechazarArchivo(item._id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
+                                >
+                                  Rechazar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No hay archivos pendientes de aprobación.
@@ -800,7 +1007,7 @@ export const PerfilUsuario = () => {
 
             {/* Pestaña: Gestión de Usuarios */}
             {activeTab === 'usuarios' && (
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-md p-4">
+              <div className="tab-table-container h-full flex flex-col">
                 <h2 className="text-lg font-semibold text-black mb-4">Gestión de permisos de usuarios</h2>
 
                 <input
@@ -812,46 +1019,50 @@ export const PerfilUsuario = () => {
                 />
 
                 {usuariosFiltrados && usuariosFiltrados.length > 0 ? (
-                  <table className="min-w-full text-black text-sm">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="text-left px-4 py-2">Nombre</th>
-                        <th className="text-left px-4 py-2">Apellidos</th>
-                        <th className="text-left px-4 py-2">Email</th>
-                        <th className="text-left px-4 py-2">Tipo de Usuario</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usuariosFiltrados.map((item) => (
-                        <tr key={item._id} className="border-t hover:bg-gray-50">
-                          <td className="px-4 py-2">{item.nombre || "Sin nombre"}</td>
-                          <td className="px-4 py-2">{item.apellido || "Sin apellido"}</td>
-                          <td className="px-4 py-2">{item.email}</td>
-                          <td className="px-4 py-2">
-                            <label className="inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="absolute w-0 h-0 opacity-0 sr-only peer"
-                                checked={item.tipoUsuario === 1}
-                                onChange={() => otorgarPermiso(item._id, item.tipoUsuario)}
-                              />
-                              <div
-                                className="relative w-14 h-7 bg-gray-200 rounded-full peer dark:bg-gray-700
-                                peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800
-                                peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
-                                peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5
-                                after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full
-                                after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-400 dark:peer-checked:bg-yellow-400"
-                              ></div>
-                              <span className="ms-3 text-sm font-medium text-black-900 dark:text-black-300">
-                                {item.tipoUsuario === 1 ? "Admin" : "Usuario"}
-                              </span>
-                            </label>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex-1 overflow-y-auto" style={{ maxHeight: '400px' }}> {/* Scroll vertical específico */}
+                    <div className="min-w-full">
+                      <table className="responsive-table min-w-full">
+                        <thead className="sticky top-0 bg-gray-100"> {/* Sticky header */}
+                          <tr>
+                            <th className="text-left px-3 py-2 min-w-[120px]">Nombre</th>
+                            <th className="text-left px-3 py-2 min-w-[120px]">Apellidos</th>
+                            <th className="text-left px-3 py-2 min-w-[200px]">Email</th>
+                            <th className="text-left px-3 py-2 min-w-[150px]">Tipo de Usuario</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usuariosFiltrados.map((item) => (
+                            <tr key={item._id} className="border-t hover:bg-gray-50">
+                              <td className="px-3 py-2 break-words min-w-[120px]">{item.nombre || "Sin nombre"}</td>
+                              <td className="px-3 py-2 break-words min-w-[120px]">{item.apellido || "Sin apellido"}</td>
+                              <td className="px-3 py-2 break-words min-w-[200px]">{item.email}</td>
+                              <td className="px-3 py-2 min-w-[150px]">
+                                <label className="inline-flex items-center cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="absolute w-0 h-0 opacity-0 sr-only peer"
+                                    checked={item.tipoUsuario === 1}
+                                    onChange={() => otorgarPermiso(item._id, item.tipoUsuario)}
+                                  />
+                                  <div
+                                    className="relative w-14 h-7 bg-gray-200 rounded-full peer dark:bg-gray-700
+                                    peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800
+                                    peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+                                    peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5
+                                    after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full
+                                    after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-400 dark:peer-checked:bg-yellow-400"
+                                  ></div>
+                                  <span className="ms-3 text-sm font-medium text-black-900 dark:text-black-300">
+                                    {item.tipoUsuario === 1 ? "Admin" : "Usuario"}
+                                  </span>
+                                </label>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No se encontraron usuarios.
