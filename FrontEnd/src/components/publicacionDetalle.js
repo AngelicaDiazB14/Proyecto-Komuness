@@ -8,11 +8,13 @@ import {
   IoMdMail,   
   IoLogoFacebook, 
   IoLogoInstagram, 
-  IoLogoWhatsapp   } from "react-icons/io";
+  IoLogoWhatsapp,
+  IoMdCreate  
+} from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { API_URL, getCategoriaById } from "../utils/api";
-
+import { EditarPublicacionModal } from './EditarPublicacionModal';
 import Slider from "./slider";
 import ComentariosPub from "./comentariosPub";
 import PublicacionModal from "./publicacionModal";
@@ -25,7 +27,7 @@ export const PublicacionDetalle = () => {
   const { user } = useAuth();
 
   // ========== FUNCIÓN FORMATFECHA CORREGIDA ==========
-  // MODIFICACIÓN: Se corrigió el problema de zona horaria
+   // MODIFICACIÓN: Se corrigió el problema de zona horaria
   // que causaba que las fechas se mostraran un día después
   const formatFecha = (fechaStr) => {
     if (!fechaStr) return "Sin fecha";
@@ -47,9 +49,8 @@ export const PublicacionDetalle = () => {
     } 
     // Si la fecha viene en formato ISO (yyyy-mm-dd) o similar
     else if (fechaStr.includes("-")) {
-      const partes = fechaStr.split("T")[0]; // CAMBIO: Quitar la parte de hora si existe
+      const partes = fechaStr.split("T")[0];
       const [año, mes, dia] = partes.split("-").map(num => parseInt(num));
-      // CAMBIO: Crear fecha usando componentes directamente para evitar problemas de zona horaria
       fecha = new Date(año, mes - 1, dia);
     }
     // Fallback: intentar parsear directamente
@@ -62,7 +63,6 @@ export const PublicacionDetalle = () => {
     
     return `${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`;
   };
-  // ========== FIN DE MODIFICACIÓN ==========
 
   const [selectedPub, setSelectedPub] = useState(false);
   const [comentarios, setComentarios] = useState([]);
@@ -71,6 +71,7 @@ export const PublicacionDetalle = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [categoriaCompleta, setCategoriaCompleta] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const obtenerPublicacion = async () => {
@@ -92,7 +93,6 @@ export const PublicacionDetalle = () => {
             setCategoriaCompleta(categoriaData);
           }
         } else if (data.categoria && data.categoria.nombre) {
-          
           setCategoriaCompleta(data.categoria);
         }
 
@@ -114,7 +114,7 @@ export const PublicacionDetalle = () => {
   }, [publicacion]);
 
   // === PRECIO (normalizado) ===
- const formatPrecio = (precio) => {
+  const formatPrecio = (precio) => {
     if (precio === 0 || precio === '0') return 'Gratis';
     if (Number.isFinite(Number(precio))) {
       return `₡ ${Number(precio).toLocaleString("es-CR")}`;
@@ -128,20 +128,19 @@ export const PublicacionDetalle = () => {
 
   const mostrarPrecios = publicacion && 
     (publicacion.tag === "evento" || publicacion.tag === "emprendimiento");
+  
   // === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
   const mostrarHora =
     publicacion?.tag === "evento" &&
     typeof publicacion?.horaEvento === "string" &&
     publicacion.horaEvento.trim() !== "";
 
-    // === TELÉFONO ===
+  // === TELÉFONO ===
   const telefono = publicacion?.telefono;
 
   // === ENLACES EXTERNOS ===
   const enlacesExternos = publicacion?.enlacesExternos || [];
 
-
-  
   // Función para formatear correctamente los enlaces
   const formatearEnlace = (url) => {
     // Si es un correo sin mailto:, agregar el prefijo
@@ -180,6 +179,7 @@ export const PublicacionDetalle = () => {
     }
     return <IoMdLink className="mr-1" size={14} />;
   };
+
   if (cargando) {
     return (
       <div className="flex flex-col items-center justify-center mt-10 bg-gray-800/80">
@@ -223,39 +223,42 @@ export const PublicacionDetalle = () => {
 
         {publicacion && (
           <>
-            {/* HEADER CON CLASIFICACIÓN Y BOTÓN ELIMINAR EN MISMA LÍNEA */}
+            {/* HEADER CON CLASIFICACIÓN Y BOTONES EN MISMA LÍNEA - CORREGIDO */}
             <div className="flex items-center justify-between mb-4">
-               {/* Clasificación alineada a la izquierda */}
+              {/* Clasificación alineada a la izquierda */}
               <div className="flex items-center gap-2">
                 <strong className="text-white text-sm md:text-base">Clasificación:</strong>
                 <CategoriaBadge categoria={categoriaCompleta} mobile />
               </div>
 
-              {/* Botón Eliminar alineado a la derecha */}
-              {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-                <div>
+              {/* BOTONES DE ACCIÓN */}
+              <div className="flex gap-2">
+                {/* Botón Editar - para el autor (cualquier tipo de usuario) */}
+                {user && user._id === publicacion.autor?._id && (
                   <button
-                    className="bg-red-600 py-1.5 px-3 rounded hover:bg-red-700 text-sm md:py-2 md:px-4 md:text-base"
+                    onClick={() => setShowEditModal(true)}
+                    className="bg-blue-600 py-1.5 px-3 rounded hover:bg-blue-700 text-white text-sm md:py-2 md:px-4 md:text-base flex items-center gap-1"
+                  >
+                    <IoMdCreate size={16} />
+                    Editar
+                  </button>
+                )}
+
+                {/* Botón Eliminar - solo para administradores */}
+                {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
+                  <button
+                    className="bg-red-600 py-1.5 px-3 rounded hover:bg-red-700 text-white text-sm md:py-2 md:px-4 md:text-base"
                     onClick={() => setSelectedPub(true)}
                   >
                     Eliminar
                   </button>
-
-                  <PublicacionModal
-                    name={publicacion.titulo}
-                    date={publicacion.fecha}
-                    tag={publicacion.tag}
-                    id={publicacion._id}
-                    isOpen={selectedPub}
-                    onClose={() => setSelectedPub(false)}
-                  />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* TÍTULO CON SALTO DE LÍNEA AUTOMÁTICO */}
             <div className="flex items-center justify-center w-full mb-6">
-               {/* Botón atrás (desktop) */}
+              {/* Botón atrás (desktop) */}
               <div className="w-1/4 flex justify-start">
                 <button
                   type="button"
@@ -266,21 +269,43 @@ export const PublicacionDetalle = () => {
                 </button>
               </div>
 
-            {/* Título centrado con break-words */}
+              {/* Título centrado con break-words */}
               <h1 className="w-2/4 text-xl font-bold text-white text-center break-words leading-tight md:text-3xl">
                 {publicacion.titulo}
               </h1>
 
-            {/* Espacio vacío para balancear el layout */}
+              {/* Espacio vacío para balancear el layout */}
               <div className="w-1/4"></div>
             </div>
 
-             {/* SLIDER CON MÁRGEN SUPERIOR */}
+            {/* MODALES - fuera del flujo condicional principal */}
+            {showEditModal && (
+              <EditarPublicacionModal
+                publicacion={publicacion}
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                onUpdate={() => {
+                  // Recargar datos de la publicación
+                  window.location.reload();
+                }}
+              />
+            )}
+
+            <PublicacionModal
+              name={publicacion.titulo}
+              date={publicacion.fecha}
+              tag={publicacion.tag}
+              id={publicacion._id}
+              isOpen={selectedPub}
+              onClose={() => setSelectedPub(false)}
+            />
+
+            {/* SLIDER CON MÁRGEN SUPERIOR */}
             <div className="mb-6">
               <Slider key={publicacion._id} publicacion={publicacion} />
             </div>
 
-           {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
+            {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
             <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
               <h2 className="text-white text-sm md:text-base mb-3">
                 <IoMdPerson className="inline mr-2" />
@@ -288,7 +313,7 @@ export const PublicacionDetalle = () => {
                 {publicacion.autor?.nombre || "Autor desconocido"}
               </h2>
 
-               {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
+              {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
               <div className="mb-4">
                 <p className="text-white text-sm md:text-base">
                   <strong>Descripción:</strong>
@@ -374,35 +399,35 @@ export const PublicacionDetalle = () => {
                   </div>
                 )}
 
-              {/* ENLACES EXTERNOS */}
-              {enlacesExternos.length > 0 && (
-                <div>
-                  <h3 className="text-white font-semibold mb-2 flex items-center">
-                    <IoMdLink className="mr-2 text-purple-400" />
-                    Enlaces externos:
-                  </h3>
-                  <div className="space-y-2">
-                    {enlacesExternos.map((enlace, index) => {
-                      const enlaceFormateado = formatearEnlace(enlace.url);
-                      const icono = obtenerIconoEnlace(enlace.url);
-                      
-                      return (
-                        <div key={index} className="flex items-center">
-                          <a
-                            href={enlaceFormateado}
-                            target={enlaceFormateado.startsWith('http') ? "_blank" : "_self"}
-                            rel={enlaceFormateado.startsWith('http') ? "noopener noreferrer" : ""}
-                            className="text-blue-300 hover:text-blue-200 underline flex items-center"
-                          >
-                            {icono}
-                            {enlace.nombre}
-                          </a>
-                        </div>
-                      );
-                    })}
+                {/* ENLACES EXTERNOS */}
+                {enlacesExternos.length > 0 && (
+                  <div>
+                    <h3 className="text-white font-semibold mb-2 flex items-center">
+                      <IoMdLink className="mr-2 text-purple-400" />
+                      Enlaces externos:
+                    </h3>
+                    <div className="space-y-2">
+                      {enlacesExternos.map((enlace, index) => {
+                        const enlaceFormateado = formatearEnlace(enlace.url);
+                        const icono = obtenerIconoEnlace(enlace.url);
+                        
+                        return (
+                          <div key={index} className="flex items-center">
+                            <a
+                              href={enlaceFormateado}
+                              target={enlaceFormateado.startsWith('http') ? "_blank" : "_self"}
+                              rel={enlaceFormateado.startsWith('http') ? "noopener noreferrer" : ""}
+                              className="text-blue-300 hover:text-blue-200 underline flex items-center"
+                            >
+                              {icono}
+                              {enlace.nombre}
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
             </div>
 

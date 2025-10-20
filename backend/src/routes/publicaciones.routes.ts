@@ -1,3 +1,4 @@
+
 import multer from 'multer';
 import { Router } from 'express';
 import {
@@ -12,9 +13,19 @@ import {
   getPublicacionesByCategoria,
   getEventosPorFecha,
 } from '../controllers/publicacion.controller';
+
+import {
+  requestUpdatePublicacion,
+  getPendingUpdates,
+  approveUpdate,
+  rejectUpdate,
+  cancelUpdateRequest
+} from '../controllers/publicacion-update.controller';
+
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { verificarRoles } from '../middlewares/roles.middleware';
 import { validarLimitePublicaciones } from '../middlewares/limitePublicaciones.middleware';
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -29,11 +40,17 @@ const multiFields = upload.fields([
 
 const router = Router();
 
-// Las rutas de creación ahora incluyen validación de límites
-// El middleware se aplica DESPUÉS de authMiddleware
+// ========== RUTAS PÚBLICAS ==========
+router.get('/', getPublicacionesByTag);
+router.get('/buscar', filterPublicaciones);
+router.get('/:id', getPublicacionById);
+router.get('/categoria/:categoriaId', getPublicacionesByCategoria);
+router.get('/eventos/calendario', getEventosPorFecha);
+
+// ========== RUTAS DE USUARIO AUTENTICADO ==========
 router.post('/', authMiddleware, validarLimitePublicaciones, createPublicacion);
 
-// Handler robusto para capturar errores de Multer (p.ej. límite de tamaño)
+// Handler robusto para capturar errores de Multer
 router.post('/v2', authMiddleware, validarLimitePublicaciones, (req, res, next) => {
   multiFields(req, res, (err: any) => {
     if (err) {
@@ -45,12 +62,20 @@ router.post('/v2', authMiddleware, validarLimitePublicaciones, (req, res, next) 
   });
 });
 
-router.get('/', getPublicacionesByTag);
-router.get('/buscar', filterPublicaciones);
-router.get('/:id', getPublicacionById);
-router.get('/categoria/:categoriaId', getPublicacionesByCategoria);
+router.post('/:id/comentarios', authMiddleware, verificarRoles([0, 1, 2, 3]), addComentario);
+
+// ========== RUTAS DE EDICIÓN PARA AUTORES ==========
+// Ruta  para solicitar actualización
+router.put('/:id/request-update', authMiddleware, multiFields, requestUpdatePublicacion);
+router.delete('/:id/cancel-update', authMiddleware, cancelUpdateRequest);
+router.put('/:id/request-update', authMiddleware, multiFields, requestUpdatePublicacion);
+// ========== RUTAS DE ADMINISTRACIÓN ==========
+// NOTA: Estas rutas deben definirse ANTES de las rutas con parámetros genéricos como '/:id'
+router.get('/admin/pending-updates', authMiddleware, verificarRoles([0, 1]), getPendingUpdates);
+router.put('/admin/:id/approve-update', authMiddleware, verificarRoles([0, 1]), approveUpdate);
+router.put('/admin/:id/reject-update', authMiddleware, verificarRoles([0, 1]), rejectUpdate);
+
+// ========== RUTAS DE ADMINISTRACIÓN GENERAL ==========
 router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion);
 router.delete('/:id', authMiddleware, verificarRoles([0, 1]), deletePublicacion);
-router.post('/:id/comentarios', authMiddleware, verificarRoles([0, 1, 2]), addComentario);
-router.get('/eventos/calendario', getEventosPorFecha);
 export default router;
