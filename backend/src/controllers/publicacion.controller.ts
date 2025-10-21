@@ -160,7 +160,6 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
       const texto =
         `Se ha creado una nueva publicación que requiere aprobación.\n` +
         `Título: ${savePost.titulo ?? '(sin título)'}\n` +
-        `ID: ${savePost._id}\n` +
         `Fecha: ${new Date(savePost.createdAt ?? Date.now()).toISOString()}`;
 
       const emails = await getAdminEmails();
@@ -272,7 +271,6 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       const texto =
         `Se ha creado una nueva publicación que requiere aprobación.\n` +
         `Título: ${savePost.titulo ?? '(sin título)'}\n` +
-        `ID: ${savePost._id}\n` +
         `Fecha: ${new Date(savePost.createdAt ?? Date.now()).toISOString()}`;
 
       const emails = await getAdminEmails();
