@@ -3,6 +3,7 @@ import { IAdjunto, IComentario, IEnlaceExterno, IPublicacion } from '../interfac
 import { modelPublicacion } from '../models/publicacion.model';
 import mongoose from 'mongoose';
 import { saveMulterFileToGridFS, saveBufferToGridFS, deleteGridFSFile } from '../utils/gridfs';
+import { sendEmail } from '../utils/mail'; // ← usar helper existente
 
 const LOG_ON = process.env.LOG_PUBLICACION === '1';
 
@@ -135,6 +136,21 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
     }
 
     const savePost = await nuevaPublicacion.save();
+
+    // ← Notificación por correo al crear publicación (aprobación)
+    try {
+      const asunto = 'Nueva publicación para aprobar';
+      const texto =
+        `Se ha creado una nueva publicación que requiere aprobación.\n` +
+        `Título: ${savePost.titulo ?? '(sin título)'}\n` +
+        `ID: ${savePost._id}\n` +
+        `Fecha: ${new Date(savePost.createdAt ?? Date.now()).toISOString()}`;
+      await sendEmail('asaraya153@hotmail.com', asunto, texto);
+      if (LOG_ON) console.log('[Publicaciones][createPublicacion] Notificación enviada');
+    } catch (e) {
+      console.warn('[Publicaciones][createPublicacion] No se pudo enviar la notificación:', e);
+    }
+
     res.status(201).json(savePost);
   } catch (error) {
     const err = error as Error;
@@ -195,7 +211,6 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
       return;
     }
 
-
     // --- Subir adjuntos (0..N) ---
     const adjuntos: IAdjunto[] = [];
     for (const file of files) {
@@ -229,6 +244,21 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
     }
 
     const savePost = await nuevaPublicacion.save();
+
+    // ← Notificación por correo al crear publicación (aprobación)
+    try {
+      const asunto = 'Nueva publicación para aprobar';
+      const texto =
+        `Se ha creado una nueva publicación que requiere aprobación.\n` +
+        `Título: ${savePost.titulo ?? '(sin título)'}\n` +
+        `ID: ${savePost._id}\n` +
+        `Fecha: ${new Date(savePost.createdAt ?? Date.now()).toISOString()}`;
+      await sendEmail('asaraya153@hotmail.com', asunto, texto);
+      if (LOG_ON) console.log('[Publicaciones][createPublicacionA] Notificación enviada');
+    } catch (e) {
+      console.warn('[Publicaciones][createPublicacionA] No se pudo enviar la notificación:', e);
+    }
+
     res.status(201).json(savePost);
   } catch (error) {
     console.error('createPublicacionA error:', error);
@@ -444,7 +474,7 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
         res.status(400).json({ message: 'ID de autor inválido' });
         return;
       }
-      filtro.autor = autor;
+      filtro.autor = (autor as string);
     }
 
     if (Object.keys(filtro).length === 0) {
