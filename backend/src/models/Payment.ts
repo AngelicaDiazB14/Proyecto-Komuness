@@ -12,6 +12,15 @@ export interface IPayment extends Document {
   payerId?: string;
   email?: string;
   raw: any;
+  attemptNumber?: number;
+  lastError?: string;
+  retryHistory?: Array<{
+    timestamp: Date;
+    attemptNumber: number;
+    errorCode: string;
+    errorMessage: string;
+    statusCode?: number;
+  }>;
 }
 
 const PaymentSchema = new Schema<IPayment>(
@@ -26,6 +35,15 @@ const PaymentSchema = new Schema<IPayment>(
     payerId:   String,
     email:     String,
     raw:       Schema.Types.Mixed,
+    attemptNumber: { type: Number, default: 1 },
+    lastError: { type: String },
+    retryHistory: [{
+      timestamp: { type: Date, required: true },
+      attemptNumber: { type: Number, required: true },
+      errorCode: { type: String, required: true },
+      errorMessage: { type: String, required: true },
+      statusCode: { type: Number },
+    }],
   },
   { timestamps: true }
 );
