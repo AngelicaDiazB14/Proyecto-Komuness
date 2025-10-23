@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { toast } from 'react-hot-toast';
-import { FiStar, FiCheck, FiArrowLeft, FiZap } from 'react-icons/fi';
+import { FiStar, FiCheck, FiArrowLeft, FiZap, FiAlertCircle, FiRefreshCw, FiCheckCircle, FiXCircle, FiWifi, FiCreditCard, FiShield } from 'react-icons/fi';
 import { API_URL } from '../utils/api';
+import '../CSS/CheckoutPremium.css';
 
 const CheckoutPremium = () => {
   const navigate = useNavigate();
   const [planSeleccionado, setPlanSeleccionado] = useState(null);
   const [procesando, setProcesando] = useState(false);
+  const [reintentos, setReintentos] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const planes = {
     mensual: {
@@ -57,6 +60,9 @@ const CheckoutPremium = () => {
 
   const onApprove = async (data, actions) => {
     try {
+      // Resetear estados
+      setErrorMessage('');
+      setReintentos(0);
       setProcesando(true);
 
       // Capturar la orden en PayPal
@@ -76,20 +82,69 @@ const CheckoutPremium = () => {
 
       const result = await response.json();
 
-      if (response.ok) {
+      if (!response.ok) {
+        // Extraer información del error
+        const userMessage = result.message || 'Error al procesar el pago';
+        const attempts = result.attempts || 1;
+
+        // Actualizar estados
+        setErrorMessage(userMessage);
+        setReintentos(attempts);
+        
+        // Mostrar toast con el mensaje específico y animación
+        toast.error(userMessage, { 
+          duration: 6000,
+          icon: '⚠️',
+          style: {
+            background: '#FEE2E2',
+            color: '#991B1B',
+            border: '2px solid #F87171',
+            fontWeight: '600',
+          }
+        });
+        
+        setProcesando(false);
+        return;
+      }
+
+      // Pago exitoso
+      const attempts = result.attempts || 1;
+
+      if (attempts > 1) {
+        // Si hubo reintentos, mostrar mensaje especial
+        toast.success(`¡Pago completado después de ${attempts} intentos! 🎉`, {
+          duration: 5000,
+          icon: '✨',
+          style: {
+            background: '#D1FAE5',
+            color: '#065F46',
+            border: '2px solid #34D399',
+            fontWeight: '600',
+          }
+        });
+      } else {
+        // Pago exitoso en el primer intento
         toast.success('¡Felicidades! Ahora eres usuario Premium 🎉', {
           duration: 5000,
+          icon: '🎉',
+          style: {
+            background: '#D1FAE5',
+            color: '#065F46',
+            border: '2px solid #34D399',
+            fontWeight: '600',
+          }
         });
-
-        // Esperar un poco para que el usuario vea el mensaje
-        setTimeout(() => {
-          navigate('/perfilUsuario');
-        }, 2000);
-      } else {
-        throw new Error(result.message || 'Error al procesar el pago');
       }
+
+      // Esperar un poco para que el usuario vea el mensaje
+      setTimeout(() => {
+        navigate('/perfilUsuario');
+        window.location.reload();
+      }, 2000);
+
     } catch (error) {
       console.error('Error al procesar el pago:', error);
+      setErrorMessage('Ocurrió un error inesperado. Por favor, intenta nuevamente.');
       toast.error('Error al procesar el pago. Contacta con soporte.');
       setProcesando(false);
     }
@@ -160,9 +215,9 @@ const CheckoutPremium = () => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Plan Mensual */}
           <div
-            className={`bg-white rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 ${
+            className={`plan-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
               planSeleccionado === 'mensual'
-                ? 'ring-4 ring-blue-500 scale-105'
+                ? 'ring-4 ring-blue-500 scale-105 animate-glow'
                 : 'hover:shadow-xl hover:scale-102'
             }`}
             onClick={() => setPlanSeleccionado('mensual')}
@@ -181,8 +236,8 @@ const CheckoutPremium = () => {
             </div>
 
             {planSeleccionado === 'mensual' && (
-              <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold mb-4">
-                <FiCheck size={20} />
+              <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold mb-4 animate-scale-in">
+                <FiCheckCircle size={20} className="animate-pulse" />
                 Plan seleccionado
               </div>
             )}
@@ -190,15 +245,15 @@ const CheckoutPremium = () => {
 
           {/* Plan Anual */}
           <div
-            className={`bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
+            className={`plan-card bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
               planSeleccionado === 'anual'
-                ? 'ring-4 ring-yellow-500 scale-105'
+                ? 'ring-4 ring-yellow-500 scale-105 animate-glow'
                 : 'hover:shadow-xl hover:scale-102'
             }`}
             onClick={() => setPlanSeleccionado('anual')}
           >
             {/* Badge */}
-            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 animate-bounce-soft">
               <FiZap size={14} />
               {planes.anual.badge}
             </div>
@@ -220,8 +275,8 @@ const CheckoutPremium = () => {
             </div>
 
             {planSeleccionado === 'anual' && (
-              <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold mb-4">
-                <FiCheck size={20} />
+              <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold mb-4 animate-scale-in">
+                <FiCheckCircle size={20} className="animate-pulse" />
                 Plan seleccionado
               </div>
             )}
@@ -230,7 +285,7 @@ const CheckoutPremium = () => {
 
         {/* Botones de PayPal */}
         {planSeleccionado && (
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">`
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
               Completa tu pago
             </h3>
@@ -239,9 +294,144 @@ const CheckoutPremium = () => {
             </p>
 
             {procesando && (
-              <div className="flex flex-col items-center gap-3 mb-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
-                <p className="text-gray-600">Procesando pago...</p>
+              <div className="flex flex-col items-center gap-4 mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-lg animate-slide-down">
+                {/* Spinner animado mejorado */}
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-500"></div>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <FiCreditCard className="text-yellow-600 animate-pulse" size={24} />
+                  </div>
+                </div>
+
+                {/* Mensaje principal */}
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-800 flex items-center gap-2 justify-center">
+                    <FiShield className="text-blue-600" />
+                    Procesando pago seguro...
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">Por favor no cierres esta ventana</p>
+                </div>
+
+                {/* Barra de progreso de reintentos */}
+                {reintentos > 0 && (
+                  <div className="w-full max-w-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-yellow-700 flex items-center gap-1">
+                        <FiRefreshCw className="animate-spin" />
+                        Reintentando conexión...
+                      </span>
+                      <span className="text-sm font-bold text-yellow-800">
+                        Intento {reintentos}/3
+                      </span>
+                    </div>
+                    
+                    {/* Barra de progreso animada */}
+                    <div className="w-full bg-yellow-200 rounded-full h-3 overflow-hidden shadow-inner">
+                      <div 
+                        className="bg-gradient-to-r from-yellow-400 to-amber-500 h-3 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1"
+                        style={{ width: `${(reintentos / 3) * 100}%` }}
+                      >
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+
+                    {/* Puntos de progreso */}
+                    <div className="flex justify-between mt-2">
+                      {[1, 2, 3].map((num) => (
+                        <div 
+                          key={num}
+                          className={`flex items-center gap-1 text-xs font-medium transition-all duration-300 ${
+                            num <= reintentos 
+                              ? 'text-yellow-700 scale-110' 
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {num <= reintentos ? (
+                            <FiCheckCircle className="animate-bounce" />
+                          ) : (
+                            <div className="w-3 h-3 border-2 border-current rounded-full"></div>
+                          )}
+                          {num}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Indicador de conexión */}
+                {reintentos > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-gray-600 animate-pulse">
+                    <FiWifi className="text-blue-500" />
+                    Verificando conexión con PayPal...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {errorMessage && !procesando && (
+              <div className="mb-6 animate-shake">
+                {/* Caja de error mejorada con animación */}
+                <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-6 shadow-lg">
+                  {/* Icono y título */}
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                        <FiXCircle className="text-white" size={24} />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-red-900 mb-1">
+                        Error en el pago
+                      </h4>
+                      <p className="text-red-800 font-medium leading-relaxed">
+                        {errorMessage}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Información de reintentos */}
+                  {reintentos > 1 && (
+                    <div className="mt-4 pt-4 border-t-2 border-red-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FiRefreshCw className="text-red-600" />
+                          <span className="text-sm font-semibold text-red-700">
+                            Intentos realizados
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(3)].map((_, index) => (
+                            <div
+                              key={index}
+                              className={`w-3 h-3 rounded-full ${
+                                index < reintentos
+                                  ? 'bg-red-500 animate-pulse'
+                                  : 'bg-red-200'
+                              }`}
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-red-600 mt-2">
+                        El sistema intentó procesar el pago {reintentos} {reintentos === 1 ? 'vez' : 'veces'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Sugerencias de acción */}
+                  <div className="mt-4 p-3 bg-white rounded-lg border border-red-200">
+                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                      <FiAlertCircle size={14} />
+                      Qué puedes hacer:
+                    </p>
+                    <ul className="text-xs text-gray-600 space-y-1 ml-5 list-disc">
+                      <li>Verifica tu conexión a internet</li>
+                      <li>Comprueba que tu método de pago tenga fondos</li>
+                      <li>Intenta con otro método de pago</li>
+                      <li>Contacta con soporte si el problema persiste</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -264,16 +454,22 @@ const CheckoutPremium = () => {
             </div>
 
             <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Pago seguro procesado por PayPal</p>
-              <p className="mt-1">Tus datos están protegidos</p>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <FiShield className="text-green-600" />
+                <p className="font-semibold text-gray-700">Pago 100% seguro</p>
+              </div>
+              <p className="text-xs text-gray-500">
+                Procesado por PayPal · Tus datos están encriptados y protegidos
+              </p>
             </div>
           </div>
         )}
 
         {!planSeleccionado && (
           <div className="text-center text-gray-600 bg-white rounded-2xl shadow-lg p-8">
-            <FiStar className="mx-auto mb-3 text-yellow-500" size={48} />
-            <p className="text-lg">Selecciona un plan para continuar</p>
+            <FiStar className="mx-auto mb-3 text-yellow-500 animate-pulse" size={48} />
+            <p className="text-lg font-semibold">Selecciona un plan para continuar</p>
+            <p className="text-sm text-gray-500 mt-2">Elige entre nuestros planes mensual o anual</p>
           </div>
         )}
       </div>
