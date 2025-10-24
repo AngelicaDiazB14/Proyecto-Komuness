@@ -5,44 +5,43 @@ import {
   captureOrder,
   verifyWebhookSignature,
   extractPaymentInfo,
-  extractUserId, // ya no lo dependemos para /capture, pero se deja para webhook
+  extractUserId, // sigue para webhook
 } from "../utils/paypal";
 import { retryWithExponentialBackoff } from "../utils/paymentRetry";
 import { PaymentErrorHandler } from "../utils/paymentErrorHandler";
 import type { PaymentError, RetryHistoryEntry } from "../interfaces/payment.interface";
+import { modelUsuario } from "../models/usuario.model"; // ⬅️ NUEVO
 
-const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
-const PAY_COL = "payments";   // colección de auditoría/idempotencia
+const USERS_COL = "usuarios"; // si tu colección se llama distinto, cámbiala aquí
+const PAY_COL = "payments";   // auditoría/idempotencia
 
+// (opcional) se deja por compatibilidad con webhook
 async function setUserRolePremium(args: { id?: string; email?: string }) {
   const { id, email } = args;
-  const users = mongoose.connection.collection(USERS_COL);
-  const update = { $set: { tipoUsuario: 3 } } as any; // PREMIUM = 3
   if (id) {
-    await users.updateOne({ _id: new mongoose.Types.ObjectId(id) }, update);
+    await modelUsuario.findByIdAndUpdate(id, { $set: { tipoUsuario: 3 } }, { new: false });
     return;
   }
   if (email) {
-    await users.updateOne({ email }, update);
+    await modelUsuario.updateOne({ email }, { $set: { tipoUsuario: 3 } });
     return;
   }
 }
 
 async function savePayment(doc: any) {
   const col = mongoose.connection.collection(PAY_COL);
-  // índices para idempotencia (si ya existen, ignora el error)
   try { await col.createIndex({ captureId: 1 }, { unique: true, sparse: true }); } catch {}
   try { await col.createIndex({ eventId: 1 },   { unique: true, sparse: true }); } catch {}
   try {
     await col.insertOne(doc);
     return { idempotent: false };
   } catch (e: any) {
-    if (e?.code === 11000) return { idempotent: true }; // duplicado
+    if (e?.code === 11000) return { idempotent: true };
     throw e;
   }
 }
 
-/** POST /api/paypal/capture  body: { orderId }  (ahora requiere sesión via authMiddleware) */
+/** POST /api/paypal/capture  body: { orderId }  (requiere sesión via authMiddleware) */
 export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void> => {
   const retryHistory: RetryHistoryEntry[] = [];
   try {
@@ -52,7 +51,7 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       return;
     }
 
-    // Usuario desde la sesión (inyectado por authMiddleware)
+    // ✅ Usuario desde la sesión
     const sessionUser = (req as any).user;
     if (!sessionUser?._id) {
       res.status(401).json({ error: "no_session_user", message: "Debes iniciar sesión." });
@@ -62,7 +61,6 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
 
     console.log(`[PayPal] Iniciando captura de orden: ${orderId} para usuario ${sessionUserId}`);
 
-    // Ejecutar captureOrder con sistema de reintentos
     const result = await retryWithExponentialBackoff(
       () => captureOrder(orderId),
       {
@@ -86,7 +84,6 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       const error = result.error!;
       const userMessage = PaymentErrorHandler.getUserMessage(error);
       const httpStatus = PaymentErrorHandler.getHttpStatusCode(error);
-      console.error(`[PayPal] Captura fallida después de ${result.attempts} intentos:`, error.code);
 
       try {
         await savePayment({
@@ -132,10 +129,9 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       retryHistory: retryHistory.length > 0 ? retryHistory : undefined,
     });
 
-    // ✅ Solución simple: subir a Premium SIEMPRE que el pago esté completo/aprobado
-    // (el $set es idempotente; no importa si ya se guardó el payment antes)
+    // ✅ Simple e idempotente: siempre set a Premium si COMPLETED/APPROVED (no depende de email/custom_id)
     if (info.status === "COMPLETED" || info.status === "APPROVED") {
-      await setUserRolePremium({ id: sessionUserId, email: sessionUser?.email ?? info.email ?? undefined });
+      await modelUsuario.findByIdAndUpdate(sessionUserId, { $set: { tipoUsuario: 3 } }, { new: false });
       console.log(`[PayPal] Usuario actualizado a Premium (session): ${sessionUserId}`);
     }
 
@@ -187,7 +183,7 @@ export const webhook: RequestHandler = async (req, res): Promise<void> => {
       event_type: event?.event_type,
     });
 
-    // Podemos dejar el webhook como está, o también quitar el idempotent aquí si quieres.
+    // Dejamos webhook como estaba (si tienes custom_id en la orden, también sube a premium)
     const okTypes = new Set(["PAYMENT.CAPTURE.COMPLETED", "CHECKOUT.ORDER.APPROVED"]);
     if (okTypes.has(event?.event_type) && (info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
       await setUserRolePremium({ id: userId, email: info.email ?? undefined });
