@@ -13,7 +13,7 @@ import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
 import seccionAcercaRoutes from './routes/seccionAcerca.routes';
 import path from 'path';
-
+import paypalRoutes from './routes/paypal.routes';
 
 const app: Express = express();
 dotenv.config();
@@ -45,7 +45,7 @@ app.use("/api/configuracion", configuracionRoutes); // nueva ruta para configura
 app.use('/api', filesRouter);
 app.use('/api/acerca-de', seccionAcercaRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
-
+app.use('/api/paypal', paypalRoutes);
 app.get('/api/', (req: Request, res: Response) => {
     res.send('Hello World');
 });
