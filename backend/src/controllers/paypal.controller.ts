@@ -5,7 +5,7 @@ import {
   captureOrder,
   verifyWebhookSignature,
   extractPaymentInfo,
-  extractUserId,
+  extractUserId, // ya no lo dependemos para /capture, pero se deja para webhook
 } from "../utils/paypal";
 import { retryWithExponentialBackoff } from "../utils/paymentRetry";
 import { PaymentErrorHandler } from "../utils/paymentErrorHandler";
@@ -42,10 +42,9 @@ async function savePayment(doc: any) {
   }
 }
 
-/** POST /api/paypal/capture  body: { orderId }  (opcional) */
+/** POST /api/paypal/capture  body: { orderId }  (ahora requiere sesión via authMiddleware) */
 export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void> => {
   const retryHistory: RetryHistoryEntry[] = [];
-  
   try {
     const { orderId } = req.body as { orderId?: string };
     if (!orderId) {
@@ -53,20 +52,25 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       return;
     }
 
-    console.log(`[PayPal] Iniciando captura de orden: ${orderId}`);
+    // Usuario desde la sesión (inyectado por authMiddleware)
+    const sessionUser = (req as any).user;
+    if (!sessionUser?._id) {
+      res.status(401).json({ error: "no_session_user", message: "Debes iniciar sesión." });
+      return;
+    }
+    const sessionUserId = String(sessionUser._id);
+
+    console.log(`[PayPal] Iniciando captura de orden: ${orderId} para usuario ${sessionUserId}`);
 
     // Ejecutar captureOrder con sistema de reintentos
     const result = await retryWithExponentialBackoff(
       () => captureOrder(orderId),
       {
         maxRetries: 3,
-        baseDelay: 1000,    // 1 segundo
-        timeout: 30000,     // 30 segundos
+        baseDelay: 1000,
+        timeout: 30000,
         onRetry: (error: PaymentError, attemptNumber: number) => {
-          // Loggear cada reintento
           console.log(`[PayPal] Reintento ${attemptNumber}: ${error.code} - ${error.message}`);
-          
-          // Agregar entrada al historial de reintentos
           retryHistory.push({
             timestamp: new Date(),
             attemptNumber,
@@ -78,15 +82,12 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       }
     );
 
-    // Si la operación falló después de todos los reintentos
     if (!result.success) {
       const error = result.error!;
       const userMessage = PaymentErrorHandler.getUserMessage(error);
       const httpStatus = PaymentErrorHandler.getHttpStatusCode(error);
-
       console.error(`[PayPal] Captura fallida después de ${result.attempts} intentos:`, error.code);
 
-      // Guardar intento fallido en la base de datos para auditoría
       try {
         await savePayment({
           orderId,
@@ -96,12 +97,12 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
           attemptNumber: result.attempts,
           lastError: error.message,
           retryHistory,
+          userId: new mongoose.Types.ObjectId(sessionUserId),
         });
       } catch (saveError) {
         console.error('[PayPal] Error al guardar intento fallido:', saveError);
       }
 
-      // Responder al cliente con información estructurada
       res.status(httpStatus).json({
         error: error.code,
         message: userMessage,
@@ -111,13 +112,10 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       return;
     }
 
-    // Operación exitosa - continuar con el flujo normal
     console.log(`[PayPal] ✓ Captura exitosa en ${result.attempts} intento(s)`);
-    
     const data = result.data;
     const resource = data;
     const info = extractPaymentInfo(resource);
-    const userId: string | undefined = extractUserId(resource) ?? undefined;
 
     const saved = await savePayment({
       orderId,
@@ -127,31 +125,31 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       currency: info.currency,
       payerId: info.payerId,
       email: info.email,
-      userId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+      userId: new mongoose.Types.ObjectId(sessionUserId),
       raw: data,
       source: "capture",
       attemptNumber: result.attempts,
       retryHistory: retryHistory.length > 0 ? retryHistory : undefined,
     });
 
-    // Solo actualizar usuario a Premium si el pago fue completado y no es duplicado
-    if ((info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
-      await setUserRolePremium({ id: userId, email: info.email ?? undefined });
-      console.log(`[PayPal] Usuario actualizado a Premium: ${userId || info.email}`);
+    // ✅ Solución simple: subir a Premium SIEMPRE que el pago esté completo/aprobado
+    // (el $set es idempotente; no importa si ya se guardó el payment antes)
+    if (info.status === "COMPLETED" || info.status === "APPROVED") {
+      await setUserRolePremium({ id: sessionUserId, email: sessionUser?.email ?? info.email ?? undefined });
+      console.log(`[PayPal] Usuario actualizado a Premium (session): ${sessionUserId}`);
     }
 
-    res.json({ 
-      ok: true, 
-      status: info.status, 
+    res.json({
+      ok: true,
+      status: info.status,
       idempotent: saved.idempotent,
       attempts: result.attempts,
     });
     return;
   } catch (e: any) {
-    // Error inesperado no manejado por el sistema de reintentos
     console.error('[PayPal] Error inesperado en captureAndUpgrade:', e);
-    res.status(500).json({ 
-      error: "capture_failed", 
+    res.status(500).json({
+      error: "capture_failed",
       message: "Ocurrió un error inesperado al procesar el pago. Por favor, intenta nuevamente.",
       attempts: 1,
     });
@@ -189,6 +187,7 @@ export const webhook: RequestHandler = async (req, res): Promise<void> => {
       event_type: event?.event_type,
     });
 
+    // Podemos dejar el webhook como está, o también quitar el idempotent aquí si quieres.
     const okTypes = new Set(["PAYMENT.CAPTURE.COMPLETED", "CHECKOUT.ORDER.APPROVED"]);
     if (okTypes.has(event?.event_type) && (info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
       await setUserRolePremium({ id: userId, email: info.email ?? undefined });
