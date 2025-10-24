@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { FaListAlt, FaEdit, FaHistory } from "react-icons/fa";
 import { FiSettings } from "react-icons/fi";
 import ModalLimitesPublicaciones from "./modalLimitesPublicaciones";
+import AlertaLimitePublicaciones from "./AlertaLimitePublicaciones";
 
 export const PerfilUsuario = () => {
   const navigate = useNavigate();
@@ -20,13 +21,40 @@ export const PerfilUsuario = () => {
   const { user, logout } = useAuth();
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalLimitesAbierto, setModalLimitesAbierto] = useState(false);
+  const [modalPremiumAbierto, setModalPremiumAbierto] = useState(false);
   const [activeTab, setActiveTab] = useState('publicaciones'); // NUEVO: Control de pestañas
+  const [limiteData, setLimiteData] = useState(null);
 
   useEffect(() => {
     if (!user) {
       navigate("/");
     }
   }, [user, navigate]);
+
+  // Función para cargar datos del límite de publicaciones del usuario
+  const cargarDatosLimite = async () => {
+    try {
+      const response = await fetch(`${API_URL}/configuracion/mis-limites`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLimiteData(data.data);
+      }
+    } catch (error) {
+      console.error("Error al cargar datos de límite:", error);
+    }
+  };
+
+  // Cargar datos de límite al montar el componente
+  useEffect(() => {
+    if (user && user.tipoUsuario === 2) {
+      cargarDatosLimite();
+    }
+  }, [user]);
 
   // Función para cargar publicaciones pendientes
   const cargarPublicaciones = async () => {
@@ -657,11 +685,11 @@ const renderCambiosPropuestos = (publicacion) => {
     <div className={`flex flex-col md:flex-row gap-6 w-full min-h-screen bg-gray-800/80 p-4 md:p-6
       ${user?.tipoUsuario === 2 ? "justify-center" : "md:flex-row gap-6"}`}>
       
-      {/* Sección de perfil del usuario (sin cambios) */}
+      {/* Sección de perfil del usuario */}
       <div className={`paginaUsuario flex flex-col items-center gap-4 w-full 
           ${user?.tipoUsuario === 2 ? "items-center w-full max-w-md" : "items-center w-full md:w-1/3"}`}>
         <AiOutlineUser size={150} className="text-white" />
-        <div className="text-white text-center md:text-left">
+        <div className="text-white text-center md:text-left w-full">
           <div>
             <span className="text-xl font-semibold">
               {user?.nombre} {user?.apellido}
@@ -672,7 +700,68 @@ const renderCambiosPropuestos = (publicacion) => {
               {user?.email}
             </a>
           </div>
-          <div>
+
+          {/* Sección de membresía para usuario básico */}
+          {user?.tipoUsuario === 2 && limiteData && (
+            <div className="mt-6 w-full bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-white">Tu Membresía</h3>
+                <span className="px-3 py-1 bg-gray-600 text-white text-xs font-semibold rounded-full">
+                  {limiteData.tipoUsuario || 'Básico'}
+                </span>
+              </div>
+
+              {/* Barra de progreso de publicaciones */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-200">Publicaciones</span>
+                  <span className="font-semibold text-white">
+                    {limiteData.publicacionesActuales} / {limiteData.limite}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 100
+                        ? 'bg-red-500'
+                        : (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 80
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
+                    }`}
+                    style={{
+                      width: `${Math.min((limiteData.publicacionesActuales / limiteData.limite) * 100, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-300 mt-1">
+                  {limiteData.publicacionesActuales >= limiteData.limite
+                    ? '¡Has alcanzado tu límite!'
+                    : `${limiteData.limite - limiteData.publicacionesActuales} publicaciones disponibles`}
+                </p>
+              </div>
+
+              {/* Botón para actualizar a Premium */}
+              <button
+                onClick={() => setModalPremiumAbierto(true)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-bold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg 
+                  className="w-5 h-5" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                Actualizar a Premium
+              </button>
+
+              <p className="text-xs text-gray-300 mt-3 text-center">
+                Obtén publicaciones adicionales y más beneficios
+              </p>
+            </div>
+          )}
+
+          <div className="mt-4">
             {modalAbierto && (
               <ModalCambioContrasena
                 userId={user._id}
@@ -682,7 +771,7 @@ const renderCambiosPropuestos = (publicacion) => {
             )}
             <button
               onClick={() => setModalAbierto(true)}
-              className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+              className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
             >
               Cambiar contraseña
             </button>
@@ -693,13 +782,19 @@ const renderCambiosPropuestos = (publicacion) => {
                 logout();
                 navigate("/");
               }}
-              className="mt-4 bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded"
+              className="mt-4 w-full bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded"
             >
               Cerrar sesión
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal de alerta Premium */}
+      <AlertaLimitePublicaciones
+        show={modalPremiumAbierto}
+        onClose={() => setModalPremiumAbierto(false)}
+      />
 
       {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
         <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-4 md:p-6 dashboard-scroll-container">

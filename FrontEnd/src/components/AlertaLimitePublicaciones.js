@@ -103,9 +103,11 @@ const AlertaLimitePublicaciones = ({ show, onClose }) => {
                 </div>
                 
                 <p className="text-xs text-gray-500 text-center">
-                  {porcentajeUso >= 100
+                  {limiteData && porcentajeUso >= 100
                     ? '¡Has alcanzado tu límite de publicaciones!'
-                    : `Estás usando el ${porcentajeUso}% de tu límite`}
+                    : limiteData
+                    ? `Estás usando el ${porcentajeUso}% de tu límite`
+                    : 'Actualiza para obtener más publicaciones'}
                 </p>
               </div>
 
