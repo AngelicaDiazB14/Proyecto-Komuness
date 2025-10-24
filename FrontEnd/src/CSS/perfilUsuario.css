@@ -443,6 +443,119 @@
   }
 }
 
+/* Sección de membresía en perfil */
+.membership-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.membership-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.membership-progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: rgba(75, 85, 99, 0.8);
+  border-radius: 9999px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.membership-progress-fill {
+  height: 100%;
+  transition: width 0.5s ease-in-out;
+  border-radius: 9999px;
+}
+
+.upgrade-button-premium {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(to right, #fbbf24, #f59e0b);
+  color: white;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+}
+
+.upgrade-button-premium:hover {
+  background: linear-gradient(to right, #f59e0b, #d97706);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.upgrade-button-premium:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.membership-badge {
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(75, 85, 99, 1);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.membership-badge-premium {
+  background: linear-gradient(to right, #fbbf24, #f59e0b);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Responsive para membresía */
+@media (max-width: 768px) {
+  .membership-card {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .upgrade-button-premium {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .membership-card {
+    padding: 0.75rem;
+  }
+
+  .upgrade-button-premium {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .membership-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+  }
+}
+
 /* Para un scrollbar personalizado */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
