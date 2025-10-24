@@ -16,16 +16,25 @@ const USERS_COL = "usuarios"; // si tu colección se llama distinto, cámbiala a
 const PAY_COL = "payments";   // auditoría/idempotencia
 
 // (opcional) se deja por compatibilidad con webhook
-async function setUserRolePremium(args: { id?: string; email?: string }) {
-  const { id, email } = args;
-  if (id) {
-    await modelUsuario.findByIdAndUpdate(id, { $set: { tipoUsuario: 3 } }, { new: false });
+async function setUserRolePremium(args: { id?: string | null; email?: string | null }) {
+  const { id, email } = args ?? {};
+  const update = { $set: { tipoUsuario: 3 } }; // PREMIUM = 3
+
+  // 1) Preferir por _id si parece válido
+  if (id && mongoose.isValidObjectId(id)) {
+    const r = await modelUsuario.updateOne({ _id: id }, update);
+    if (r.matchedCount === 0) throw new Error("Usuario no encontrado por _id");
     return;
   }
+
+  // 2) Fallback por email
   if (email) {
-    await modelUsuario.updateOne({ email }, { $set: { tipoUsuario: 3 } });
+    const r = await modelUsuario.updateOne({ email }, update);
+    if (r.matchedCount === 0) throw new Error("Usuario no encontrado por email");
     return;
   }
+
+  throw new Error("Faltan id/email para subir a premium");
 }
 
 async function savePayment(doc: any) {
