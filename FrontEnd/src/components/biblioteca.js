@@ -47,6 +47,8 @@ export const Biblioteca = () => {
   const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('')
   const [mostrarModal, setMostrarModal] = useState(false)
   const [nombreCarpeta, setNombreCarpeta] = useState("")
+  // RF023: Estado para controlar archivos ya subidos que se deben ocultar
+  const [uploadedFileNames, setUploadedFileNames] = useState(new Set())
 
   // Mapa de iconos para el modal
   const modalIconMap = {
@@ -69,7 +71,8 @@ export const Biblioteca = () => {
     fileRejections,
     getRootProps,
     getInputProps,
-    isDragActive
+    isDragActive,
+    inputRef // RF023: Para limpiar los archivos después de subir
   } = useDropzone({
     maxSize,
     onDropRejected: (fileRejections) => {
@@ -207,6 +210,7 @@ export const Biblioteca = () => {
       data.append("archivos", archivo)
     })
     data.append("userId", user._id)
+    data.append("userType", user.tipoUsuario) // RF023: Enviar tipo de usuario
     data.append("folderId", id)
 
     // Ejecutar la petición y usar toast.promise para el estado de la operación.
@@ -237,6 +241,19 @@ export const Biblioteca = () => {
       })(),
       {
         loading: 'Subiendo archivos...',
+        success: (data) => {
+          // RF023: Marcar archivos como subidos para ocultarlos de la UI
+          const newUploadedNames = new Set(uploadedFileNames);
+          acceptedFiles.forEach(file => newUploadedNames.add(file.name));
+          setUploadedFileNames(newUploadedNames);
+          
+          // Limpiar input
+          if (inputRef.current) {
+            inputRef.current.value = '';
+          }
+          // RF023: Mostrar el mensaje que viene del backend
+          return data.message || 'Archivos subidos correctamente';
+        },
         error: (err) => {
           const msg = err instanceof Error ? err.message : String(err)
           if (msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('ECONNRESET')) {
@@ -251,30 +268,15 @@ export const Biblioteca = () => {
       }
     )
 
-    // Procesar la respuesta y mostrar mensajes más descriptivos por archivo
+    // Procesar errores individuales si los hay
     try {
-      if (result) {
-        // Si el backend devolvió un array de resultados por archivo
-        if (Array.isArray(result.results) && result.results.length > 0) {
-          const failed = result.results.filter(r => !r.success);
-          const succeeded = result.results.filter(r => r.success);
-
-          if (failed.length > 0) {
-            toast.error(`Algunos archivos no se pudieron subir (${failed.length}/${result.results.length}).`);
-            failed.forEach(f => {
-              toast.error(`Error al subir ${f.nombre || 'archivo'}: ${f.message || 'Error desconocido'}`);
-            });
-          }
-
-          if (succeeded.length > 0) {
-            toast.success(`${succeeded.length} archivo(s) subidos correctamente.`);
-          }
-        } else if (result.success === false) {
-          // Mensaje general de error
-          toast.error(result.message || 'Error al subir los archivos');
-        } else if (result.message) {
-          // Mensaje informativo del backend
-          toast.success(result.message);
+      if (result && Array.isArray(result.results)) {
+        const failed = result.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          failed.forEach(f => {
+            toast.error(`Error: ${f.nombre || 'archivo'} - ${f.message || 'Error desconocido'}`);
+          });
         }
       }
     } catch (e) {
@@ -377,8 +379,10 @@ export const Biblioteca = () => {
     return location.pathname !== '/biblioteca'
   }
 
-  // Renderizar archivos aceptados
-  const files = acceptedFiles.map(file => (
+  // Renderizar archivos aceptados (RF023: filtrar los que ya fueron subidos)
+  const files = acceptedFiles
+    .filter(file => !uploadedFileNames.has(file.name))
+    .map(file => (
     <div
       key={`${file.name}-${file.size}-${file.lastModified ?? ''}`}
       className='flex flex-wrap justify-center gap-4 w-full max-w-6xl p-4'
@@ -391,6 +395,12 @@ export const Biblioteca = () => {
       />
     </div>
   ))
+
+  // RF023: Resetear el Set cuando acceptedFiles cambie (nueva selección)
+  useEffect(() => {
+    // Cuando el usuario selecciona archivos (nuevos o los mismos), limpiar el Set
+    setUploadedFileNames(new Set());
+  }, [acceptedFiles])
 
   // Effect: Búsqueda con debounce
   useEffect(() => {
@@ -467,9 +477,22 @@ export const Biblioteca = () => {
         {folderName}
       </p>
 
-      {/* Zona de subida (solo para admin/editor) */}
-      {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
+      {/* Zona de subida (RF023: usuarios básicos/premium pueden subir a cualquier carpeta) */}
+      {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1 || user.tipoUsuario === 2 || user.tipoUsuario === 3) && (
         <div className="flex flex-wrap justify-center gap-4 w-full max-w-6xl p-4">
+          {/* RF023: Mensaje informativo para usuarios básicos/premium */}
+          {(user.tipoUsuario === 2 || user.tipoUsuario === 3) && (
+            <div className="w-full bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg mb-4">
+              <p className="font-medium">ℹ️ Información importante:</p>
+              <ul className="list-disc list-inside mt-2 text-sm">
+                <li>Tus archivos serán enviados y quedarán pendientes de aprobación.</li>
+                <li>Deberás solicitar a un administrador que los publique.</li>
+                <li>Puedes subir archivos a cualquier carpeta.</li>
+                <li>No puedes crear nuevas carpetas (solo admin/super-admin).</li>
+              </ul>
+            </div>
+          )}
+          
           <div
             {...getRootProps()}
             className="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 rounded-xl p-8 text-center cursor-pointer transition hover:border-blue-500 hover:bg-blue-50"
@@ -505,46 +528,48 @@ export const Biblioteca = () => {
             </div>
           )}
 
-          {/* Botón crear carpeta */}
-          <div className="w-full max-w-6xl px-4 py-2 text-white">
-            <button
-              onClick={() => setMostrarModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium p-4 rounded-lg shadow"
-            >
-              + Crear carpeta
-            </button>
+          {/* Botón crear carpeta (solo admin/super-admin) */}
+          {(user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
+            <div className="w-full max-w-6xl px-4 py-2 text-white">
+              <button
+                onClick={() => setMostrarModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium p-4 rounded-lg shadow"
+              >
+                + Crear carpeta
+              </button>
 
-            {mostrarModal && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                    Nueva carpeta
-                  </h3>
-                  <input
-                    type="text"
-                    value={nombreCarpeta}
-                    onChange={(e) => setNombreCarpeta(e.target.value)}
-                    placeholder="Nombre de la carpeta"
-                    className="w-full px-4 py-2 mb-4 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => setMostrarModal(false)}
-                      className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleCrearCarpeta}
-                      className="px-4 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                    >
-                      Crear
-                    </button>
+              {mostrarModal && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                  <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                      Nueva carpeta
+                    </h3>
+                    <input
+                      type="text"
+                      value={nombreCarpeta}
+                      onChange={(e) => setNombreCarpeta(e.target.value)}
+                      placeholder="Nombre de la carpeta"
+                      className="w-full px-4 py-2 mb-4 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setMostrarModal(false)}
+                        className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleCrearCarpeta}
+                        className="px-4 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                      >
+                        Crear
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

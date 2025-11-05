@@ -33,7 +33,8 @@ const router = Router();
  */
 // solo los tipoUsuarios 0, 1 y 2 pueden subir archivos
 // router.post("/upload", upload.array('archivos'), authMiddleware, verificarRoles([0, 1, 2]), BibliotecaController.uploadFiles as any);
-router.post("/upload", authMiddleware, verificarRoles([0, 1, 2]), uploadLibrary.array('archivos'), BibliotecaController.uploadFiles as any
+// RF023: Ahora usuarios básicos (2) y premium (3) también pueden subir archivos
+router.post("/upload", authMiddleware, verificarRoles([0, 1, 2, 3]), uploadLibrary.array('archivos'), BibliotecaController.uploadFiles as any
 );
 
 /* ====================== NUEVO: descarga del binario ====================== */
@@ -206,6 +207,29 @@ router.route("/folder/:id").delete(authMiddleware, verificarRoles([0, 1]), Bibli
  */
 //solo los tipoUsuarios 0 y 1  pueden actualizar archivos
 router.put("/edit/:id", authMiddleware, verificarRoles([0, 1]), BibliotecaController.updateFile as any);
+
+/* ====================== RF023: Rutas para aprobación de archivos ====================== */
+/**
+ * @description: Lista archivos pendientes de aprobación
+ * @route: GET /api/biblioteca/pending
+ * Solo admin (1) y super-admin (0)
+ */
+router.get("/pending", authMiddleware, verificarRoles([0, 1]), BibliotecaController.listPendingFiles as any);
+
+/**
+ * @description: Aprueba un archivo pendiente
+ * @route: PUT /api/biblioteca/approve/:id
+ * Solo admin (1) y super-admin (0)
+ */
+router.put("/approve/:id", authMiddleware, verificarRoles([0, 1]), BibliotecaController.approveFile as any);
+
+/**
+ * @description: Rechaza un archivo pendiente
+ * @route: PUT /api/biblioteca/reject/:id
+ * Solo admin (1) y super-admin (0)
+ */
+router.put("/reject/:id", authMiddleware, verificarRoles([0, 1]), BibliotecaController.rejectFile as any);
+/* ====================== FIN RF023 ====================== */
 
 
 export default router;

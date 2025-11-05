@@ -10,7 +10,10 @@ interface Archivo {
     url: string; // URL de descarga del archivo en digitalOcean Spaces
     key: string; // Key en digitalOcean Spaces para su eliminacion
     folder: string;
+    estado: 'pendiente' | 'aprobado' | 'rechazado'; // Estado de aprobación del archivo
+    uploadedBy: string; // Usuario que subió el archivo (para rastrear quién lo subió)
 }
-export interface IArchivo extends Document, Omit<Archivo, 'folder'> {
+export interface IArchivo extends Document, Omit<Archivo, 'folder' | 'uploadedBy'> {
     folder: string | { _id: string };
+    uploadedBy: string | { _id: string; nombre: string; apellido: string; email: string };
 };
