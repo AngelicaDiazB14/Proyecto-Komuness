@@ -122,16 +122,19 @@ export const PerfilUsuario = () => {
     }
   };
 
-  // Función para cargar archivos
+  // Función para cargar archivos pendientes (RF023)
   const cargarArchivos = () => {
-    fetch(`${API_URL}/biblioteca/list/0?publico=false&global=true`, {
+    fetch(`${API_URL}/biblioteca/pending`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     })
       .then((res) => res.json())
-      .then((data) => setArchivos(data.contentFile))
-      .catch((error) => console.error("Error al obtener los archivos: ", error));
+      .then((data) => {
+        // El nuevo endpoint devuelve { success: true, count: X, archivos: [...] }
+        setArchivos(data.archivos || []);
+      })
+      .catch((error) => console.error("Error al obtener los archivos pendientes: ", error));
   };
 
   // Función para cargar usuarios
@@ -309,48 +312,50 @@ export const PerfilUsuario = () => {
   }
 
   const aceptarArchivo = async (id) => {
-    const promesa = fetch(`${API_URL}/biblioteca/edit/${id}`, {
+    // RF023: Usar nuevo endpoint de aprobación
+    const promesa = fetch(`${API_URL}/biblioteca/approve/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify({ esPublico: true }),
     });
 
     toast.promise(promesa, {
-      loading: "Aceptando archivo...",
-      success: "¡Archivo aceptado!",
-      error: "Error al aceptar el archivo",
+      loading: "Aprobando archivo...",
+      success: "¡Archivo aprobado y publicado!",
+      error: "Error al aprobar el archivo",
     });
 
     try {
       await promesa;
       setArchivos((prev) => prev.filter((item) => item._id !== id));
     } catch (error) {
-      console.error("Error al aceptar el archivo:", error);
+      console.error("Error al aprobar el archivo:", error);
     }
   };
 
   const rechazarArchivo = async (id) => {
-    const promesa = fetch(`${API_URL}/biblioteca/delete/${id}`, {
-      method: "DELETE",
+    // RF023: Usar nuevo endpoint de rechazo (en lugar de eliminar directamente)
+    const promesa = fetch(`${API_URL}/biblioteca/reject/${id}`, {
+      method: "PUT",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 
     toast.promise(promesa, {
-      loading: "Eliminando archivo...",
-      success: "¡Archivo eliminado!",
-      error: "Error al eliminar el archivo",
+      loading: "Rechazando archivo...",
+      success: "¡Archivo rechazado!",
+      error: "Error al rechazar el archivo",
     });
 
     try {
       await promesa;
       setArchivos((prev) => prev.filter((item) => item._id !== id));
     } catch (error) {
-      console.error("Error al eliminar archivo:", error);
+      console.error("Error al rechazar archivo:", error);
     }
   };
 
@@ -1038,21 +1043,23 @@ const renderCambiosPropuestos = (publicacion) => {
               </div>
             )}
 
-            {/* Pestaña: Archivos Nuevos */}
+            {/* Pestaña: Archivos Nuevos (RF023) */}
             {activeTab === 'archivos' && (
                <div className="tab-table-container h-full overflow-auto">
                 <h2 className="text-lg font-semibold text-black mb-4">
-                  Archivos nuevos por aprobar
+                  Archivos pendientes de aprobación
                 </h2>
                 {archivos && archivos.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-black text-sm">
                       <thead>
                         <tr className="bg-gray-100">
-                          <th className="text-left px-3 py-2">Autor</th>
-                          <th className="text-left px-3 py-2">Título</th>
+                          <th className="text-left px-3 py-2">Subido por</th>
+                          <th className="text-left px-3 py-2">Nombre del archivo</th>
+                          <th className="text-left px-3 py-2">Tipo</th>
                           <th className="text-left px-3 py-2">Tamaño</th>
                           <th className="text-left px-3 py-2">Fecha</th>
+                          <th className="text-left px-3 py-2">Vista previa</th>
                           <th className="text-left px-3 py-2">Decisión</th>
                         </tr>
                       </thead>
@@ -1060,9 +1067,29 @@ const renderCambiosPropuestos = (publicacion) => {
                         {archivos.map((item) => (
                           <tr key={item._id} className="border-t hover:bg-gray-50">
                             <td className="px-3 py-2 break-words">
-                              {item.autor ? item.autor.nombre : "Sin autor"}
+                              {item.uploadedBy 
+                                ? `${item.uploadedBy.nombre || ''} ${item.uploadedBy.apellido || ''}`.trim() || item.uploadedBy.email
+                                : item.autor?.nombre || "Desconocido"}
+                              {item.uploadedBy?.tipoUsuario !== undefined && (
+                                <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                                  item.uploadedBy.tipoUsuario === 2 ? 'bg-blue-100 text-blue-800' :
+                                  item.uploadedBy.tipoUsuario === 3 ? 'bg-purple-100 text-purple-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {item.uploadedBy.tipoUsuario === 2 ? 'Básico' : 
+                                   item.uploadedBy.tipoUsuario === 3 ? 'Premium' : 
+                                   'Admin'}
+                                </span>
+                              )}
                             </td>
-                            <td className="px-3 py-2 break-words max-w-[150px]">{item.nombre}</td>
+                            <td className="px-3 py-2 break-words max-w-[200px]" title={item.nombre}>
+                              {item.nombre}
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                                {item.tipoArchivo?.split('/').pop() || 'Archivo'}
+                              </span>
+                            </td>
                             <td className="px-3 py-2">
                               {formatearTamano(item.tamano)}
                             </td>
@@ -1072,18 +1099,28 @@ const renderCambiosPropuestos = (publicacion) => {
                                 : "Fecha no disponible"}
                             </td>
                             <td className="px-3 py-2">
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline text-sm"
+                              >
+                                Ver archivo
+                              </a>
+                            </td>
+                            <td className="px-3 py-2">
                               <div className="flex flex-col gap-1">
                                 <button
                                   onClick={() => aceptarArchivo(item._id)}
                                   className="bg-green-500 hover:bg-green-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
                                 >
-                                  Aceptar
+                                  ✓ Aprobar
                                 </button>
                                 <button
                                   onClick={() => rechazarArchivo(item._id)}
                                   className="bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded text-xs sm:text-sm"
                                 >
-                                  Rechazar
+                                  ✗ Rechazar
                                 </button>
                               </div>
                             </td>
