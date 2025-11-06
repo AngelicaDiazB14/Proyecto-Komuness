@@ -272,6 +272,96 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
     }
   };
 
+  
+  const handleMemberImageUpload = async (event, memberIndex) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('No estás autenticado');
+      return;
+    }
+
+    const uploadFormData = new FormData();
+    uploadFormData.append('imagen', file);
+    uploadFormData.append('miembroIndex', memberIndex.toString());
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/acerca-de/upload-miembro`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success('Foto de perfil subida exitosamente');
+        
+        // Actualizar LOCALMENTE la imagen del miembro
+        setFormData(prev => ({
+          ...prev,
+          equipo: prev.equipo.map((member, index) => 
+            index === memberIndex 
+              ? { ...member, imagen: result.path }
+              : member
+          )
+        }));
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al subir foto de perfil');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(error.message || 'Error al subir foto de perfil');
+    } finally {
+      setLoading(false);
+      // Limpiar el input file
+      event.target.value = '';
+    }
+  };
+
+  const handleDeleteMemberImage = async (memberIndex, imagenPath) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/acerca-de/imagen-miembro`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          miembroIndex: memberIndex, 
+          imagenPath 
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Foto de perfil eliminada');
+        
+        // Actualizar LOCALMENTE eliminando la imagen del miembro
+        setFormData(prev => ({
+          ...prev,
+          equipo: prev.equipo.map((member, index) => 
+            index === memberIndex 
+              ? { ...member, imagen: undefined }
+              : member
+          )
+        }));
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al eliminar foto de perfil');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(error.message || 'Error al eliminar foto de perfil');
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -645,70 +735,117 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
           
           <div className="space-y-6">
             {formData.equipo?.map((miembro, index) => (
-              <div key={index} className="border border-gray-600 rounded-lg p-6 bg-gray-750">
-                <div className="flex justify-between items-start mb-4">
+            <div key={index} className="border border-gray-600 rounded-lg p-6 bg-gray-750">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center space-x-4">
                   <h3 className="text-lg font-semibold">Miembro del Equipo {index + 1}</h3>
-                  <button
-                    onClick={() => handleDeleteMember(index)}
-                    disabled={loading}
-                    className="text-red-400 hover:text-red-300 disabled:opacity-50"
-                    type="button"
-                  >
-                    <FaTrash />
-                  </button>
+                  
+                  {/* Gestión de foto de perfil */}
+                  <div className="flex items-center space-x-2">
+                    {miembro.imagen ? (
+                      <div className="relative group">
+                        <img
+                          src={`http://localhost:5000${miembro.imagen}`}
+                          alt={`${miembro.nombre || 'Miembro'} avatar`}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-yellow-400"
+                        />
+                        <button
+                          onClick={() => handleDeleteMemberImage(index, miembro.imagen)}
+                          disabled={loading}
+                          className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          type="button"
+                        >
+                          <FaTrash size={10} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {miembro.nombre ? miembro.nombre.split(' ').map(n => n[0]).join('') : '?'}
+                      </div>
+                    )}
+                    
+                    <div>
+                      <input
+                        type="file"
+                        id={`member-avatar-${index}`}
+                        accept="image/*"
+                        onChange={(e) => handleMemberImageUpload(e, index)}
+                        className="hidden"
+                        disabled={loading}
+                      />
+                      <label
+                        htmlFor={`member-avatar-${index}`}
+                        className={`text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded cursor-pointer transition-colors ${
+                          loading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {miembro.imagen ? 'Cambiar' : 'Subir'} Foto
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label htmlFor={`miembro-${index}-nombre`} className="block text-sm font-medium mb-2">
-                      Nombre
-                    </label>
-                    <input
-                      id={`miembro-${index}-nombre`}
-                      name={`equipo[${index}].nombre`}
-                      type="text"
-                      value={miembro.nombre}
-                      onChange={(e) => handleMemberChange(index, 'nombre', e.target.value)}
-                      disabled={loading}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-input disabled:opacity-50"
-                      placeholder="Nombre completo"
-                      autoComplete="name"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={`miembro-${index}-puesto`} className="block text-sm font-medium mb-2">
-                      Puesto
-                    </label>
-                    <input
-                      id={`miembro-${index}-puesto`}
-                      name={`equipo[${index}].puesto`}
-                      type="text"
-                      value={miembro.puesto}
-                      onChange={(e) => handleMemberChange(index, 'puesto', e.target.value)}
-                      disabled={loading}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-input disabled:opacity-50"
-                      placeholder="Puesto en la organización"
-                      autoComplete="organization-title"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor={`miembro-${index}-descripcion`} className="block text-sm font-medium mb-2">
-                    Descripción
+                <button
+                  onClick={() => handleDeleteMember(index)}
+                  disabled={loading}
+                  className="text-red-400 hover:text-red-300 disabled:opacity-50"
+                  type="button"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor={`miembro-${index}-nombre`} className="block text-sm font-medium mb-2">
+                    Nombre
                   </label>
-                  <textarea
-                    id={`miembro-${index}-descripcion`}
-                    name={`equipo[${index}].descripcion`}
-                    value={miembro.descripcion}
-                    onChange={(e) => handleMemberChange(index, 'descripcion', e.target.value)}
-                    rows="3"
+                  <input
+                    id={`miembro-${index}-nombre`}
+                    name={`equipo[${index}].nombre`}
+                    type="text"
+                    value={miembro.nombre}
+                    onChange={(e) => handleMemberChange(index, 'nombre', e.target.value)}
                     disabled={loading}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-textarea whitespace-pre-wrap text-break disabled:opacity-50"
-                    placeholder="Descripción del rol y responsabilidades..."
-                    autoComplete="off"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-input disabled:opacity-50"
+                    placeholder="Nombre completo"
+                    autoComplete="name"
                   />
                 </div>
+                <div>
+                  <label htmlFor={`miembro-${index}-puesto`} className="block text-sm font-medium mb-2">
+                    Puesto
+                  </label>
+                  <input
+                    id={`miembro-${index}-puesto`}
+                    name={`equipo[${index}].puesto`}
+                    type="text"
+                    value={miembro.puesto}
+                    onChange={(e) => handleMemberChange(index, 'puesto', e.target.value)}
+                    disabled={loading}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-input disabled:opacity-50"
+                    placeholder="Puesto en la organización"
+                    autoComplete="organization-title"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor={`miembro-${index}-descripcion`} className="block text-sm font-medium mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  id={`miembro-${index}-descripcion`}
+                  name={`equipo[${index}].descripcion`}
+                  value={miembro.descripcion}
+                  onChange={(e) => handleMemberChange(index, 'descripcion', e.target.value)}
+                  rows="3"
+                  disabled={loading}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 responsive-textarea whitespace-pre-wrap text-break disabled:opacity-50"
+                  placeholder="Descripción del rol y responsabilidades..."
+                  autoComplete="off"
+                />
+              </div>
 
                 {/* Campos adicionales del equipo */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

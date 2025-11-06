@@ -5,6 +5,8 @@ import {
   uploadImagen,
   deleteImagen,
   downloadImagen,
+  uploadImagenMiembro,  
+  deleteImagenMiembro,   
   uploadAcercaDe  // Importar el multer configurado
 } from "../controllers/seccionAcerca.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
@@ -21,7 +23,7 @@ router.get("/files/:key", downloadImagen);
 // Crear/actualizar y subir imágenes → solo admin (tipoUsuario = 0 o 1)
 router.put("/", authMiddleware, verificarRoles([0, 1]), createOrUpdateSeccionAcerca);
 
-// NUEVO: Usar uploadAcercaDe en lugar del multer local
+// Usar uploadAcercaDe en lugar del multer local
 router.post("/upload", 
   authMiddleware, 
   verificarRoles([0, 1]), 
@@ -33,6 +35,29 @@ router.delete("/imagen",
   authMiddleware, 
   verificarRoles([0, 1]), 
   deleteImagen
+);
+
+
+// Subir imagen de perfil para miembro del equipo
+router.post("/upload-miembro", 
+  authMiddleware, 
+  verificarRoles([0, 1]), 
+  uploadAcercaDe.single('imagen'), 
+  uploadImagenMiembro
+);
+
+// Eliminar imágenes
+router.delete("/imagen", 
+  authMiddleware, 
+  verificarRoles([0, 1]), 
+  deleteImagen
+);
+
+// Eliminar imagen de perfil de miembro
+router.delete("/imagen-miembro", 
+  authMiddleware, 
+  verificarRoles([0, 1]), 
+  deleteImagenMiembro
 );
 
 export default router;

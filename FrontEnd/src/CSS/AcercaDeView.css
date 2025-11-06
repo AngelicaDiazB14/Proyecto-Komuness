@@ -157,7 +157,7 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Equipo - 4 POR FILA Y TAMAÑOS UNIFORMES */
+/* EQUIPO - VERSIÓN MEJORADA Y RESPONSIVE */
 .team-section {
   background: var(--primary-dark);
 }
@@ -169,30 +169,31 @@
   align-items: stretch;
 }
 
+/* Contenedor principal con altura adaptable */
 .team-member {
   background: linear-gradient(135deg, var(--secondary-dark), var(--primary-dark));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  min-height: 320px; /* Altura mínima base */
+  height: auto; /* Altura automática por defecto */
 }
 
-.team-member:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
+/* Header fijo */
 .team-member-header {
+  cursor: pointer;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1rem;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .team-member-avatar {
@@ -226,25 +227,209 @@
   line-height: 1.2;
 }
 
+/* Contenido principal */
 .team-member-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 
-.team-member-description {
+/* Descripción con scroll adaptable */
+.team-member-description-full {
   color: var(--text-light);
   font-size: 0.85rem;
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 1rem;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 100px;
+  min-height: 60px;
 }
 
+
 .team-member-expanded {
-  margin-top: 1rem;
+  margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 1rem;
+  animation: slideDown 0.3s ease-out;
+  flex-shrink: 0;
+  max-height: 200px; /* Más espacio en móviles */
+  overflow-y: auto;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    transform: translateY(0);
+  }
+}
+
+/* Estado expandido - MEJORADO PARA MÓVILES */
+.team-member.expanded {
+  min-height: 450px; /* Altura aumentada cuando está expandido */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Hover solo en el header */
+.team-member-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: -0.5rem;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+/* Scrollbars */
+.team-member-description-full::-webkit-scrollbar,
+.team-member-expanded::-webkit-scrollbar {
+  width: 4px;
+}
+
+.team-member-description-full::-webkit-scrollbar-track,
+.team-member-expanded::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.team-member-description-full::-webkit-scrollbar-thumb,
+.team-member-expanded::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 2px;
+}
+
+.team-member-description-full::-webkit-scrollbar-thumb:hover,
+.team-member-expanded::-webkit-scrollbar-thumb:hover {
+  background: #fbbf24;
+}
+
+/* RESPONSIVE MEJORADO PARA EQUIPO */
+
+/* Tablets */
+@media (max-width: 1024px) {
+  .team-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .team-member {
+    min-height: 300px;
+    padding: 1.25rem;
+  }
+  
+  .team-member.expanded {
+    min-height: 420px;
+  }
+  
+  .team-member-expanded {
+    max-height: 180px;
+  }
+}
+
+/* Móviles grandes */
+@media (max-width: 768px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .team-member {
+    min-height: 280px;
+    padding: 1rem;
+  }
+  
+  .team-member.expanded {
+    min-height: 380px;
+  }
+  
+  .team-member-expanded {
+    max-height: 150px;
+  }
+  
+  .team-member-description-full {
+    max-height: 80px;
+    min-height: 50px;
+  }
+}
+
+/* Móviles pequeños  */
+@media (max-width: 500px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .team-member {
+    min-height: 260px;
+    padding: 1.25rem;
+    max-width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .team-member.expanded {
+    min-height: 400px; /* Más espacio para contenido expandido */
+  }
+  
+  .team-member-expanded {
+    max-height: 220px; /* Mucho más espacio en móviles */
+    padding-top: 0.75rem;
+  }
+  
+  .team-member-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+  
+  .team-member-avatar {
+    align-self: center;
+    width: 70px;
+    height: 70px; /* Más grande en móviles */
+  }
+  
+  .team-member-description-full {
+    align-self: center;
+    max-height: 70px;
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+  
+  /* Mejorar espaciado en móviles */
+  .team-member-name {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  
+  .team-member-position {
+    font-size: 0.8rem;
+    text-align: center;
+  }
+}
+
+/* Pantallas muy grandes */
+@media (min-width: 1441px) {
+  .team-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+  
+  .team-member {
+    min-height: 350px;
+  }
+  
+  .team-member.expanded {
+    min-height: 500px;
+  }
 }
 
 /* Carrusel*/
@@ -346,16 +531,7 @@
   .contact-item {
     padding: 1rem 0.75rem !important;
   }
-
-  /* Equipo - 1 columna en móviles */
-  .team-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .team-member {
-    max-width: 100%;
-  }
+  
 
   /* Formas de Colaborar - 1 columna */
   .collaboration-grid {
@@ -528,20 +704,6 @@ a:focus {
     padding: 0.875rem 0.5rem !important;
   }
 
-  .team-member {
-    padding: 1.25rem;
-  }
-
-  .team-member-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.75rem;
-  }
-
-  .team-member-avatar {
-    align-self: center;
-  }
-
   .heading-primary {
     font-size: 2rem;
   }
@@ -644,8 +806,6 @@ a:focus {
     height: 12px !important;
   }
 }
-
-/* Agrega esto al final de tu AcercaDeView.css */
 
 /* Estilos para el modal de imagen */
 .image-modal {
@@ -911,4 +1071,10 @@ body.modal-open {
   .edit-title-icon {
     font-size: 14px;
   }
+}
+
+.avatar-fallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
 }

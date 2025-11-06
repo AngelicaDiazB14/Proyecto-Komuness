@@ -447,3 +447,115 @@ export const downloadImagen = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ success: false, message: (error as Error).message });
   }
 };
+
+/**
+ * Subir imagen de perfil para un miembro del equipo
+ */
+export const uploadImagenMiembro = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { miembroIndex } = req.body;
+    
+    if (!req.file) {
+      res.status(400).json({ message: "No se subió ningún archivo" });
+      return;
+    }
+
+    if (miembroIndex === undefined || miembroIndex === null) {
+      await fsp.unlink(req.file.path);
+      res.status(400).json({ message: "miembroIndex es requerido" });
+      return;
+    }
+
+    const seccion = await modelSeccionAcerca.findOne({ estado: true });
+    if (!seccion) {
+      await fsp.unlink(req.file.path);
+      res.status(404).json({ message: "No se encontró la sección acerca de" });
+      return;
+    }
+
+    // Verificar que el índice del miembro existe
+    if (!seccion.equipo[miembroIndex]) {
+      await fsp.unlink(req.file.path);
+      res.status(400).json({ message: "Miembro del equipo no encontrado" });
+      return;
+    }
+
+    /* ====================== Calcular URL y key ====================== */
+    const relKey = path
+      .relative(ACERCADE_DIR, req.file.path)
+      .split(path.sep)
+      .join('/');
+
+    // Generar URL pública usando el endpoint de descarga
+    const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
+    const imagenUrl = `${publicBaseUrl}/api/acerca-de/files/${relKey}`;
+
+    // Actualizar la imagen del miembro
+    seccion.equipo[miembroIndex].imagen = imagenUrl;
+
+    await seccion.save();
+    res.json({ 
+      message: "Imagen de perfil subida exitosamente", 
+      path: imagenUrl,
+      key: relKey
+    });
+  } catch (error) {
+    console.error('Error al subir imagen de miembro:', error);
+    if (req.file) {
+      try {
+        await fsp.unlink(req.file.path);
+      } catch (e) {
+        console.warn('No se pudo eliminar archivo en error:', e);
+      }
+    }
+    res.status(500).json({ message: "Error al subir imagen de perfil" });
+  }
+};
+
+/**
+ * Eliminar imagen de perfil de un miembro del equipo
+ */
+export const deleteImagenMiembro = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { miembroIndex, imagenPath } = req.body;
+    const seccion = await modelSeccionAcerca.findOne({ estado: true });
+
+    if (!seccion) {
+      res.status(404).json({ message: "No se encontró la sección acerca de" });
+      return;
+    }
+
+    // Verificar que el índice del miembro existe
+    if (!seccion.equipo[miembroIndex]) {
+      res.status(400).json({ message: "Miembro del equipo no encontrado" });
+      return;
+    }
+
+    /* ====================== Eliminar del disco ====================== */
+    try {
+      const urlObj = new URL(imagenPath);
+      const key = urlObj.pathname.replace('/api/acerca-de/files/', '');
+      
+      const absPath = path.resolve(ACERCADE_DIR, key);
+      const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
+      const absNorm = path.normalize(absPath);
+
+      // Validar seguridad y eliminar
+      if (absNorm.startsWith(acercaDeNorm) && fs.existsSync(absNorm)) {
+        await fsp.unlink(absNorm);
+        console.log(`Imagen de perfil eliminada del disco: ${absNorm}`);
+      }
+    } catch (e) {
+      console.warn('No se pudo eliminar el binario en disco:', e);
+    }
+
+    // Eliminar de la base de datos
+    seccion.equipo[miembroIndex].imagen = undefined;
+
+    await seccion.save();
+    res.json({ message: "Imagen de perfil eliminada exitosamente" });
+  } catch (error) {
+    console.error('Error al eliminar imagen de miembro:', error);
+    res.status(500).json({ message: "Error al eliminar imagen de perfil" });
+  }
+};
