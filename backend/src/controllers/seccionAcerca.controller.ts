@@ -2,6 +2,66 @@ import { Request, Response } from "express";
 import { modelSeccionAcerca } from "../models/seccionAcerca.model";
 import fs from 'fs';
 import path from 'path';
+import fsp from 'fs/promises';
+import multer from 'multer';
+
+/**
+ * Carpeta base para las imágenes de ACERCA DE en la VM.
+ */
+const ACERCADE_DIR = process.env.ACERCADE_LIB || '/srv/uploads/acercade';
+
+const MAX_IMAGENES_PROYECTOS = parseInt(process.env.MAX_IMAGENES_PROYECTOS || '50');
+const MAX_IMAGENES_EQUIPO = parseInt(process.env.MAX_IMAGENES_EQUIPO || '50');
+/** Asegura subcarpeta por año/mes */
+async function ensureAcercaDeDir(): Promise<string> {
+  const now = new Date();
+  const dir = path.join(
+    ACERCADE_DIR,
+    String(now.getFullYear()),
+    String(now.getMonth() + 1).padStart(2, '0')
+  );
+  await fsp.mkdir(dir, { recursive: true });
+  return dir;
+}
+
+/** Sanitiza el nombre del archivo */
+function sanitizeName(name: string) {
+  return name.replace(/[^\w.\- ]+/g, '_');
+}
+
+/**
+ * Multer especializado para Acerca De:
+ * - Guarda en disco en /srv/uploads/acercade/
+ * - Respeta la estructura por fecha
+ */
+export const uploadAcercaDe = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      try {
+        const dir = await ensureAcercaDeDir();
+        cb(null, dir);
+      } catch (err) {
+        cb(err as any, ACERCADE_DIR);
+      }
+    },
+    filename: (_req, file, cb) => {
+      const safe = sanitizeName(file.originalname);
+      cb(null, `${Date.now()}-${safe}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
+
+
 
 /**
  * Obtener la sección acerca de (solo activa)
@@ -204,9 +264,8 @@ export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): 
   }
 };
 
-// Los métodos uploadImagen y deleteImagen se mantienen igual...
 /**
- * Subir imagen para proyectos o equipo
+ * Subir imagen para proyectos o equipo - AHORA EN DISCO DE LA VM
  */
 export const uploadImagen = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -218,46 +277,77 @@ export const uploadImagen = async (req: Request, res: Response): Promise<void> =
     }
 
     if (!['proyectos', 'equipo'].includes(tipo)) {
-      // Eliminar archivo subido
-      fs.unlinkSync(req.file.path);
+      // Eliminar archivo subido del disco
+      try {
+        await fsp.unlink(req.file.path);
+      } catch (e) {
+        console.warn('No se pudo eliminar archivo rechazado:', e);
+      }
       res.status(400).json({ message: "Tipo debe ser 'proyectos' o 'equipo'" });
       return;
     }
 
     const seccion = await modelSeccionAcerca.findOne({ estado: true });
     if (!seccion) {
+      // Eliminar archivo si no hay sección
+      try {
+        await fsp.unlink(req.file.path);
+      } catch (e) {
+        console.warn('No se pudo eliminar archivo:', e);
+      }
       res.status(404).json({ message: "No se encontró la sección acerca de" });
       return;
     }
 
-    const imagenPath = `/uploads/${req.file.filename}`;
-    
+    /* ====================== Calcular URL y key ====================== */
+    const relKey = path
+      .relative(ACERCADE_DIR, req.file.path)
+      .split(path.sep)
+      .join('/');
+
+    // Generar URL pública usando el endpoint de descarga
+    const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
+    const imagenUrl = `${publicBaseUrl}/api/acerca-de/files/${relKey}`;
+
     if (tipo === 'proyectos') {
-      if (seccion.imagenesProyectos.length >= 10) {
-        fs.unlinkSync(req.file.path);
-        res.status(400).json({ message: "Máximo 10 imágenes para proyectos" });
+      if (seccion.imagenesProyectos.length >= MAX_IMAGENES_PROYECTOS) {
+        await fsp.unlink(req.file.path);
+        res.status(400).json({ message: "Máximo 50 imágenes para proyectos" });
         return;
       }
-      seccion.imagenesProyectos.push(imagenPath);
+      // Guardar la URL en lugar del path local
+      seccion.imagenesProyectos.push(imagenUrl);
     } else {
-      if (seccion.imagenesEquipo.length >= 10) {
-        fs.unlinkSync(req.file.path);
-        res.status(400).json({ message: "Máximo 10 imágenes para equipo" });
+      if (seccion.imagenesEquipo.length >= MAX_IMAGENES_PROYECTOS) {
+        await fsp.unlink(req.file.path);
+        res.status(400).json({ message: "Máximo 50 imágenes para equipo" });
         return;
       }
-      seccion.imagenesEquipo.push(imagenPath);
+      seccion.imagenesEquipo.push(imagenUrl);
     }
 
     await seccion.save();
-    res.json({ message: "Imagen subida exitosamente", path: imagenPath });
+    res.json({ 
+      message: "Imagen subida exitosamente", 
+      path: imagenUrl,
+      key: relKey // Para referencia futura si necesitas eliminar
+    });
   } catch (error) {
-    console.error(error);
+    console.error('Error al subir imagen:', error);
+    // Intentar eliminar el archivo en caso de error
+    if (req.file) {
+      try {
+        await fsp.unlink(req.file.path);
+      } catch (e) {
+        console.warn('No se pudo eliminar archivo en error:', e);
+      }
+    }
     res.status(500).json({ message: "Error al subir imagen" });
   }
 };
 
 /**
- * Eliminar imagen
+ * Eliminar imagen - AHORA DEL DISCO DE LA VM
  */
 export const deleteImagen = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -269,10 +359,26 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Eliminar archivo físico
-    const fullPath = path.join(__dirname, '..', '..', 'public', imagenPath);
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
+    /* ====================== Extraer key de la URL y eliminar del disco ====================== */
+    try {
+      // Extraer la parte final de la URL que corresponde a la key
+      // La URL viene como: https://komuness.duckdns.org/api/acerca-de/files/2025/09/timestamp-nombre.jpg
+      const urlObj = new URL(imagenPath);
+      const key = urlObj.pathname.replace('/api/acerca-de/files/', '');
+      
+      const absPath = path.resolve(ACERCADE_DIR, key);
+      const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
+      const absNorm = path.normalize(absPath);
+
+      // Validar seguridad y eliminar
+      if (absNorm.startsWith(acercaDeNorm) && fs.existsSync(absNorm)) {
+        await fsp.unlink(absNorm);
+        console.log(`Imagen eliminada del disco: ${absNorm}`);
+      } else {
+        console.warn(`No se encontró la imagen en disco: ${absNorm}`);
+      }
+    } catch (e) {
+      console.warn('No se pudo eliminar el binario en disco:', e);
     }
 
     // Eliminar de la base de datos
@@ -285,7 +391,59 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
     await seccion.save();
     res.json({ message: "Imagen eliminada exitosamente" });
   } catch (error) {
-    console.error(error);
+    console.error('Error al eliminar imagen:', error);
     res.status(500).json({ message: "Error al eliminar imagen" });
+  }
+};
+
+/**
+ * @description: Descarga (o muestra) una imagen de Acerca De
+ * @route: GET /api/acerca-de/files/:key
+ */
+export const downloadImagen = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { key } = req.params;
+    
+    const abs = path.resolve(ACERCADE_DIR, key);
+    const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
+    const absNorm = path.normalize(abs);
+
+    // Validar seguridad
+    if (!absNorm.startsWith(acercaDeNorm)) {
+      res.status(403).json({ success: false, message: 'Ruta inválida' });
+      return;
+    }
+
+    if (!fs.existsSync(absNorm)) {
+      res.status(404).json({ success: false, message: 'Imagen no encontrada' });
+      return;
+    }
+
+    // Determinar content type basado en extensión
+    const ext = path.extname(absNorm).toLowerCase();
+    const mimeTypes: { [key: string]: string } = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml'
+    };
+
+    const contentType = mimeTypes[ext] || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    
+    // Cache para imágenes
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Content-Disposition', 'inline');
+
+    const stream = fs.createReadStream(absNorm);
+    stream.on('error', () => {
+      res.status(404).json({ success: false, message: 'No se pudo abrir la imagen' });
+    });
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error al descargar imagen:', error);
+    res.status(500).json({ success: false, message: (error as Error).message });
   }
 };
