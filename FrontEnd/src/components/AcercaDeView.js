@@ -39,7 +39,9 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
   };
 
   const toggleMember = (index) => {
-    setExpandedMember(expandedMember === index ? null : index);
+  // Si el miembro ya está expandido, lo cerramos
+  // Si es otro miembro, cerramos el actual y abrimos el nuevo
+  setExpandedMember(expandedMember === index ? null : index);
   };
 
   if (!data) return null;
@@ -161,7 +163,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
             {/* Imagen en modal */}
             <div className="relative w-full h-full flex items-center justify-center">
               <img
-                src={`http://localhost:5000${data.imagenesProyectos[modalImageIndex]}`}
+               src={`${data.imagenesProyectos[modalImageIndex]}`}
                 alt={`Proyecto ${modalImageIndex + 1}`}
                 className="max-w-full max-h-full object-contain"
                 onError={(e) => {
@@ -546,25 +548,39 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
                 <div 
                   key={index} 
                   className="team-member"
-                  onClick={() => toggleMember(index)}
                 >
-                  <div className="team-member-header">
+                  {/* Header - Siempre clickeable */}
+                  <div 
+                    className="team-member-header cursor-pointer"
+                    onClick={() => toggleMember(index)}
+                  >
                     {miembro.imagen ? (
                       <img
-                        src={`http://localhost:5000${miembro.imagen}`}
+                        src={miembro.imagen}
                         alt={miembro.nombre}
                         className="team-member-avatar"
                         onError={(e) => {
-                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMzIiIGZpbGw9IiNENEFGMzciLz4KPHN2ZyB4PSIyMCIgeT0iMTgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyOCIgdmlld0JveD0iMCAwIDI0IDI4IiBmaWxsPSJ3aGl0ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaTTEyIDE0QzguNjkxMzEgMTQgMiAxNS43OTEzIDIgMTlWMjZIMjJWMTlDMjIgMTUuNzkxMyAxNS4zMDg3IDE0IDEyIDE0WiIvPgo8L3N2Zz4KPC9zdmc+';
+                          console.error('Error cargando imagen de perfil:', miembro.imagen);
+                          e.target.style.display = 'none';
+                          const fallbackElement = e.target.parentNode.querySelector('.avatar-fallback');
+                          if (fallbackElement) {
+                            fallbackElement.style.display = 'flex';
+                          }
                         }}
                       />
-                    ) : (
-                      <div className="team-member-avatar bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">
-                          {miembro.nombre.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                    )}
+                    ) : null}
+                    
+                    {/* Avatar de respaldo */}
+                    <div 
+                      className={`team-member-avatar bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center ${
+                        miembro.imagen ? 'hidden' : ''
+                      } avatar-fallback`}
+                    >
+                      <span className="text-white font-bold text-sm">
+                        {miembro.nombre ? miembro.nombre.split(' ').map(n => n[0]).join('') : '?'}
+                      </span>
+                    </div>
+                    
                     <div className="team-member-info">
                       <h3 className="team-member-name">
                         {miembro.nombre}
@@ -580,9 +596,9 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
                     />
                   </div>
 
-                  {/* Descripción básica - SIEMPRE VISIBLE */}
+                  {/* Descripción básica - SIEMPRE VISIBLE Y COMPLETA */}
                   <div className="team-member-content">
-                    <p className="team-member-description">
+                    <p className="team-member-description-full">
                       {miembro.descripcion}
                     </p>
                   </div>
@@ -592,7 +608,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
                     <div className="team-member-expanded">
                       {/* Formación */}
                       {miembro.formacion && miembro.formacion.length > 0 && (
-                        <div>
+                        <div className="mb-4">
                           <div className="flex items-center space-x-2 mb-2">
                             <FaGraduationCap className="text-blue-400" />
                             <h4 className="font-semibold text-white text-sm">Formación</h4>
@@ -610,7 +626,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
 
                       {/* Experiencia */}
                       {miembro.experiencia && miembro.experiencia.length > 0 && (
-                        <div>
+                        <div className="mb-4">
                           <div className="flex items-center space-x-2 mb-2">
                             <FaBriefcase className="text-green-400" />
                             <h4 className="font-semibold text-white text-sm">Experiencia</h4>
@@ -628,7 +644,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
 
                       {/* Proyectos Destacados */}
                       {miembro.proyectosDestacados && miembro.proyectosDestacados.length > 0 && (
-                        <div>
+                        <div className="mb-4">
                           <div className="flex items-center space-x-2 mb-2">
                             <FaTrophy className="text-purple-400" />
                             <h4 className="font-semibold text-white text-sm">Proyectos Destacados</h4>
