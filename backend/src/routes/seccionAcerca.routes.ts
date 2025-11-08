@@ -31,13 +31,6 @@ router.post("/upload",
   uploadImagen
 );
 
-router.delete("/imagen", 
-  authMiddleware, 
-  verificarRoles([0, 1]), 
-  deleteImagen
-);
-
-
 // Subir imagen de perfil para miembro del equipo
 router.post("/upload-miembro", 
   authMiddleware, 

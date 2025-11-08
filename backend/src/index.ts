@@ -29,7 +29,8 @@ app.use(cors(
             'https://proyecto-komuness-front.vercel.app',
             'https://komuness-project.netlify.app',
             'http://64.23.137.192',
-            'http://159.54.148.238'
+            'http://159.54.148.238',
+            'https://komuness.duckdns.org' 
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
