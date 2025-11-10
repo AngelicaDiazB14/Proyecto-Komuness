@@ -9,30 +9,56 @@ import {
 } from "../utils/paypal";
 import { retryWithExponentialBackoff } from "../utils/paymentRetry";
 import { PaymentErrorHandler } from "../utils/paymentErrorHandler";
-import type { PaymentError, RetryHistoryEntry } from "../interfaces/payment.interface";
+import type {
+  PaymentError,
+  RetryHistoryEntry,
+} from "../interfaces/payment.interface";
 
 const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
-const PAY_COL = "payments";   // colección de auditoría/idempotencia
+const PAY_COL = "payments"; // colección de auditoría/idempotencia
 
 async function setUserRolePremium(args: { id?: string; email?: string }) {
   const { id, email } = args;
   const users = mongoose.connection.collection(USERS_COL);
   const update = { $set: { tipoUsuario: 3 } } as any; // PREMIUM = 3
+
   if (id) {
-    await users.updateOne({ _id: new mongoose.Types.ObjectId(id) }, update);
+    const result = await users.updateOne(
+      { _id: new mongoose.Types.ObjectId(id) },
+      update
+    );
+    console.log("[PayPal] setUserRolePremium por id:", {
+      id,
+      matched: result.matchedCount,
+      modified: result.modifiedCount,
+    });
     return;
   }
+
   if (email) {
-    await users.updateOne({ email }, update);
+    const result = await users.updateOne({ email }, update);
+    console.log("[PayPal] setUserRolePremium por email:", {
+      email,
+      matched: result.matchedCount,
+      modified: result.modifiedCount,
+    });
     return;
   }
+
+  console.warn(
+    "[PayPal] setUserRolePremium llamado sin id ni email. No se actualizó ningún usuario."
+  );
 }
 
 async function savePayment(doc: any) {
   const col = mongoose.connection.collection(PAY_COL);
   // índices para idempotencia (si ya existen, ignora el error)
-  try { await col.createIndex({ captureId: 1 }, { unique: true, sparse: true }); } catch {}
-  try { await col.createIndex({ eventId: 1 },   { unique: true, sparse: true }); } catch {}
+  try {
+    await col.createIndex({ captureId: 1 }, { unique: true, sparse: true });
+  } catch {}
+  try {
+    await col.createIndex({ eventId: 1 }, { unique: true, sparse: true });
+  } catch {}
   try {
     await col.insertOne(doc);
     return { idempotent: false };
@@ -43,15 +69,31 @@ async function savePayment(doc: any) {
 }
 
 /** POST /api/paypal/capture  body: { orderId }  (opcional) */
-export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void> => {
+export const captureAndUpgrade: RequestHandler = async (
+  req,
+  res
+): Promise<void> => {
   const retryHistory: RetryHistoryEntry[] = [];
-  
+
   try {
     const { orderId } = req.body as { orderId?: string };
     if (!orderId) {
       res.status(400).json({ error: "orderId requerido" });
       return;
     }
+
+    // 🔐 Usuario autenticado en tu sistema (NO el de PayPal)
+    const authReq = req as any;
+    const loggedUserId: string | undefined =
+      authReq.user?._id?.toString?.() ||
+      authReq.user?._id ||
+      authReq.userId ||
+      authReq.user?.id;
+
+    console.log(
+      "[PayPal] Usuario autenticado asociado a este pago:",
+      loggedUserId
+    );
 
     console.log(`[PayPal] Iniciando captura de orden: ${orderId}`);
 
@@ -60,12 +102,14 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       () => captureOrder(orderId),
       {
         maxRetries: 3,
-        baseDelay: 1000,    // 1 segundo
-        timeout: 30000,     // 30 segundos
+        baseDelay: 1000, // 1 segundo
+        timeout: 30000, // 30 segundos
         onRetry: (error: PaymentError, attemptNumber: number) => {
           // Loggear cada reintento
-          console.log(`[PayPal] Reintento ${attemptNumber}: ${error.code} - ${error.message}`);
-          
+          console.log(
+            `[PayPal] Reintento ${attemptNumber}: ${error.code} - ${error.message}`
+          );
+
           // Agregar entrada al historial de reintentos
           retryHistory.push({
             timestamp: new Date(),
@@ -84,21 +128,27 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       const userMessage = PaymentErrorHandler.getUserMessage(error);
       const httpStatus = PaymentErrorHandler.getHttpStatusCode(error);
 
-      console.error(`[PayPal] Captura fallida después de ${result.attempts} intentos:`, error.code);
+      console.error(
+        `[PayPal] Captura fallida después de ${result.attempts} intentos:`,
+        error.code
+      );
 
       // Guardar intento fallido en la base de datos para auditoría
       try {
         await savePayment({
           orderId,
-          status: 'FAILED',
+          status: "FAILED",
           raw: { error: error.message, code: error.code },
           source: "capture",
           attemptNumber: result.attempts,
           lastError: error.message,
           retryHistory,
+          userId: loggedUserId
+            ? new mongoose.Types.ObjectId(loggedUserId)
+            : undefined,
         });
       } catch (saveError) {
-        console.error('[PayPal] Error al guardar intento fallido:', saveError);
+        console.error("[PayPal] Error al guardar intento fallido:", saveError);
       }
 
       // Responder al cliente con información estructurada
@@ -112,12 +162,18 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
     }
 
     // Operación exitosa - continuar con el flujo normal
-    console.log(`[PayPal] ✓ Captura exitosa en ${result.attempts} intento(s)`);
-    
+    console.log(
+      `[PayPal] ✓ Captura exitosa en ${result.attempts} intento(s)`
+    );
+
     const data = result.data;
     const resource = data;
     const info = extractPaymentInfo(resource);
-    const userId: string | undefined = extractUserId(resource) ?? undefined;
+
+    // (Opcional) todavía podemos extraer el userId desde PayPal,
+    // pero no lo usamos para upgrade, solo para referencia:
+    const paypalUserId: string | undefined =
+      extractUserId(resource) ?? undefined;
 
     const saved = await savePayment({
       orderId,
@@ -127,32 +183,51 @@ export const captureAndUpgrade: RequestHandler = async (req, res): Promise<void>
       currency: info.currency,
       payerId: info.payerId,
       email: info.email,
-      userId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+      // 👇 AQUÍ usamos SIEMPRE el usuario autenticado en tu app
+      userId: loggedUserId
+        ? new mongoose.Types.ObjectId(loggedUserId)
+        : undefined,
       raw: data,
       source: "capture",
       attemptNumber: result.attempts,
       retryHistory: retryHistory.length > 0 ? retryHistory : undefined,
+      paypalUserId, // por si quieres auditar
     });
 
     // Solo actualizar usuario a Premium si el pago fue completado y no es duplicado
-    if ((info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
-      await setUserRolePremium({ id: userId, email: info.email ?? undefined });
-      console.log(`[PayPal] Usuario actualizado a Premium: ${userId || info.email}`);
+    if (
+      (info.status === "COMPLETED" || info.status === "APPROVED") &&
+      !saved.idempotent
+    ) {
+      if (!loggedUserId) {
+        console.warn(
+          "[PayPal] Pago completado pero no se encontró usuario autenticado para subir a Premium."
+        );
+      } else {
+        await setUserRolePremium({ id: loggedUserId });
+        console.log(
+          `[PayPal] Usuario actualizado a Premium (por capture): ${loggedUserId}`
+        );
+      }
     }
 
-    res.json({ 
-      ok: true, 
-      status: info.status, 
+    res.json({
+      ok: true,
+      status: info.status,
       idempotent: saved.idempotent,
       attempts: result.attempts,
     });
     return;
   } catch (e: any) {
     // Error inesperado no manejado por el sistema de reintentos
-    console.error('[PayPal] Error inesperado en captureAndUpgrade:', e);
-    res.status(500).json({ 
-      error: "capture_failed", 
-      message: "Ocurrió un error inesperado al procesar el pago. Por favor, intenta nuevamente.",
+    console.error(
+      "[PayPal] Error inesperado en captureAndUpgrade:",
+      e?.message || e
+    );
+    res.status(500).json({
+      error: "capture_failed",
+      message:
+        "Ocurrió un error inesperado al procesar el pago. Por favor, intenta nuevamente.",
       attempts: 1,
     });
     return;
@@ -176,7 +251,8 @@ export const webhook: RequestHandler = async (req, res): Promise<void> => {
 
     const saved = await savePayment({
       eventId,
-      orderId: resource?.id || resource?.supplementary_data?.related_ids?.order_id,
+      orderId:
+        resource?.id || resource?.supplementary_data?.related_ids?.order_id,
       captureId: info.captureId,
       status: info.status,
       value: info.value,
@@ -189,14 +265,22 @@ export const webhook: RequestHandler = async (req, res): Promise<void> => {
       event_type: event?.event_type,
     });
 
-    const okTypes = new Set(["PAYMENT.CAPTURE.COMPLETED", "CHECKOUT.ORDER.APPROVED"]);
-    if (okTypes.has(event?.event_type) && (info.status === "COMPLETED" || info.status === "APPROVED") && !saved.idempotent) {
+    const okTypes = new Set([
+      "PAYMENT.CAPTURE.COMPLETED",
+      "CHECKOUT.ORDER.APPROVED",
+    ]);
+    if (
+      okTypes.has(event?.event_type) &&
+      (info.status === "COMPLETED" || info.status === "APPROVED") &&
+      !saved.idempotent
+    ) {
       await setUserRolePremium({ id: userId, email: info.email ?? undefined });
     }
 
     res.json({ ok: true, idempotent: saved.idempotent });
     return;
   } catch (e: any) {
+    console.error("[PayPal] Error en webhook:", e?.message || e);
     res.status(500).json({ error: "webhook_failed", message: e?.message });
     return;
   }
