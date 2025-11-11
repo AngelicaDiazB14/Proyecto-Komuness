@@ -107,7 +107,6 @@ const CheckoutPremium = () => {
       const attempts = result.attempts || 1;
 
       if (attempts > 1) {
-        // Si hubo reintentos, mostrar mensaje especial
         toast.success(`¡Pago completado después de ${attempts} intentos! 🎉`, {
           duration: 5000,
           icon: '✨',
@@ -116,10 +115,9 @@ const CheckoutPremium = () => {
             color: '#065F46',
             border: '2px solid #34D399',
             fontWeight: '600',
-          }
+          },
         });
       } else {
-        // Pago exitoso en el primer intento
         toast.success('¡Felicidades! Ahora eres usuario Premium 🎉', {
           duration: 5000,
           icon: '🎉',
@@ -128,14 +126,18 @@ const CheckoutPremium = () => {
             color: '#065F46',
             border: '2px solid #34D399',
             fontWeight: '600',
-          }
+          },
         });
       }
 
-      // Esperar un poco para que el usuario vea el mensaje
+      // 👉 Aquí marcamos que ya terminó el procesamiento
+      setProcesando(false);
+
+      // Esperar un poco para que el usuario vea el mensaje y luego ir al perfil
       setTimeout(() => {
         navigate('/perfilUsuario');
-        window.location.reload();
+        // Si quieres puedes quitar este reload si el perfil ya lee bien el tipoUsuario
+        // window.location.reload();
       }, 2000);
 
     } catch (error) {
