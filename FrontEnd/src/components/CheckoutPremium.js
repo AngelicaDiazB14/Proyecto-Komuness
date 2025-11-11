@@ -39,19 +39,15 @@ const CheckoutPremium = () => {
 
   const createOrder = async (data, actions) => {
     const plan = planes[planSeleccionado];
-    const userId = localStorage.getItem('userId');
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user._id : null;
 
     return actions.order.create({
-      purchase_units: [
-        {
+      purchase_units: [{
           description: `Komuness Premium - ${plan.nombre}`,
-          amount: {
-            currency_code: 'USD',
-            value: plan.precio.toFixed(2),
-          },
-          custom_id: userId,
-        },
-      ],
+          amount: { value: plan.precio.toFixed(2), currency_code: 'USD' },
+          custom_id: userId // asocia la orden PayPal con el ID de usuario de MongoDB
+      }],
       application_context: {
         shipping_preference: 'NO_SHIPPING',
       },

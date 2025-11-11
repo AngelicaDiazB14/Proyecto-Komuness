@@ -28,16 +28,14 @@ export const InitForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-
-
         const userData = { ...data.user };
         delete userData.password;
-
+        // Guardar usuario **y token** en localStorage
         localStorage.setItem('user', JSON.stringify(userData));
-        //guardamos el token en el local storage
         localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', userData._id);
+        // Iniciar sesión en el contexto con usuario y token
         login(userData, data.token);
-
         navigate('/');
       } else {
         console.error('Error en login:', data.message || 'Error desconocido');
