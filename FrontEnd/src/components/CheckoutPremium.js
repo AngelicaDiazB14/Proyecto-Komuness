@@ -62,7 +62,7 @@ const CheckoutPremium = () => {
       setProcesando(true);
 
       // Capturar la orden en PayPal
-      await actions.order.capture();
+      //await actions.order.capture();
 
       // Llamar al backend para registrar el pago
       const response = await fetch(`${API_URL}/paypal/capture`, {
