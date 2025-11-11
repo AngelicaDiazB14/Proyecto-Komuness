@@ -15,7 +15,7 @@ import type {
 } from "../interfaces/payment.interface";
 
 const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
-const PAY_COL = "payments"; // colección de auditoría/idempotencia
+const PAY_COL = "payments";   // colección de auditoría/idempotencia
 
 async function setUserRolePremium(args: { id?: string; email?: string }) {
   const { id, email } = args;
@@ -90,10 +90,7 @@ export const captureAndUpgrade: RequestHandler = async (
       authReq.userId ||
       authReq.user?.id;
 
-    console.log(
-      "[PayPal] Usuario autenticado asociado a este pago:",
-      loggedUserId
-    );
+    console.log("[PayPal] Usuario autenticado asociado a este pago:", loggedUserId);
 
     console.log(`[PayPal] Iniciando captura de orden: ${orderId}`);
 
@@ -103,7 +100,7 @@ export const captureAndUpgrade: RequestHandler = async (
       {
         maxRetries: 3,
         baseDelay: 1000, // 1 segundo
-        timeout: 30000, // 30 segundos
+        timeout: 30000,  // 30 segundos
         onRetry: (error: PaymentError, attemptNumber: number) => {
           // Loggear cada reintento
           console.log(
