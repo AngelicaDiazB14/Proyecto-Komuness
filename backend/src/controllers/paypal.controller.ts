@@ -17,37 +17,69 @@ import type {
 const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
 const PAY_COL = "payments";   // colección de auditoría/idempotencia
 
-async function setUserRolePremium(args: { id?: string; email?: string }) {
-  const { id, email } = args;
+// AGREGADO PARA EL VENCIMIENTO
+type PlanType = "mensual" | "anual";
+
+// AGREGADO PARA EL VENCIMIENTO
+const PLAN_DAYS: Record<PlanType, number> = {
+  mensual: 30,
+  anual: 365,
+};
+
+// AGREGADO PARA EL VENCIMIENTO
+async function setUserRolePremium(args: { id?: string; email?: string; plan?: PlanType }) {
+  const { id, email, plan } = args;
   const users = mongoose.connection.collection(USERS_COL);
-  const update = { $set: { tipoUsuario: 3 } } as any; // PREMIUM = 3
 
+  const filter: any = {};
   if (id) {
-    const result = await users.updateOne(
-      { _id: new mongoose.Types.ObjectId(id) },
-      update
+    filter._id = new mongoose.Types.ObjectId(id);
+  } else if (email) {
+    filter.email = email;
+  } else {
+    console.warn(
+      "[PayPal] setUserRolePremium llamado sin id ni email. No se actualizó ningún usuario."
     );
-    console.log("[PayPal] setUserRolePremium por id:", {
-      id,
-      matched: result.matchedCount,
-      modified: result.modifiedCount,
-    });
     return;
   }
 
-  if (email) {
-    const result = await users.updateOne({ email }, update);
-    console.log("[PayPal] setUserRolePremium por email:", {
-      email,
-      matched: result.matchedCount,
-      modified: result.modifiedCount,
-    });
+  const userDoc = await users.findOne(filter);
+  if (!userDoc) {
+    console.warn(
+      "[PayPal] Usuario no encontrado para setUserRolePremium:",
+      filter
+    );
     return;
   }
 
-  console.warn(
-    "[PayPal] setUserRolePremium llamado sin id ni email. No se actualizó ningún usuario."
-  );
+  const now = new Date();
+  const daysToAdd =
+    plan && PLAN_DAYS[plan] ? PLAN_DAYS[plan] : PLAN_DAYS.mensual;
+
+  let baseDate = now;
+  const existing = (userDoc as any).fechaVencimientoPremium as Date | undefined;
+  if (existing instanceof Date && existing > now) {
+    baseDate = existing;
+  }
+
+  const nuevaFecha = new Date(baseDate.getTime());
+  nuevaFecha.setDate(nuevaFecha.getDate() + daysToAdd);
+
+  const update: any = {
+    $set: {
+      tipoUsuario: 3,
+      fechaVencimientoPremium: nuevaFecha,
+    },
+  };
+
+  const result = await users.updateOne(filter, update);
+  console.log("[PayPal] setUserRolePremium:", {
+    filter,
+    matched: result.matchedCount,
+    modified: result.modifiedCount,
+    nuevaFecha,
+    plan: plan || "mensual",
+  });
 }
 
 async function savePayment(doc: any) {
@@ -68,7 +100,7 @@ async function savePayment(doc: any) {
   }
 }
 
-/** POST /api/paypal/capture  body: { orderId }  (opcional) */
+/** POST /api/paypal/capture  body: { orderId, plan? }  */
 export const captureAndUpgrade: RequestHandler = async (
   req,
   res
@@ -76,7 +108,12 @@ export const captureAndUpgrade: RequestHandler = async (
   const retryHistory: RetryHistoryEntry[] = [];
 
   try {
-    const { orderId } = req.body as { orderId?: string };
+    // AGREGADO PARA EL VENCIMIENTO
+    const { orderId, plan: bodyPlan } = req.body as {
+      orderId?: string;
+      plan?: PlanType;
+    };
+
     if (!orderId) {
       res.status(400).json({ error: "orderId requerido" });
       return;
@@ -167,6 +204,25 @@ export const captureAndUpgrade: RequestHandler = async (
     const resource = data;
     const info = extractPaymentInfo(resource);
 
+    // AGREGADO PARA EL VENCIMIENTO
+    // Determinar plan (mensual/anual) a partir del body o del monto
+    let effectivePlan: PlanType = "mensual";
+    if (bodyPlan === "mensual" || bodyPlan === "anual") {
+      effectivePlan = bodyPlan;
+    } else {
+      const rawValue = (info as any).value;
+      const amount =
+        typeof rawValue === "string"
+          ? parseFloat(rawValue)
+          : typeof rawValue === "number"
+          ? rawValue
+          : Number(rawValue);
+      // Con tus precios actuales: 4 → mensual, 8 → anual
+      if (!Number.isNaN(amount) && amount >= 8) {
+        effectivePlan = "anual";
+      }
+    }
+
     // (Opcional) todavía podemos extraer el userId desde PayPal,
     // pero no lo usamos para upgrade, solo para referencia:
     const paypalUserId: string | undefined =
@@ -201,9 +257,10 @@ export const captureAndUpgrade: RequestHandler = async (
           "[PayPal] Pago completado pero no se encontró usuario autenticado para subir a Premium."
         );
       } else {
-        await setUserRolePremium({ id: loggedUserId });
+        // AGREGADO PARA EL VENCIMIENTO
+        await setUserRolePremium({ id: loggedUserId, plan: effectivePlan });
         console.log(
-          `[PayPal] Usuario actualizado a Premium (por capture): ${loggedUserId}`
+          `[PayPal] Usuario actualizado a Premium (por capture): ${loggedUserId} con plan ${effectivePlan}`
         );
       }
     }
@@ -213,6 +270,8 @@ export const captureAndUpgrade: RequestHandler = async (
       status: info.status,
       idempotent: saved.idempotent,
       attempts: result.attempts,
+      // AGREGADO PARA EL VENCIMIENTO
+      plan: effectivePlan,
     });
     return;
   } catch (e: any) {
@@ -262,18 +321,9 @@ export const webhook: RequestHandler = async (req, res): Promise<void> => {
       event_type: event?.event_type,
     });
 
-    const okTypes = new Set([
-      "PAYMENT.CAPTURE.COMPLETED",
-      "CHECKOUT.ORDER.APPROVED",
-    ]);
-    if (
-      okTypes.has(event?.event_type) &&
-      (info.status === "COMPLETED" || info.status === "APPROVED") &&
-      !saved.idempotent
-    ) {
-      await setUserRolePremium({ id: userId, email: info.email ?? undefined });
-    }
-
+    // AGREGADO PARA EL VENCIMIENTO
+    // El upgrade a Premium ahora se hace únicamente en /api/paypal/capture
+    // para evitar sumar días de más cuando también llega el webhook del mismo pago.
     res.json({ ok: true, idempotent: saved.idempotent });
     return;
   } catch (e: any) {

@@ -403,4 +403,3 @@ export const activarPremiumActual = async (req: Request, res: Response): Promise
         });
     }
 };
-
