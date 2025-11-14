@@ -1,3 +1,4 @@
+// src/app.ts
 import express, { Request, Response, Express } from 'express';
 import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
@@ -6,20 +7,22 @@ import { connectBD } from './utils/mongodb';
 import usuarioRoutes from './routes/usuario.routes';
 import publicacionRoutes from './routes/publicaciones.routes';
 import bibliotecaRoutes from './routes/biblioteca.routes';
-import categoriaRoutes from "./routes/categoria.routes";//importación de rutas para categoría
-import configuracionRoutes from "./routes/configuracion.routes";//importación de rutas para configuración
+import categoriaRoutes from "./routes/categoria.routes"; //importación de rutas para categoría
+import configuracionRoutes from "./routes/configuracion.routes"; //importación de rutas para configuración
 import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
 import seccionAcercaRoutes from './routes/seccionAcerca.routes';
 import path from 'path';
 
+// 👇👇 NUEVO: importar las rutas de PayPal
+import paypalRoutes from './routes/paypal.routes';
 
 const app: Express = express();
 dotenv.config();
 
 app.disable('x-powered-by');
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(express.json());
 app.use(cors(
     {
@@ -36,7 +39,7 @@ app.use(cors(
     }
 ));
 
-//routes
+// Rutas API
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/publicaciones', publicacionRoutes);
 app.use('/api/biblioteca', bibliotecaRoutes);
@@ -46,11 +49,14 @@ app.use('/api', filesRouter);
 app.use('/api/acerca-de', seccionAcercaRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
+// 👇👇 NUEVO: montar PayPal bajo /api/paypal
+app.use('/api/paypal', paypalRoutes);
+
 app.get('/api/', (req: Request, res: Response) => {
     res.send('Hello World');
 });
 
-// Middleware para detectar errores de payload (p.ej. 413 Payload Too Large) y errores de subida
+// Middleware global de errores
 const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     // Multer file too large
     if (err && (err.code === 'LIMIT_FILE_SIZE' || err.code === 'LIMIT_PART_COUNT' || err.code === 'LIMIT_FILE_COUNT')) {
@@ -62,7 +68,7 @@ const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
         return;
     }
 
-    // 413 generic
+    // 413 genérico
     if (err && err.status === 413) {
         res.status(413).json({
             success: false,
@@ -81,7 +87,7 @@ const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
         return;
     }
 
-    // si no es un error controlado, no lo transformamos aquí (dejamos que otros middlewares lo manejen)
+    // si no es un error controlado
     if (err) {
         console.error('Unhandled error middleware:', err);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });

@@ -358,3 +358,48 @@ export const actualizarVencimientoPremium = async (req: Request, res: Response):
     }
 };
 
+// Activar premium para el usuario actualmente autenticado
+export const activarPremiumActual = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const authReq = req as any;
+        const loggedUserId =
+            authReq.user?._id?.toString?.() ||
+            authReq.user?._id ||
+            authReq.userId ||
+            authReq.user?.id;
+
+        if (!loggedUserId) {
+            res.status(401).json({
+                success: false,
+                message: 'Usuario no autenticado',
+            });
+            return;
+        }
+
+        const usuario = await modelUsuario.findByIdAndUpdate(
+            loggedUserId,
+            { tipoUsuario: 3 }, 
+            { new: true }
+        ).select('-password');
+
+        if (!usuario) {
+            res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado',
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Usuario actualizado a Premium',
+            data: usuario,
+        });
+    } catch (error) {
+        const err = error as Error;
+        res.status(500).json({
+            success: false,
+            message: err.message,
+        });
+    }
+};

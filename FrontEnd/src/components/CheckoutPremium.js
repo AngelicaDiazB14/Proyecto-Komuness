@@ -2,7 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { toast } from 'react-hot-toast';
-import { FiStar, FiCheck, FiArrowLeft, FiZap, FiAlertCircle, FiRefreshCw, FiCheckCircle, FiXCircle, FiWifi, FiCreditCard, FiShield } from 'react-icons/fi';
+import {
+  FiStar,
+  FiCheck,
+  FiArrowLeft,
+  FiZap,
+  FiAlertCircle,
+  FiRefreshCw,
+  FiCheckCircle,
+  FiXCircle,
+  FiWifi,
+  FiCreditCard,
+  FiShield
+} from 'react-icons/fi';
 import { API_URL } from '../utils/api';
 import '../CSS/CheckoutPremium.css';
 
@@ -17,7 +29,7 @@ const CheckoutPremium = () => {
     mensual: {
       id: 'mensual',
       nombre: 'Plan Mensual',
-      precio: 4.00,
+      precio: 4.0,
       periodo: 'mes',
       descripcion: 'Facturación mensual',
       badge: null,
@@ -25,11 +37,11 @@ const CheckoutPremium = () => {
     anual: {
       id: 'anual',
       nombre: 'Plan Anual',
-      precio: 8.00,
+      precio: 8.0,
       periodo: 'año',
       descripcion: 'Facturación anual',
       badge: '33% OFF',
-      precioComparacion: 12.00,
+      precioComparacion: 12.0,
     },
   };
 
@@ -39,17 +51,15 @@ const CheckoutPremium = () => {
 
   const createOrder = async (data, actions) => {
     const plan = planes[planSeleccionado];
-    const userId = localStorage.getItem('userId');
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user._id : null;
 
     return actions.order.create({
       purchase_units: [
         {
           description: `Komuness Premium - ${plan.nombre}`,
-          amount: {
-            currency_code: 'USD',
-            value: plan.precio.toFixed(2),
-          },
-          custom_id: userId,
+          amount: { value: plan.precio.toFixed(2), currency_code: 'USD' },
+          custom_id: userId, // asocia la orden PayPal con el ID de usuario de MongoDB
         },
       ],
       application_context: {
@@ -65,15 +75,15 @@ const CheckoutPremium = () => {
       setReintentos(0);
       setProcesando(true);
 
-      // Capturar la orden en PayPal
-      await actions.order.capture();
+      // Capturar la orden en PayPal (lo hace el backend, aquí solo registramos)
+      // await actions.order.capture();
 
       // Llamar al backend para registrar el pago
       const response = await fetch(`${API_URL}/paypal/capture`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           orderId: data.orderID,
@@ -90,9 +100,9 @@ const CheckoutPremium = () => {
         // Actualizar estados
         setErrorMessage(userMessage);
         setReintentos(attempts);
-        
+
         // Mostrar toast con el mensaje específico y animación
-        toast.error(userMessage, { 
+        toast.error(userMessage, {
           duration: 6000,
           icon: '⚠️',
           style: {
@@ -100,9 +110,9 @@ const CheckoutPremium = () => {
             color: '#991B1B',
             border: '2px solid #F87171',
             fontWeight: '600',
-          }
+          },
         });
-        
+
         setProcesando(false);
         return;
       }
@@ -111,7 +121,6 @@ const CheckoutPremium = () => {
       const attempts = result.attempts || 1;
 
       if (attempts > 1) {
-        // Si hubo reintentos, mostrar mensaje especial
         toast.success(`¡Pago completado después de ${attempts} intentos! 🎉`, {
           duration: 5000,
           icon: '✨',
@@ -120,10 +129,9 @@ const CheckoutPremium = () => {
             color: '#065F46',
             border: '2px solid #34D399',
             fontWeight: '600',
-          }
+          },
         });
       } else {
-        // Pago exitoso en el primer intento
         toast.success('¡Felicidades! Ahora eres usuario Premium 🎉', {
           duration: 5000,
           icon: '🎉',
@@ -132,16 +140,44 @@ const CheckoutPremium = () => {
             color: '#065F46',
             border: '2px solid #34D399',
             fontWeight: '600',
-          }
+          },
         });
       }
 
-      // Esperar un poco para que el usuario vea el mensaje
+      // 👉 Actualizar el usuario actual a Premium en el backend (dinámico según token)
+      try {
+        const resPremium = await fetch(`${API_URL}/usuario/me/premium`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        const premiumData = await resPremium.json();
+
+        if (!resPremium.ok) {
+          console.error('Error al marcar premium en backend:', premiumData);
+        } else {
+          // Opcional: actualizar el usuario en localStorage para que la UI refleje el cambio
+          const user = JSON.parse(localStorage.getItem('user'));
+          if (user) {
+            user.tipoUsuario = 3;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+      } catch (e) {
+        console.error('Error al llamar /usuario/me/premium:', e);
+      }
+
+      // 👉 Aquí marcamos que ya terminó el procesamiento
+      setProcesando(false);
+
+      // Esperar un poco para que el usuario vea el mensaje y luego ir al perfil
       setTimeout(() => {
         navigate('/perfilUsuario');
-        window.location.reload();
+        // window.location.reload(); // solo si quieres forzar recarga
       }, 2000);
-
     } catch (error) {
       console.error('Error al procesar el pago:', error);
       setErrorMessage('Ocurrió un error inesperado. Por favor, intenta nuevamente.');
@@ -285,12 +321,15 @@ const CheckoutPremium = () => {
 
         {/* Botones de PayPal */}
         {planSeleccionado && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">`
+          <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
               Completa tu pago
             </h3>
             <p className="text-center text-gray-600 mb-6">
-              Seleccionaste el <span className="font-semibold">{planes[planSeleccionado].nombre}</span>
+              Seleccionaste el{' '}
+              <span className="font-semibold">
+                {planes[planSeleccionado].nombre}
+              </span>
             </p>
 
             {procesando && (
@@ -309,7 +348,9 @@ const CheckoutPremium = () => {
                     <FiShield className="text-blue-600" />
                     Procesando pago seguro...
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Por favor no cierres esta ventana</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Por favor no cierres esta ventana
+                  </p>
                 </div>
 
                 {/* Barra de progreso de reintentos */}
@@ -324,10 +365,10 @@ const CheckoutPremium = () => {
                         Intento {reintentos}/3
                       </span>
                     </div>
-                    
+
                     {/* Barra de progreso animada */}
                     <div className="w-full bg-yellow-200 rounded-full h-3 overflow-hidden shadow-inner">
-                      <div 
+                      <div
                         className="bg-gradient-to-r from-yellow-400 to-amber-500 h-3 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1"
                         style={{ width: `${(reintentos / 3) * 100}%` }}
                       >
@@ -338,12 +379,10 @@ const CheckoutPremium = () => {
                     {/* Puntos de progreso */}
                     <div className="flex justify-between mt-2">
                       {[1, 2, 3].map((num) => (
-                        <div 
+                        <div
                           key={num}
                           className={`flex items-center gap-1 text-xs font-medium transition-all duration-300 ${
-                            num <= reintentos 
-                              ? 'text-yellow-700 scale-110' 
-                              : 'text-gray-400'
+                            num <= reintentos ? 'text-yellow-700 scale-110' : 'text-gray-400'
                           }`}
                         >
                           {num <= reintentos ? (
@@ -413,7 +452,8 @@ const CheckoutPremium = () => {
                         </div>
                       </div>
                       <p className="text-sm text-red-600 mt-2">
-                        El sistema intentó procesar el pago {reintentos} {reintentos === 1 ? 'vez' : 'veces'}
+                        El sistema intentó procesar el pago {reintentos}{' '}
+                        {reintentos === 1 ? 'vez' : 'veces'}
                       </p>
                     </div>
                   )}
@@ -469,7 +509,9 @@ const CheckoutPremium = () => {
           <div className="text-center text-gray-600 bg-white rounded-2xl shadow-lg p-8">
             <FiStar className="mx-auto mb-3 text-yellow-500 animate-pulse" size={48} />
             <p className="text-lg font-semibold">Selecciona un plan para continuar</p>
-            <p className="text-sm text-gray-500 mt-2">Elige entre nuestros planes mensual o anual</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Elige entre nuestros planes mensual o anual
+            </p>
           </div>
         )}
       </div>

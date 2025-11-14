@@ -10,7 +10,8 @@ import {
     checkAuth, 
     enviarCorreoRecuperacion,
     actualizarLimiteUsuario,
-    actualizarVencimientoPremium
+    actualizarVencimientoPremium,
+    activarPremiumActual 
 } from '../controllers/usuario.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { verificarRoles } from '../middlewares/roles.middleware';
@@ -38,7 +39,13 @@ router.put('/:id/premium-vencimiento', authMiddleware, verificarRoles([0, 1]), a
 
 // este endpoint es de uso para cualquier usuario registrado
 router.put('/:id', authMiddleware, verificarRoles([0, 1, 2]), updateUsuario); //update
-// para cualquier usuario registrado o no registrados
 
+// para cualquier usuario registrado
+router.put(
+  '/me/premium',
+  authMiddleware,
+  verificarRoles([0, 1, 2]),  // superadmin, admin, usuario normal
+  activarPremiumActual
+);
 
 export default router;
