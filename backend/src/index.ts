@@ -12,6 +12,7 @@ import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
 import seccionAcercaRoutes from './routes/seccionAcerca.routes';
+import perfilRoutes from './routes/perfil.routes';
 import path from 'path';
 
 
@@ -44,7 +45,9 @@ app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
 app.use("/api/configuracion", configuracionRoutes); // nueva ruta para configuración de límites
 app.use('/api', filesRouter);
 app.use('/api/acerca-de', seccionAcercaRoutes);
+app.use('/api/perfil', perfilRoutes); // nueva ruta para perfiles de usuario
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
+app.use('/tmp', express.static(path.join(__dirname, '..', 'src', 'tmp'))); // Archivos temporales de perfil
 
 app.get('/api/', (req: Request, res: Response) => {
     res.send('Hello World');

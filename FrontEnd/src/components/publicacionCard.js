@@ -149,7 +149,11 @@ export const PublicacionCard = ({ publicacion }) => {
               />
             ) : (
               <div
-                className={`w-20 h-20 ${colorAutor} rounded-full flex items-center justify-center text-white text-4xl font-bold`}
+                className={`w-20 h-20 ${colorAutor} rounded-full flex items-center justify-center text-white text-4xl font-bold cursor-pointer hover:opacity-80 transition-opacity`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/perfil/${publicacion.autor?._id}`);
+                }}
               >
                 {getInicialAutor()}
               </div>
@@ -164,7 +168,16 @@ export const PublicacionCard = ({ publicacion }) => {
             <div className="card-details">
               <h3 className="titulo">{publicacion.titulo}</h3>
               <p className="fecha">
-                Creador por: {publicacion.autor?.nombre || "Desconocido"}
+                Creador por:{" "}
+                <span
+                  className="text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/perfil/${publicacion.autor?._id}`);
+                  }}
+                >
+                  {publicacion.autor?.nombre || "Desconocido"}
+                </span>
               </p>
               <p className="fecha">Fecha: {formatFecha(publicacion.fecha)}</p>
             </div>
@@ -176,7 +189,16 @@ export const PublicacionCard = ({ publicacion }) => {
                 <div className="card-details">
                     <h3 className="titulo">{publicacion.titulo}</h3>
                     <p className="fecha">
-                    Publicado por: {publicacion.autor?.nombre || "Desconocido"}
+                    Publicado por:{" "}
+                    <span
+                      className="text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/perfil/${publicacion.autor?._id}`);
+                      }}
+                    >
+                      {publicacion.autor?.nombre || "Desconocido"}
+                    </span>
                     </p>
                     <p className="fecha">
                     Fecha del evento:{" "}
@@ -190,7 +212,13 @@ export const PublicacionCard = ({ publicacion }) => {
                 <div className="tweet">
                 <div className="tweet-header mb-2">
                     <div className="tweet-user">
-                    <h4 className="user-name font-semibold text-gray-800">
+                    <h4
+                      className="user-name font-semibold text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/perfil/${publicacion.autor?._id}`);
+                      }}
+                    >
                         {publicacion.autor?.nombre || "Desconocido"}
                     </h4>
                     </div>
