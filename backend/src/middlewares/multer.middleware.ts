@@ -39,3 +39,69 @@ export const upload = multer({
     files: maxFilesPerUpload,
   },
 });
+
+// Storage específico para perfiles de usuario
+const perfilStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    let subfolder = 'fotos';
+    
+    // Determinar carpeta según tipo de archivo
+    if (file.mimetype === 'application/pdf') {
+      subfolder = 'cvs';
+    }
+    
+    const folder = process.env.NODE_ENV === 'production'
+      ? `/tmp/uploads/perfiles/${subfolder}`
+      : path.join(__dirname, `../tmp/uploads/perfiles/${subfolder}`);
+
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+    }
+
+    cb(null, folder);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+// Filtro para fotos de perfil (solo imágenes)
+const fotoPerfilFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Solo se permiten imágenes JPG, PNG o WEBP'));
+  }
+};
+
+// Filtro para CVs (solo PDFs)
+const cvFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  if (file.mimetype === 'application/pdf') {
+    cb(null, true);
+  } else {
+    cb(new Error('Solo se permiten archivos PDF'));
+  }
+};
+
+// Multer para fotos de perfil (max 5MB)
+export const uploadFotoPerfil = multer({
+  storage: perfilStorage,
+  fileFilter: fotoPerfilFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+    files: 1,
+  },
+});
+
+// Multer para CVs (max 10MB)
+export const uploadCV = multer({
+  storage: perfilStorage,
+  fileFilter: cvFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 1,
+  },
+});

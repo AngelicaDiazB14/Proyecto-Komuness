@@ -310,7 +310,12 @@ export const PublicacionDetalle = () => {
               <h2 className="text-white text-sm md:text-base mb-3">
                 <IoMdPerson className="inline mr-2" />
                 <strong>Autor:</strong>{" "}
-                {publicacion.autor?.nombre || "Autor desconocido"}
+                <span
+                  className="text-blue-400 hover:text-blue-300 cursor-pointer hover:underline transition-colors"
+                  onClick={() => navigate(`/perfil/${publicacion.autor?._id}`)}
+                >
+                  {publicacion.autor?.nombre || "Autor desconocido"}
+                </span>
               </h2>
 
               {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}

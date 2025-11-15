@@ -1,0 +1,282 @@
+/* Perfil Público - Diseño Moderno y Limpio */
+
+/* Loading States */
+.perfil-loading,
+.perfil-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.perfil-loading {
+  color: #6b7280;
+}
+
+.perfil-error {
+  color: #ef4444;
+}
+
+.perfil-error h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.spinner {
+  border: 4px solid rgba(59, 130, 246, 0.3);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dark Mode Support */
+.dark {
+  color-scheme: dark;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Grid a una sola columna en móviles */
+  .grid.md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Ajustar foto de perfil en móviles */
+  .w-40 {
+    width: 8rem !important;
+    height: 8rem !important;
+  }
+  
+  /* Ajustar títulos en móviles */
+  .text-4xl {
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.125rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1rem !important;
+  }
+  
+  /* Padding reducido en tarjetas */
+  .p-8 {
+    padding: 1.5rem !important;
+  }
+  
+  .p-6 {
+    padding: 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Foto más pequeña en móviles muy pequeños */
+  .w-40 {
+    width: 6rem !important;
+    height: 6rem !important;
+  }
+  
+  .text-6xl {
+    font-size: 2.5rem !important;
+  }
+  
+  .text-5xl {
+    font-size: 2rem !important;
+  }
+  
+  .text-4xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  
+  /* Padding reducido en móviles */
+  .p-8 {
+    padding: 1rem !important;
+  }
+  
+  .p-6 {
+    padding: 1rem !important;
+  }
+  
+  .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  .py-8 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  
+  /* Espaciado reducido en gap */
+  .gap-6 {
+    gap: 1rem !important;
+  }
+  
+  .gap-4 {
+    gap: 0.75rem !important;
+  }
+  
+  /* Botones más compactos */
+  .px-4 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  .py-2 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .transition-colors,
+  .transition-shadow {
+    transition: none;
+  }
+  
+  .spinner {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bg-gray-50 {
+    background-color: white;
+  }
+  
+  .dark .bg-gray-900 {
+    background-color: black;
+  }
+  
+  .border {
+    border-width: 2px;
+  }
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar para dark mode */
+.dark::-webkit-scrollbar {
+  width: 12px;
+}
+
+.dark::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.dark::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 6px;
+}
+
+.dark::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Animaciones suaves para cards */
+.shadow-lg {
+  transition: box-shadow 0.3s ease;
+}
+
+.shadow-lg:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Badges hover effect */
+.rounded-full {
+  transition: transform 0.2s ease;
+}
+
+.rounded-full:hover {
+  transform: scale(1.05);
+}
+
+/* Links hover effect */
+a {
+  transition: all 0.2s ease;
+}
+
+/* Grid responsive mejorado - Tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    max-width: 100%;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .grid.md\:grid-cols-2 {
+    gap: 1.5rem;
+  }
+  
+  /* Foto perfil tamaño medio en tablets */
+  .w-40 {
+    width: 9rem !important;
+    height: 9rem !important;
+  }
+}
+
+/* Landscape móviles */
+@media (max-height: 600px) and (orientation: landscape) {
+  .min-h-screen {
+    min-height: auto;
+  }
+  
+  .py-8 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  .w-40 {
+    width: 6rem !important;
+    height: 6rem !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .dark {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  button {
+    display: none;
+  }
+  
+  .shadow-lg {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+}
