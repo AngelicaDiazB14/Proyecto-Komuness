@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { API_URL } from '../utils/api';
+import { API_URL, BASE_URL } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import '../CSS/subidaArchivo.css';
 import { FaUpload, FaTrash, FaFileAlt, FaImage } from 'react-icons/fa';
@@ -117,9 +117,9 @@ const SubidaArchivo = ({ tipo, archivoActual, onSubida }) => {
         onSubida(urlArchivo);
       }
 
-      // Actualizar previsualización si es foto
+      // Actualizar previsualización si es foto (usar BASE_URL para archivos estáticos)
       if (esFoto && urlArchivo) {
-        setPrevisualizacion(`${API_URL}${urlArchivo}`);
+        setPrevisualizacion(`${BASE_URL}${urlArchivo}`);
       }
     } catch (error) {
       toast.error(error.message || 'Error al subir el archivo');
@@ -163,7 +163,7 @@ const SubidaArchivo = ({ tipo, archivoActual, onSubida }) => {
       {esFoto && (previsualizacion || archivoActual) && (
         <div className="foto-previsualizacion">
           <img 
-            src={previsualizacion || `${API_URL}${archivoActual}`} 
+            src={previsualizacion || `${BASE_URL}${archivoActual}`} 
             alt="Previsualización"
             className="foto-preview-img"
           />
@@ -220,7 +220,7 @@ const SubidaArchivo = ({ tipo, archivoActual, onSubida }) => {
           
           <div className="archivo-acciones">
             <a 
-              href={`${API_URL}${archivoActual}`} 
+              href={`${BASE_URL}${archivoActual}`} 
               download
               className="btn-descargar-mini"
             >
