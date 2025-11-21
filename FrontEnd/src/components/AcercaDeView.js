@@ -163,7 +163,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
             {/* Imagen en modal */}
             <div className="relative w-full h-full flex items-center justify-center">
               <img
-               src={`${data.imagenesProyectos[modalImageIndex]}`}
+                src={data.imagenesProyectos[modalImageIndex]}
                 alt={`Proyecto ${modalImageIndex + 1}`}
                 className="max-w-full max-h-full object-contain"
                 onError={(e) => {
@@ -270,7 +270,7 @@ const AcercaDeView = ({ data, onEdit, isAdmin }) => {
                 onClick={() => openImageModal(currentImageIndex)}
               >
                 <img
-                  src={`http://localhost:5000${data.imagenesProyectos[currentImageIndex]}`}
+                  src={data.imagenesProyectos[currentImageIndex]} 
                   alt={`Proyecto ${currentImageIndex + 1}`}
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                   onError={(e) => {

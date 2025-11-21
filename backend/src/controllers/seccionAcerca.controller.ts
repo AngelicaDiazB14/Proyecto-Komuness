@@ -329,18 +329,17 @@ export const uploadImagen = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    /* ====================== Calcular URL y key ====================== */
     const relKey = path
       .relative(ACERCADE_BASE_DIR, req.file.path)
       .split(path.sep)
       .join('/');
 
-    // GENERAR URL QUE COINCIDA CON NGINX (/acercade/)
+    // Generar URL que coincida con NGINX (/acercade/)
     const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
-    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`;
+    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`; 
 
-    console.log(' Key generada:', relKey);
-    console.log('URL generada (NUEVA):', imagenUrl);
+    console.log('Key generada:', relKey);
+    console.log('URL generada (CORREGIDA):', imagenUrl);
 
     if (tipo === 'proyectos') {
       if (seccion.imagenesProyectos.length >= MAX_IMAGENES_PROYECTOS) {
@@ -357,11 +356,11 @@ export const uploadImagen = async (req: Request, res: Response): Promise<void> =
         return;
       }
       seccion.imagenesEquipo.push(imagenUrl);
-      console.log('📸 Imagen agregada a equipo. Total:', seccion.imagenesEquipo.length);
+      console.log('Imagen agregada a equipo. Total:', seccion.imagenesEquipo.length);
     }
 
     await seccion.save();
-    console.log('IMAGEN SUBIDA EXITOSAMENTE con nueva URL');
+    console.log('IMAGEN SUBIDA EXITOSAMENTE con URL corregida');
     
     res.json({ 
       message: "Imagen subida exitosamente", 
@@ -377,7 +376,7 @@ export const uploadImagen = async (req: Request, res: Response): Promise<void> =
         await fsp.unlink(req.file.path);
         console.log('Archivo temporal eliminado por error');
       } catch (e) {
-        console.warn(' No se pudo eliminar archivo temporal:', e);
+        console.warn('No se pudo eliminar archivo temporal:', e);
       }
     }
     
@@ -450,14 +449,15 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
  */
 export const downloadImagen = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { key } = req.params;
-    console.log(' Solicitando imagen con key:', key);
+    // Usar parámetros comodín para capturar toda la ruta
+    const key = req.params[0] || req.params.key;
+    console.log('Solicitando imagen con key:', key);
     
-    const abs = path.resolve(ACERCADE_BASE_DIR, key);
+    const absPath = path.resolve(ACERCADE_BASE_DIR, key);
     const acercaDeNorm = path.normalize(ACERCADE_BASE_DIR + path.sep);
-    const absNorm = path.normalize(abs);
+    const absNorm = path.normalize(absPath);
 
-    console.log(' Ruta absoluta:', absNorm);
+    console.log('Ruta absoluta:', absNorm);
 
     // Validar seguridad
     if (!absNorm.startsWith(acercaDeNorm)) {
@@ -541,7 +541,6 @@ export const uploadImagenMiembro = async (req: Request, res: Response): Promise<
       return;
     }
 
-    /* ====================== Calcular URL y key ====================== */
     const relKey = path
       .relative(ACERCADE_BASE_DIR, req.file.path)
       .split(path.sep)
@@ -549,7 +548,7 @@ export const uploadImagenMiembro = async (req: Request, res: Response): Promise<
 
     // CORREGIDO: Generar URL que coincida con NGINX (/acercade/)
     const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
-    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`;
+    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`; 
 
     console.log('Key generada para miembro:', relKey);
     console.log('URL generada para miembro (CORREGIDA):', imagenUrl);

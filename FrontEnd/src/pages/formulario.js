@@ -300,6 +300,7 @@ return (
             )}
 
             {/* Teléfono */}
+        
             <div className="campo-grupo">
               <label className="campo-label">Teléfono de contacto (opcional):</label>
               <input
@@ -309,7 +310,18 @@ return (
                 onChange={handleChange}
                 className="campo-input"
                 placeholder="Ej: 88888888"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                onKeyPress={(e) => {
+                  // Solo permite números
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
+              {formData.telefono && !/^\d+$/.test(formData.telefono) && (
+                <p className="texto-error">El teléfono debe contener solo números</p>
+              )}
             </div>
 
             {/* Enlaces externos */}

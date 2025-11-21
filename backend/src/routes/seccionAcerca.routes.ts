@@ -18,7 +18,7 @@ const router = Router();
 router.get("/", getSeccionAcerca);
 
 // Descarga de imágenes → libre para todos
-router.get("/files/:key", downloadImagen);
+router.get("/files/*", downloadImagen); 
 
 // Crear/actualizar y subir imágenes → solo admin (tipoUsuario = 0 o 1)
 router.put("/", authMiddleware, verificarRoles([0, 1]), createOrUpdateSeccionAcerca);
