@@ -43,16 +43,26 @@ export const upload = multer({
 // Storage específico para perfiles de usuario
 const perfilStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let subfolder = 'fotos';
-    
+    const isProd = process.env.NODE_ENV === 'production';
+
+    let folder: string;
+
     // Determinar carpeta según tipo de archivo
     if (file.mimetype === 'application/pdf') {
-      subfolder = 'cvs';
+      // CVs
+      if (isProd) {
+        folder = process.env.CSV_LIB || '/srv/uploads/csv';
+      } else {
+        folder = path.join(__dirname, '../tmp/uploads/perfiles/cvs');
+      }
+    } else {
+      // Fotos de perfil
+      if (isProd) {
+        folder = process.env.PROFILE_LIB || '/srv/uploads/perfil';
+      } else {
+        folder = path.join(__dirname, '../tmp/uploads/perfiles/fotos');
+      }
     }
-    
-    const folder = process.env.NODE_ENV === 'production'
-      ? `/tmp/uploads/perfiles/${subfolder}`
-      : path.join(__dirname, `../tmp/uploads/perfiles/${subfolder}`);
 
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });

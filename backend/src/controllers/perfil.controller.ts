@@ -4,6 +4,56 @@ import { modelUsuario } from '../models/usuario.model';
 import fs from 'fs';
 import path from 'path';
 
+const PROFILE_DIR = process.env.PROFILE_LIB || '/srv/uploads/perfil';
+const CSV_DIR = process.env.CSV_LIB || '/srv/uploads/csv';
+
+const PERFIL_URL_PREFIX = '/perfil/';
+const CSV_URL_PREFIX = '/csv/';
+
+function resolveProfileFilePath(storedPath?: string | null): string | null {
+  if (!storedPath) return null;
+
+  // Nuevo esquema: URL pública /perfil/<archivo>
+  if (storedPath.startsWith(PERFIL_URL_PREFIX)) {
+    const fileName = storedPath.slice(PERFIL_URL_PREFIX.length);
+    return path.join(PROFILE_DIR, fileName);
+  }
+
+  // Esquema legado: ruta absoluta bajo /tmp
+  if (storedPath.startsWith('/tmp/')) {
+    return storedPath;
+  }
+
+  // Si ya es absoluta, la usamos tal cual
+  if (path.isAbsolute(storedPath)) {
+    return storedPath;
+  }
+
+  // Fallback: relativa al proyecto
+  return path.join(__dirname, '..', storedPath);
+}
+
+function resolveCvFilePath(storedPath?: string | null): string | null {
+  if (!storedPath) return null;
+
+  // Nuevo esquema: URL pública /csv/<archivo>
+  if (storedPath.startsWith(CSV_URL_PREFIX)) {
+    const fileName = storedPath.slice(CSV_URL_PREFIX.length);
+    return path.join(CSV_DIR, fileName);
+  }
+
+  // Esquema legado: ruta absoluta bajo /tmp
+  if (storedPath.startsWith('/tmp/')) {
+    return storedPath;
+  }
+
+  if (path.isAbsolute(storedPath)) {
+    return storedPath;
+  }
+
+  return path.join(__dirname, '..', storedPath);
+}
+
 /**
  * Obtener perfil público de un usuario por ID
  * @route GET /api/perfil/:id
@@ -169,14 +219,18 @@ export const subirFotoPerfil = async (req: Request, res: Response): Promise<void
 
     // Eliminar foto anterior si existe
     if (perfil.fotoPerfil) {
-      const rutaAnterior = path.join(__dirname, '..', perfil.fotoPerfil);
-      if (fs.existsSync(rutaAnterior)) {
+      const rutaAnterior = resolveProfileFilePath(perfil.fotoPerfil as unknown as string);
+      if (rutaAnterior && fs.existsSync(rutaAnterior)) {
         fs.unlinkSync(rutaAnterior);
       }
     }
 
-    // Guardar nueva ruta (relativa)
-    const rutaRelativa = `/tmp/uploads/perfiles/fotos/${req.file.filename}`;
+    // Guardar nueva ruta (URL relativa pública en prod, ruta "tmp" en dev)
+    const isProd = process.env.NODE_ENV === 'production';
+    const rutaRelativa = isProd
+      ? `${PERFIL_URL_PREFIX}${req.file.filename}`
+      : `/tmp/uploads/perfiles/fotos/${req.file.filename}`;
+
     perfil.fotoPerfil = rutaRelativa;
     await perfil.save();
 
@@ -222,14 +276,18 @@ export const subirCV = async (req: Request, res: Response): Promise<void> => {
 
     // Eliminar CV anterior si existe
     if (perfil.cvUrl) {
-      const rutaAnterior = path.join(__dirname, '..', perfil.cvUrl);
-      if (fs.existsSync(rutaAnterior)) {
+      const rutaAnterior = resolveCvFilePath(perfil.cvUrl as unknown as string);
+      if (rutaAnterior && fs.existsSync(rutaAnterior)) {
         fs.unlinkSync(rutaAnterior);
       }
     }
 
-    // Guardar nueva ruta (relativa)
-    const rutaRelativa = `/tmp/uploads/perfiles/cvs/${req.file.filename}`;
+    // Guardar nueva ruta (URL relativa pública en prod, ruta "tmp" en dev)
+    const isProd = process.env.NODE_ENV === 'production';
+    const rutaRelativa = isProd
+      ? `${CSV_URL_PREFIX}${req.file.filename}`
+      : `/tmp/uploads/perfiles/cvs/${req.file.filename}`;
+
     perfil.cvUrl = rutaRelativa;
     await perfil.save();
 
@@ -267,8 +325,8 @@ export const eliminarCV = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Eliminar archivo físico
-    const rutaArchivo = path.join(__dirname, '..', perfil.cvUrl);
-    if (fs.existsSync(rutaArchivo)) {
+    const rutaArchivo = resolveCvFilePath(perfil.cvUrl as unknown as string);
+    if (rutaArchivo && fs.existsSync(rutaArchivo)) {
       fs.unlinkSync(rutaArchivo);
     }
 
