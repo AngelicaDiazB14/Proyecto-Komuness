@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { API_URL, BASE_URL } from '../utils/api'; // <-- AGREGADO BASE_URL
+import { API_URL, BASE_URL } from '../utils/api';
 import '../CSS/perfilPublico.css';
 import { 
   FaPhone, FaEnvelope, FaMapMarkerAlt, FaLinkedin, FaTwitter, 
@@ -8,8 +8,7 @@ import {
   FaStar, FaAward, FaBriefcase, FaGraduationCap, FaUser,
   FaProjectDiagram, FaGlobe
 } from 'react-icons/fa';
-// Asegúrate que en este archivo también tengas importados AiOutlineUser, AiOutlinePhone, AiOutlineEnvironment
-// import { AiOutlineUser, AiOutlinePhone, AiOutlineEnvironment } from 'react-icons/ai';
+import { AiOutlineUser, AiOutlinePhone, AiOutlineEnvironment } from 'react-icons/ai';
 
 const PerfilPublico = () => {
   const { id } = useParams();
@@ -73,7 +72,6 @@ const PerfilPublico = () => {
     return null;
   }
 
-  // Vista completa
   return (
     <div className={`min-h-screen ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
       <div className="container mx-auto px-4 py-8">
@@ -91,7 +89,7 @@ const PerfilPublico = () => {
         <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
           {perfil.fotoPerfil ? (
             <img 
-              src={`${BASE_URL}${perfil.fotoPerfil}`}   // <-- CAMBIADO A BASE_URL
+              src={`${BASE_URL}${perfil.fotoPerfil}`} 
               alt={`${perfil.nombre} ${perfil.apellidos}`}
               className="w-48 h-48 rounded-full object-cover shadow-lg border-4 border-white dark:border-gray-700"
             />
@@ -131,7 +129,7 @@ const PerfilPublico = () => {
               
               {perfil.cvUrl && (
                 <a
-                  href={`${BASE_URL}${perfil.cvUrl}`}  // <-- CAMBIADO A BASE_URL
+                  href={`${BASE_URL}${perfil.cvUrl}`}
                   download
                   className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-6 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
@@ -173,7 +171,7 @@ const PerfilPublico = () => {
                   <div className="perfil-foto-container-grande">
                     {perfil.fotoPerfil ? (
                       <img 
-                        src={`${BASE_URL}${perfil.fotoPerfil}`}   // <-- CAMBIADO A BASE_URL
+                        src={`${BASE_URL}${perfil.fotoPerfil}`} 
                         alt={`${perfil.nombre} ${perfil.apellidos}`}
                         className="perfil-foto-grande"
                       />
@@ -350,11 +348,10 @@ const PerfilPublico = () => {
                   <div className="perfil-card">
                     <h2 className="perfil-section-title">Currículum Vitae</h2>
                     <a 
-                      href={`${BASE_URL}${perfil.cvUrl}`}  // <-- CAMBIADO A BASE_URL
+                      href={`${BASE_URL}${perfil.cvUrl}`} 
                       download
                       className="btn-descargar-cv"
                     >
-                      {/* Si quieres, aquí puedes usar FaDownload en lugar de FaFileDownload */}
                       Descargar CV
                     </a>
                   </div>
