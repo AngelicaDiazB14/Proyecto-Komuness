@@ -182,58 +182,85 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
 
 
   const handleImageUpload = async (event, tipo) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('No estás autenticado');
-      return;
-    }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    toast.error('No estás autenticado');
+    return;
+  }
 
-    const uploadFormData = new FormData();
-    uploadFormData.append('imagen', file);
-    uploadFormData.append('tipo', tipo);
+  const uploadFormData = new FormData();
+  uploadFormData.append('imagen', file);
+  uploadFormData.append('tipo', tipo);
 
+  try {
+    setLoading(true);
+    const response = await fetch(`${API_URL}/acerca-de/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: uploadFormData
+    });
+
+    console.log(' Respuesta recibida:', response.status, response.statusText);
+
+    // Obtener el texto de la respuesta primero para debugging
+    const responseText = await response.text();
+    console.log(' Respuesta completa:', responseText);
+
+    let result;
     try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/acerca-de/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: uploadFormData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Imagen subida exitosamente');
-        
-        // Actualizar LOCALMENTE sin recargar todos los datos
-        if (tipo === 'proyectos') {
-          setFormData(prev => ({
-            ...prev,
-            imagenesProyectos: [...(prev.imagenesProyectos || []), result.path]
-          }));
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            imagenesEquipo: [...(prev.imagenesEquipo || []), result.path]
-          }));
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al subir imagen');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.message || 'Error al subir imagen');
-    } finally {
-      setLoading(false);
-      // Limpiar el input file
-      event.target.value = '';
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(' Error parseando JSON:', parseError);
+      throw new Error(`Respuesta inválida del servidor: ${responseText.substring(0, 100)}`);
     }
-  };
+
+    if (response.ok) {
+      console.log('Imagen subida exitosamente:', result);
+      toast.success('Imagen subida exitosamente');
+      
+      // Actualizar LOCALMENTE sin recargar todos los datos
+      if (tipo === 'proyectos') {
+        setFormData(prev => ({
+          ...prev,
+          imagenesProyectos: [...(prev.imagenesProyectos || []), result.path]
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          imagenesEquipo: [...(prev.imagenesEquipo || []), result.path]
+        }));
+      }
+    } else {
+      console.error(' Error del servidor:', result);
+      throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Error completo en handleImageUpload:', error);
+    
+    // Mostrar mensaje de error más específico
+    let errorMessage = 'Error al subir imagen';
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Error de conexión. Verifica tu internet.';
+    } else if (error.message.includes('413')) {
+      errorMessage = 'La imagen es demasiado grande. Máximo 5MB.';
+    } else if (error.message.includes('401')) {
+      errorMessage = 'No autorizado. Tu sesión puede haber expirado.';
+    } else {
+      errorMessage = error.message || 'Error interno del servidor';
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+    // Limpiar el input file
+    event.target.value = '';
+  }
+};
 
   const handleDeleteImage = async (tipo, imagenPath) => {
     try {
@@ -274,55 +301,69 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
 
   
   const handleMemberImageUpload = async (event, memberIndex) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('No estás autenticado');
-      return;
-    }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    toast.error('No estás autenticado');
+    return;
+  }
 
-    const uploadFormData = new FormData();
-    uploadFormData.append('imagen', file);
-    uploadFormData.append('miembroIndex', memberIndex.toString());
+  const uploadFormData = new FormData();
+  uploadFormData.append('imagen', file);
+  uploadFormData.append('miembroIndex', memberIndex.toString());
 
+  try {
+    setLoading(true);
+    console.log('Iniciando subida de imagen de miembro...', { memberIndex, file: file.name });
+
+    const response = await fetch(`${API_URL}/acerca-de/upload-miembro`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: uploadFormData
+    });
+
+    console.log(' Respuesta miembro recibida:', response.status);
+
+    const responseText = await response.text();
+    console.log('Respuesta miembro completa:', responseText);
+
+    let result;
     try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/acerca-de/upload-miembro`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: uploadFormData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Foto de perfil subida exitosamente');
-        
-        // Actualizar LOCALMENTE la imagen del miembro
-        setFormData(prev => ({
-          ...prev,
-          equipo: prev.equipo.map((member, index) => 
-            index === memberIndex 
-              ? { ...member, imagen: result.path }
-              : member
-          )
-        }));
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al subir foto de perfil');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.message || 'Error al subir foto de perfil');
-    } finally {
-      setLoading(false);
-      // Limpiar el input file
-      event.target.value = '';
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(' Error parseando JSON miembro:', parseError);
+      throw new Error(`Respuesta inválida del servidor: ${responseText.substring(0, 100)}`);
     }
-  };
+
+    if (response.ok) {
+      console.log('Imagen de miembro subida exitosamente:', result);
+      toast.success('Foto de perfil subida exitosamente');
+      
+      setFormData(prev => ({
+        ...prev,
+        equipo: prev.equipo.map((member, index) => 
+          index === memberIndex 
+            ? { ...member, imagen: result.path }
+            : member
+        )
+      }));
+    } else {
+      console.error('Error del servidor miembro:', result);
+      throw new Error(result.message || `Error ${response.status} al subir foto de perfil`);
+    }
+  } catch (error) {
+    console.error('Error en handleMemberImageUpload:', error);
+    toast.error(error.message || 'Error al subir foto de perfil');
+  } finally {
+    setLoading(false);
+    // Limpiar el input file
+    event.target.value = '';
+  }
+};
 
   const handleDeleteMemberImage = async (memberIndex, imagenPath) => {
     try {
@@ -420,7 +461,7 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
             {formData.imagenesProyectos?.map((imagen, index) => (
               <div key={index} className="relative group">
                 <img
-                  src={`http://localhost:5000${imagen}`}
+                  src={imagen}
                   alt={`Proyecto ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg transform transition-transform duration-300 hover:scale-105"
                 />
@@ -745,7 +786,7 @@ const AcercaDeEdit = ({ data, onUpdate, onCancel }) => {
                     {miembro.imagen ? (
                       <div className="relative group">
                         <img
-                          src={`http://localhost:5000${miembro.imagen}`}
+                          src={miembro.imagen}
                           alt={`${miembro.nombre || 'Miembro'} avatar`}
                           className="w-12 h-12 rounded-full object-cover border-2 border-yellow-400"
                         />

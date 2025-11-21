@@ -550,3 +550,139 @@ export const getEventosPorFecha = async (req: Request, res: Response): Promise<v
     res.status(500).json({ message: err.message });
   }
 };
+
+// Búsqueda rápida por título (para sugerencias)
+export const searchPublicacionesByTitulo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { q, limit = 5 } = req.query;
+    
+    if (!q || typeof q !== 'string' || q.trim() === '') {
+      res.status(400).json({ message: 'El parámetro de búsqueda (q) es requerido' });
+      return;
+    }
+
+    const searchTerm = q.trim();
+    const searchLimit = Math.min(Number(limit), 50); // Máximo 50 resultados
+
+    const publicaciones = await modelPublicacion
+      .find({
+        publicado: true,
+        titulo: { $regex: searchTerm, $options: 'i' }
+      })
+      .populate('autor', 'nombre')
+      .populate('categoria', 'nombre estado')
+      .select('titulo tag autor categoria fecha fechaEvento precio adjunto')
+      .limit(searchLimit)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      data: publicaciones,
+      searchTerm,
+      total: publicaciones.length
+    });
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error en búsqueda rápida:', err);
+    res.status(500).json({ message: 'Error al realizar la búsqueda' });
+  }
+};
+
+// Búsqueda avanzada con filtros
+export const searchPublicacionesAvanzada = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { 
+      q, 
+      tag, 
+      categoria, 
+      offset = 0, 
+      limit = 12 
+    } = req.query;
+
+    const query: any = { publicado: true };
+
+    // Búsqueda por texto en título o contenido
+    if (q && typeof q === 'string' && q.trim() !== '') {
+      query.$or = [
+        { titulo: { $regex: q.trim(), $options: 'i' } },
+        { contenido: { $regex: q.trim(), $options: 'i' } }
+      ];
+    }
+
+    // Filtros adicionales
+    if (tag) query.tag = tag;
+    if (categoria) query.categoria = categoria;
+
+    const [publicaciones, totalPublicaciones] = await Promise.all([
+      modelPublicacion
+        .find(query)
+        .populate('autor', 'nombre')
+        .populate('categoria', 'nombre estado')
+        .sort({ createdAt: -1 })
+        .skip(Number(offset))
+        .limit(Number(limit)),
+      modelPublicacion.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      data: publicaciones,
+      pagination: {
+        offset: Number(offset),
+        limit: Number(limit),
+        total: totalPublicaciones,
+        pages: Math.ceil(totalPublicaciones / Math.max(Number(limit), 1)),
+      },
+      searchTerm: q
+    });
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error en búsqueda avanzada:', err);
+    res.status(500).json({ message: 'Error al realizar la búsqueda' });
+  }
+};
+
+// Búsqueda específica por título
+export const searchByTitulo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { q, offset = 0, limit = 12 } = req.query;
+    
+    if (!q || typeof q !== 'string' || q.trim() === '') {
+      res.status(400).json({ message: 'El parámetro de búsqueda (q) es requerido' });
+      return;
+    }
+
+    const searchTerm = q.trim();
+    const queryOffset = Number(offset);
+    const queryLimit = Math.min(Number(limit), 50);
+
+    const query = {
+      publicado: true,
+      titulo: { $regex: searchTerm, $options: 'i' }
+    };
+
+    const [publicaciones, total] = await Promise.all([
+      modelPublicacion
+        .find(query)
+        .populate('autor', 'nombre')
+        .populate('categoria', 'nombre estado')
+        .sort({ createdAt: -1 })
+        .skip(queryOffset)
+        .limit(queryLimit),
+      modelPublicacion.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      data: publicaciones,
+      pagination: {
+        offset: queryOffset,
+        limit: queryLimit,
+        total,
+        pages: Math.ceil(total / Math.max(queryLimit, 1)),
+      },
+      searchTerm
+    });
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error en búsqueda por título:', err);
+    res.status(500).json({ message: 'Error al realizar la búsqueda' });
+  }
+};

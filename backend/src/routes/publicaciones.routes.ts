@@ -12,6 +12,9 @@ import {
   createPublicacionA,
   getPublicacionesByCategoria,
   getEventosPorFecha,
+  searchPublicacionesByTitulo,
+  searchPublicacionesAvanzada,
+  searchByTitulo,
 } from '../controllers/publicacion.controller';
 
 import {
@@ -79,3 +82,8 @@ router.put('/admin/:id/reject-update', authMiddleware, verificarRoles([0, 1]), r
 router.put('/:id', authMiddleware, verificarRoles([0, 1]), updatePublicacion);
 router.delete('/:id', authMiddleware, verificarRoles([0, 1]), deletePublicacion);
 export default router;
+
+// ========== RUTAS DE BÚSQUEDA ==========
+router.get('/search/quick', searchPublicacionesByTitulo); // Búsqueda rápida
+router.get('/search/advanced', searchPublicacionesAvanzada); // Búsqueda con filtros
+router.get('/search/titulo', searchByTitulo);

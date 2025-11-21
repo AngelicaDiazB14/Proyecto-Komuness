@@ -7,21 +7,44 @@ import multer from 'multer';
 
 /**
  * Carpeta base para las imágenes de ACERCA DE en la VM.
+ * Compatible con producción (ACERCADE_LIB)
  */
-const ACERCADE_DIR = process.env.ACERCADE_LIB || '/srv/uploads/acercade';
+const ACERCADE_BASE_DIR = process.env.ACERCADE_LIB || '/srv/uploads/acercade';
+
+console.log('Configuración Acerca De - Directorio:', ACERCADE_BASE_DIR);
 
 const MAX_IMAGENES_PROYECTOS = parseInt(process.env.MAX_IMAGENES_PROYECTOS || '50');
 const MAX_IMAGENES_EQUIPO = parseInt(process.env.MAX_IMAGENES_EQUIPO || '50');
+
 /** Asegura subcarpeta por año/mes */
 async function ensureAcercaDeDir(): Promise<string> {
-  const now = new Date();
-  const dir = path.join(
-    ACERCADE_DIR,
-    String(now.getFullYear()),
-    String(now.getMonth() + 1).padStart(2, '0')
-  );
-  await fsp.mkdir(dir, { recursive: true });
-  return dir;
+  try {
+    console.log('ensureAcercaDeDir - Iniciando...');
+    console.log('Directorio base:', ACERCADE_BASE_DIR);
+    
+    // Primero asegurar el directorio base
+    await fsp.mkdir(ACERCADE_BASE_DIR, { recursive: true });
+    console.log('Directorio base creado/verificado');
+    
+    const now = new Date();
+    const dir = path.join(
+      ACERCADE_BASE_DIR,
+      String(now.getFullYear()),
+      String(now.getMonth() + 1).padStart(2, '0')
+    );
+    
+    console.log('Creando subdirectorio:', dir);
+    await fsp.mkdir(dir, { recursive: true });
+    
+    // Verificar permisos de escritura
+    await fsp.access(dir, fsp.constants.W_OK);
+    console.log('Directorio escribible:', dir);
+    
+    return dir;
+  } catch (error) {
+    console.error('ERROR en ensureAcercaDeDir:', error);
+    throw error;
+  }
 }
 
 /** Sanitiza el nombre del archivo */
@@ -30,26 +53,30 @@ function sanitizeName(name: string) {
 }
 
 /**
- * Multer especializado para Acerca De:
- * - Guarda en disco en /srv/uploads/acercade/
- * - Respeta la estructura por fecha
+ * Multer especializado para Acerca De
  */
 export const uploadAcercaDe = multer({
   storage: multer.diskStorage({
     destination: async (_req, _file, cb) => {
       try {
+        console.log('Multer - Iniciando destino...');
         const dir = await ensureAcercaDeDir();
+        console.log('Multer - Directorio listo:', dir);
         cb(null, dir);
       } catch (err) {
-        cb(err as any, ACERCADE_DIR);
+        console.error('Multer - Error en destino:', err);
+        cb(err as any, ACERCADE_BASE_DIR);
       }
     },
     filename: (_req, file, cb) => {
       const safe = sanitizeName(file.originalname);
-      cb(null, `${Date.now()}-${safe}`);
+      const filename = `${Date.now()}-${safe}`;
+      console.log(' Multer - Nombre de archivo:', filename);
+      cb(null, filename);
     },
   }),
   fileFilter: (req, file, cb) => {
+    console.log('Multer verificando tipo:', file.mimetype);
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -71,6 +98,7 @@ export const getSeccionAcerca = async (req: Request, res: Response): Promise<voi
     let seccion = await modelSeccionAcerca.findOne({ estado: true });
     
     if (!seccion) {
+      console.log('Creando sección acerca de por defecto...');
       // Crear una sección por defecto con toda la información
       const seccionDefault = new modelSeccionAcerca({
         titulo: "COOPESINERGIA R.L. - Tejiendo Futuro en Comunidad",
@@ -106,6 +134,7 @@ export const getSeccionAcerca = async (req: Request, res: Response): Promise<voi
       });
       
       const saved = await seccionDefault.save();
+      console.log('Sección acerca de creada por defecto');
       res.json(saved);
       return;
     }
@@ -143,7 +172,7 @@ export const getSeccionAcerca = async (req: Request, res: Response): Promise<voi
 
     res.json(seccion);
   } catch (error) {
-    console.error(error);
+    console.error('Error en getSeccionAcerca:', error);
     res.status(500).json({ message: "Error al obtener la sección acerca de" });
   }
 };
@@ -153,7 +182,7 @@ export const getSeccionAcerca = async (req: Request, res: Response): Promise<voi
  */
 export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Body recibido:', JSON.stringify(req.body, null, 2));
+    console.log('Body recibido en createOrUpdateSeccionAcerca:', JSON.stringify(req.body, null, 2));
     
     const { 
       titulo, 
@@ -195,7 +224,7 @@ export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): 
         equipo: equipo !== undefined ? equipo : seccion.equipo
       };
 
-      console.log('Actualizando con:', updateData);
+      console.log('Actualizando sección con:', updateData);
 
       // Usar findOneAndUpdate para mejor control
       const updated = await modelSeccionAcerca.findOneAndUpdate(
@@ -209,6 +238,7 @@ export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): 
         return;
       }
 
+      console.log('Sección actualizada exitosamente');
       res.json(updated);
     } else {
       // Crear nueva con valores por defecto para campos requeridos
@@ -246,9 +276,8 @@ export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): 
       res.status(201).json(saved);
     }
   } catch (error: unknown) {
-    console.error('Error detallado al guardar:', error);
+    console.error('Error en createOrUpdateSeccionAcerca:', error);
     
-    // Manejar el error de forma type-safe
     let errorMessage = "Error al guardar la sección acerca de";
     
     if (error instanceof Error) {
@@ -269,45 +298,48 @@ export const createOrUpdateSeccionAcerca = async (req: Request, res: Response): 
  */
 export const uploadImagen = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { tipo } = req.body; // 'proyectos' o 'equipo'
+    console.log('INICIANDO UPLOAD IMAGEN - Acerca De');
+    const { tipo } = req.body;
     
     if (!req.file) {
+      console.log('ERROR: No se recibió archivo');
       res.status(400).json({ message: "No se subió ningún archivo" });
       return;
     }
 
+    console.log('Archivo recibido:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path
+    });
+
     if (!['proyectos', 'equipo'].includes(tipo)) {
-      // Eliminar archivo subido del disco
-      try {
-        await fsp.unlink(req.file.path);
-      } catch (e) {
-        console.warn('No se pudo eliminar archivo rechazado:', e);
-      }
+      console.log('ERROR: Tipo inválido:', tipo);
+      await fsp.unlink(req.file.path);
       res.status(400).json({ message: "Tipo debe ser 'proyectos' o 'equipo'" });
       return;
     }
 
     const seccion = await modelSeccionAcerca.findOne({ estado: true });
     if (!seccion) {
-      // Eliminar archivo si no hay sección
-      try {
-        await fsp.unlink(req.file.path);
-      } catch (e) {
-        console.warn('No se pudo eliminar archivo:', e);
-      }
+      console.log('ERROR: No se encontró sección acerca de');
+      await fsp.unlink(req.file.path);
       res.status(404).json({ message: "No se encontró la sección acerca de" });
       return;
     }
 
-    /* ====================== Calcular URL y key ====================== */
     const relKey = path
-      .relative(ACERCADE_DIR, req.file.path)
+      .relative(ACERCADE_BASE_DIR, req.file.path)
       .split(path.sep)
       .join('/');
 
-    // Generar URL pública usando el endpoint de descarga
+    // Generar URL que coincida con NGINX (/acercade/)
     const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
-    const imagenUrl = `${publicBaseUrl}/api/acerca-de/files/${relKey}`;
+    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`; 
+
+    console.log('Key generada:', relKey);
+    console.log('URL generada (CORREGIDA):', imagenUrl);
 
     if (tipo === 'proyectos') {
       if (seccion.imagenesProyectos.length >= MAX_IMAGENES_PROYECTOS) {
@@ -315,43 +347,55 @@ export const uploadImagen = async (req: Request, res: Response): Promise<void> =
         res.status(400).json({ message: "Máximo 50 imágenes para proyectos" });
         return;
       }
-      // Guardar la URL en lugar del path local
       seccion.imagenesProyectos.push(imagenUrl);
+      console.log('Imagen agregada a proyectos. Total:', seccion.imagenesProyectos.length);
     } else {
-      if (seccion.imagenesEquipo.length >= MAX_IMAGENES_PROYECTOS) {
+      if (seccion.imagenesEquipo.length >= MAX_IMAGENES_EQUIPO) {
         await fsp.unlink(req.file.path);
         res.status(400).json({ message: "Máximo 50 imágenes para equipo" });
         return;
       }
       seccion.imagenesEquipo.push(imagenUrl);
+      console.log('Imagen agregada a equipo. Total:', seccion.imagenesEquipo.length);
     }
 
     await seccion.save();
+    console.log('IMAGEN SUBIDA EXITOSAMENTE con URL corregida');
+    
     res.json({ 
       message: "Imagen subida exitosamente", 
       path: imagenUrl,
-      key: relKey // Para referencia futura si necesitas eliminar
+      key: relKey
     });
+
   } catch (error) {
-    console.error('Error al subir imagen:', error);
-    // Intentar eliminar el archivo en caso de error
+    console.error('ERROR CRÍTICO en uploadImagen:', error);
+    
     if (req.file) {
       try {
         await fsp.unlink(req.file.path);
+        console.log('Archivo temporal eliminado por error');
       } catch (e) {
-        console.warn('No se pudo eliminar archivo en error:', e);
+        console.warn('No se pudo eliminar archivo temporal:', e);
       }
     }
-    res.status(500).json({ message: "Error al subir imagen" });
+    
+    res.status(500).json({ 
+      success: false,
+      message: "Error interno del servidor al subir imagen",
+      error: error instanceof Error ? error.message : 'Error desconocido'
+    });
   }
 };
 
 /**
- * Eliminar imagen - AHORA DEL DISCO DE LA VM
+ * Eliminar imagen
  */
 export const deleteImagen = async (req: Request, res: Response): Promise<void> => {
   try {
     const { tipo, imagenPath } = req.body;
+    console.log('🗑️ Eliminando imagen:', { tipo, imagenPath });
+    
     const seccion = await modelSeccionAcerca.findOne({ estado: true });
 
     if (!seccion) {
@@ -361,14 +405,15 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
 
     /* ====================== Extraer key de la URL y eliminar del disco ====================== */
     try {
-      // Extraer la parte final de la URL que corresponde a la key
-      // La URL viene como: https://komuness.duckdns.org/api/acerca-de/files/2025/09/timestamp-nombre.jpg
+      // CORREGIDO: Extraer key de la nueva URL (/acercade/)
       const urlObj = new URL(imagenPath);
-      const key = urlObj.pathname.replace('/api/acerca-de/files/', '');
+      const key = urlObj.pathname.replace('/acercade/', '');
       
-      const absPath = path.resolve(ACERCADE_DIR, key);
-      const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
+      const absPath = path.resolve(ACERCADE_BASE_DIR, key);
+      const acercaDeNorm = path.normalize(ACERCADE_BASE_DIR + path.sep);
       const absNorm = path.normalize(absPath);
+
+      console.log(' Eliminando del disco:', absNorm);
 
       // Validar seguridad y eliminar
       if (absNorm.startsWith(acercaDeNorm) && fs.existsSync(absNorm)) {
@@ -384,8 +429,10 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
     // Eliminar de la base de datos
     if (tipo === 'proyectos') {
       seccion.imagenesProyectos = seccion.imagenesProyectos.filter(img => img !== imagenPath);
+      console.log('Imagen eliminada de proyectos');
     } else {
       seccion.imagenesEquipo = seccion.imagenesEquipo.filter(img => img !== imagenPath);
+      console.log('Imagen eliminada de equipo');
     }
 
     await seccion.save();
@@ -402,19 +449,25 @@ export const deleteImagen = async (req: Request, res: Response): Promise<void> =
  */
 export const downloadImagen = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { key } = req.params;
+    // Usar parámetros comodín para capturar toda la ruta
+    const key = req.params[0] || req.params.key;
+    console.log('Solicitando imagen con key:', key);
     
-    const abs = path.resolve(ACERCADE_DIR, key);
-    const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
-    const absNorm = path.normalize(abs);
+    const absPath = path.resolve(ACERCADE_BASE_DIR, key);
+    const acercaDeNorm = path.normalize(ACERCADE_BASE_DIR + path.sep);
+    const absNorm = path.normalize(absPath);
+
+    console.log('Ruta absoluta:', absNorm);
 
     // Validar seguridad
     if (!absNorm.startsWith(acercaDeNorm)) {
+      console.log('Ruta inválida - seguridad');
       res.status(403).json({ success: false, message: 'Ruta inválida' });
       return;
     }
 
     if (!fs.existsSync(absNorm)) {
+      console.log('Archivo no existe:', absNorm);
       res.status(404).json({ success: false, message: 'Imagen no encontrada' });
       return;
     }
@@ -432,19 +485,26 @@ export const downloadImagen = async (req: Request, res: Response): Promise<void>
 
     const contentType = mimeTypes[ext] || 'image/jpeg';
     res.setHeader('Content-Type', contentType);
-    
-    // Cache para imágenes
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('Content-Disposition', 'inline');
 
+    console.log('Sirviendo imagen:', absNorm);
     const stream = fs.createReadStream(absNorm);
-    stream.on('error', () => {
-      res.status(404).json({ success: false, message: 'No se pudo abrir la imagen' });
+    
+    stream.on('error', (error) => {
+      console.error(' Error al leer archivo:', error);
+      res.status(500).json({ success: false, message: 'Error al leer la imagen' });
     });
+    
     stream.pipe(res);
+    
   } catch (error) {
-    console.error('Error al descargar imagen:', error);
-    res.status(500).json({ success: false, message: (error as Error).message });
+    console.error('Error en downloadImagen:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error interno del servidor',
+      error: (error as Error).message 
+    });
   }
 };
 
@@ -454,6 +514,7 @@ export const downloadImagen = async (req: Request, res: Response): Promise<void>
 export const uploadImagenMiembro = async (req: Request, res: Response): Promise<void> => {
   try {
     const { miembroIndex } = req.body;
+    console.log('Subiendo imagen para miembro:', miembroIndex);
     
     if (!req.file) {
       res.status(400).json({ message: "No se subió ningún archivo" });
@@ -480,20 +541,24 @@ export const uploadImagenMiembro = async (req: Request, res: Response): Promise<
       return;
     }
 
-    /* ====================== Calcular URL y key ====================== */
     const relKey = path
-      .relative(ACERCADE_DIR, req.file.path)
+      .relative(ACERCADE_BASE_DIR, req.file.path)
       .split(path.sep)
       .join('/');
 
-    // Generar URL pública usando el endpoint de descarga
+    // CORREGIDO: Generar URL que coincida con NGINX (/acercade/)
     const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'https://komuness.duckdns.org';
-    const imagenUrl = `${publicBaseUrl}/api/acerca-de/files/${relKey}`;
+    const imagenUrl = `${publicBaseUrl}/acercade/${relKey}`; 
+
+    console.log('Key generada para miembro:', relKey);
+    console.log('URL generada para miembro (CORREGIDA):', imagenUrl);
 
     // Actualizar la imagen del miembro
     seccion.equipo[miembroIndex].imagen = imagenUrl;
 
     await seccion.save();
+    console.log('Imagen de perfil subida exitosamente para miembro:', miembroIndex);
+    
     res.json({ 
       message: "Imagen de perfil subida exitosamente", 
       path: imagenUrl,
@@ -518,6 +583,8 @@ export const uploadImagenMiembro = async (req: Request, res: Response): Promise<
 export const deleteImagenMiembro = async (req: Request, res: Response): Promise<void> => {
   try {
     const { miembroIndex, imagenPath } = req.body;
+    console.log('Eliminando imagen de miembro:', { miembroIndex, imagenPath });
+    
     const seccion = await modelSeccionAcerca.findOne({ estado: true });
 
     if (!seccion) {
@@ -533,11 +600,12 @@ export const deleteImagenMiembro = async (req: Request, res: Response): Promise<
 
     /* ====================== Eliminar del disco ====================== */
     try {
+      // CORREGIDO: Extraer key de la nueva URL (/acercade/)
       const urlObj = new URL(imagenPath);
-      const key = urlObj.pathname.replace('/api/acerca-de/files/', '');
+      const key = urlObj.pathname.replace('/acercade/', '');
       
-      const absPath = path.resolve(ACERCADE_DIR, key);
-      const acercaDeNorm = path.normalize(ACERCADE_DIR + path.sep);
+      const absPath = path.resolve(ACERCADE_BASE_DIR, key);
+      const acercaDeNorm = path.normalize(ACERCADE_BASE_DIR + path.sep);
       const absNorm = path.normalize(absPath);
 
       // Validar seguridad y eliminar
@@ -553,6 +621,8 @@ export const deleteImagenMiembro = async (req: Request, res: Response): Promise<
     seccion.equipo[miembroIndex].imagen = undefined;
 
     await seccion.save();
+    console.log('Imagen de perfil eliminada de la base de datos');
+    
     res.json({ message: "Imagen de perfil eliminada exitosamente" });
   } catch (error) {
     console.error('Error al eliminar imagen de miembro:', error);

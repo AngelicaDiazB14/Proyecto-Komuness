@@ -7,6 +7,7 @@ import PublicacionCard from './publicacionCard';
 import FormularioPublicacion from '../pages/formulario';
 import { useAuth } from './context/AuthContext';
 import CategoriaFilter from './categoriaFilter';
+import BuscadorPublicaciones from './buscadorPublicaciones';
 
 // Base de API robusta (evita /api/api)
 const RAW = process.env.REACT_APP_BACKEND_URL || window.location.origin;
@@ -23,6 +24,7 @@ export const Publicaciones = ({ tag: propTag }) => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
+  const [searchFilter, setSearchFilter] = useState(null);
   const [tag, setTag] = useState(propTag);
   const limite = 12;
   const [formulario, setFormulario] = useState(false);
@@ -32,7 +34,11 @@ export const Publicaciones = ({ tag: propTag }) => {
 
   useEffect(() => {
     const categoriaId = searchParams.get('categoria');
+    const searchTerm = searchParams.get('q');
+    const isSearch = searchParams.get('search') === 'true';
+    
     setCategoriaFilter(categoriaId);
+    setSearchFilter(isSearch ? searchTerm : null);
   }, [searchParams]);
 
   useEffect(() => {
@@ -56,8 +62,8 @@ export const Publicaciones = ({ tag: propTag }) => {
   }, [location.pathname, propTag]);
 
   useEffect(() => {
-    if (tag) obtenerPublicaciones(tag, 1, limite, categoriaFilter);
-  }, [tag, categoriaFilter]);
+    if (tag) obtenerPublicaciones(tag, 1, limite, categoriaFilter, searchFilter);
+  }, [tag, categoriaFilter, searchFilter]);
 
   useEffect(() => {
     if (mostrar === 3) {
@@ -72,43 +78,92 @@ export const Publicaciones = ({ tag: propTag }) => {
     }
   }, [mostrar, publicaciones]);
 
-  const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId = null) => {
-    try {
-      const offset = (page - 1) * limit;
-      const params = new URLSearchParams();
-      if (tag) params.set('tag', tag);
-      params.set('offset', String(offset));
-      params.set('limit', String(limit));
-      params.set('publicado', 'true');
+  
+const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId = null, searchTerm = null) => {
+  try {
+    const offset = (page - 1) * limit;
+    
+    let url;
+    let params;
+    
+    if (searchTerm) {
+      // Usar búsqueda con filtro existente
+      url = `${API}/publicaciones/buscar`;
+      params = new URLSearchParams({
+        texto: searchTerm
+      });
+      // Para paginación, necesitaríamos modificar el backend
+    } else {
+      // Usar búsqueda normal por tag
+      url = `${API}/publicaciones`;
+      params = new URLSearchParams({
+        tag: tag || '',
+        offset: String(offset),
+        limit: String(limit),
+        publicado: 'true'
+      });
       if (categoriaId) params.set('categoria', categoriaId);
+    }
 
-      const resp = await fetch(`${API}/publicaciones?${params.toString()}`);
-      if (resp.status === 404) {
-        setPublicaciones([]); setPaginaActual(1); setTotalPaginas(1); return;
-      }
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${text}`);
-      }
-      const data = await resp.json();
+    const resp = await fetch(`${url}?${params.toString()}`);
+    if (resp.status === 404) {
+      setPublicaciones([]); 
+      setPaginaActual(1); 
+      setTotalPaginas(1); 
+      return;
+    }
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${text}`);
+    }
+    
+    const data = await resp.json();
+    
+    // Manejar diferentes formatos de respuesta
+    if (searchTerm) {
+      // Para búsquedas, usar el array directamente (sin paginación por ahora)
+      setPublicaciones(Array.isArray(data) ? data : []);
+      setPaginaActual(1);
+      setTotalPaginas(1);
+    } else {
+      // Para vista normal, usar el formato con paginación
       setPublicaciones(data.data || []);
       setPaginaActual(page);
       setTotalPaginas(data.pagination?.pages ?? 1);
-    } catch (error) {
-      console.error('Error al obtener publicaciones:', error);
-      setPublicaciones([]); setPaginaActual(1); setTotalPaginas(1);
     }
-  };
+  } catch (error) {
+    console.error('Error al obtener publicaciones:', error);
+    setPublicaciones([]); 
+    setPaginaActual(1); 
+    setTotalPaginas(1);
+  }
+};
 
   const mostrarBotonVolver = () => {
     const path = location.pathname;
     return path === '/eventos' || path === '/emprendimientos';
   };
 
+  const handlePagination = (newPage) => {
+    obtenerPublicaciones(tag, newPage, limite, categoriaFilter, searchFilter);
+  };
+
   return (
     <div className="bg-gray-800/80 pt-1 min-h-screen">
       <div className="relative">
-        <CategoriaFilter />
+        {/* Contenedor para filtros y buscador */}
+        <div className="bg-blue-900">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            {/* Buscador */}
+            <BuscadorPublicaciones />
+            
+            {/* Filtro de categorías */}
+            <div className="md:ml-auto">
+              <CategoriaFilter />
+            </div>
+          </div>
+        </div>
+
         {mostrarBotonVolver() && (
           <div className="absolute top-4 left-10 z-20">
             <button
@@ -122,9 +177,26 @@ export const Publicaciones = ({ tag: propTag }) => {
         )}
       </div>
 
+      {/* Mensaje de búsqueda */}
+      {searchFilter && (
+        <div className="px-4 pt-4">
+          <div className="bg-blue-100 border border-blue-300 rounded p-3">
+            <p className="text-blue-800 text-sm">
+              Mostrando resultados para: <strong>"{searchFilter}"</strong>
+              {publicaciones.length === 0 && ' - No se encontraron resultados'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="card-container">
         {cards.length === 0 ? (
-          <p className="text-white">No hay publicaciones para mostrar.</p>
+          <p className="text-white">
+            {searchFilter 
+              ? 'No hay publicaciones que coincidan con tu búsqueda.' 
+              : 'No hay publicaciones para mostrar.'
+            }
+          </p>
         ) : (
           cards.map((publicacion) => (
             <PublicacionCard key={publicacion._id} publicacion={publicacion} />
@@ -135,7 +207,7 @@ export const Publicaciones = ({ tag: propTag }) => {
       <div className="w-full flex justify-center mt-6 gap-2 flex-wrap pb-6">
         {paginaActual > 1 && (
           <button
-            onClick={() => obtenerPublicaciones(tag, paginaActual - 1, limite, categoriaFilter)}
+            onClick={() => handlePagination(paginaActual - 1)}
             className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
           >
             « Anterior
@@ -148,7 +220,7 @@ export const Publicaciones = ({ tag: propTag }) => {
             <React.Fragment key={p}>
               {i > 0 && p - arr[i - 1] > 1 && (<span className="px-2 py-1 text-gray-500">...</span>)}
               <button
-                onClick={() => obtenerPublicaciones(tag, p, limite, categoriaFilter)}
+                onClick={() => handlePagination(p)}
                 className={`px-3 py-1 rounded text-sm ${p === paginaActual ? 'bg-[#5445FF] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               >
                 {p}
@@ -158,7 +230,7 @@ export const Publicaciones = ({ tag: propTag }) => {
 
         {paginaActual < totalPaginas && (
           <button
-            onClick={() => obtenerPublicaciones(tag, paginaActual + 1, limite, categoriaFilter)}
+            onClick={() => handlePagination(paginaActual + 1)}
             className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
           >
             Siguiente »
@@ -168,7 +240,7 @@ export const Publicaciones = ({ tag: propTag }) => {
 
       <button
         onClick={() => { if (user) setFormulario(true); else navigate('/iniciarSesion'); }}
-        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-blue-600 text-white w-14 h-14 md:w-16 md:h-16 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 z-50 flex items-center justify-center text-2xl"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-yellow-500 text-white w-14 h-14 md:w-16 md:h-16 rounded-full shadow-lg hover:bg-yellow-700 transition-all duration-300 z-50 flex items-center justify-center text-2xl"
       >
         +
       </button>

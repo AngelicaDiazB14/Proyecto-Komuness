@@ -18,7 +18,7 @@ const router = Router();
 router.get("/", getSeccionAcerca);
 
 // Descarga de imágenes → libre para todos
-router.get("/files/:key", downloadImagen);
+router.get("/files/*", downloadImagen); 
 
 // Crear/actualizar y subir imágenes → solo admin (tipoUsuario = 0 o 1)
 router.put("/", authMiddleware, verificarRoles([0, 1]), createOrUpdateSeccionAcerca);
@@ -30,13 +30,6 @@ router.post("/upload",
   uploadAcercaDe.single('imagen'), 
   uploadImagen
 );
-
-router.delete("/imagen", 
-  authMiddleware, 
-  verificarRoles([0, 1]), 
-  deleteImagen
-);
-
 
 // Subir imagen de perfil para miembro del equipo
 router.post("/upload-miembro", 
