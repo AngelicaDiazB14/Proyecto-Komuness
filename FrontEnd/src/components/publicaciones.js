@@ -87,12 +87,14 @@ const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId =
     let params;
     
     if (searchTerm) {
-      // Usar búsqueda con filtro existente
-      url = `${API}/publicaciones/buscar`;
+      //  Usar search/advanced en lugar de /buscar para que popule categorías
+      url = `${API}/publicaciones/search/advanced`;
       params = new URLSearchParams({
-        texto: searchTerm
+        q: searchTerm,
+        offset: String(offset),
+        limit: String(limit)
       });
-      // Para paginación, necesitaríamos modificar el backend
+      if (categoriaId) params.set('categoria', categoriaId);
     } else {
       // Usar búsqueda normal por tag
       url = `${API}/publicaciones`;
@@ -119,18 +121,10 @@ const obtenerPublicaciones = async (tag, page = 1, limit = limite, categoriaId =
     
     const data = await resp.json();
     
-    // Manejar diferentes formatos de respuesta
-    if (searchTerm) {
-      // Para búsquedas, usar el array directamente (sin paginación por ahora)
-      setPublicaciones(Array.isArray(data) ? data : []);
-      setPaginaActual(1);
-      setTotalPaginas(1);
-    } else {
-      // Para vista normal, usar el formato con paginación
-      setPublicaciones(data.data || []);
-      setPaginaActual(page);
-      setTotalPaginas(data.pagination?.pages ?? 1);
-    }
+    // Para search/advanced, la estructura es { data: [], pagination: {} }
+    setPublicaciones(data.data || []);
+    setPaginaActual(page);
+    setTotalPaginas(data.pagination?.pages ?? 1);
   } catch (error) {
     console.error('Error al obtener publicaciones:', error);
     setPublicaciones([]); 

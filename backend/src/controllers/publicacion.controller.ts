@@ -506,7 +506,9 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro);
+    const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro)
+      .populate('autor', 'nombre') 
+      .populate('categoria', 'nombre estado'); 
 
     if (publicaciones.length === 0) {
       res.status(404).json({ message: 'No se encontraron publicaciones con esos criterios' });
