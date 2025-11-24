@@ -1,6 +1,7 @@
 import React from "react";
 import "../CSS/navbar.css";
 import { AiOutlineUser } from "react-icons/ai";
+import { FaUsers } from "react-icons/fa"; // Ícono para profesionales
 import logo from "../images/logo.png";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 
@@ -63,7 +64,13 @@ export const Navbar = () => {
           > 
             <span>Calendario</span>
           </li> 
-         
+          {/* ítem para profesionales */}
+          <li 
+            onClick={() => handleNavigation("/profesionales")}
+            className={isActive("/profesionales") ? "activo" : ""}
+          >
+            <FaUsers className="profesionales-icon" />
+          </li>
           <li 
             onClick={() => handleNavigation(goToLogin ? "/perfilUsuario" : "/iniciarSesion")}
             className={isActive("/perfilUsuario") || isActive("/iniciarSesion") ? "activo" : ""}
