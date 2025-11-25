@@ -24,6 +24,9 @@ export const PerfilUsuario = () => {
   const [modalPremiumAbierto, setModalPremiumAbierto] = useState(false);
   const [activeTab, setActiveTab] = useState('publicaciones'); // NUEVO: Control de pestañas
   const [limiteData, setLimiteData] = useState(null);
+  const [perfilExistente, setPerfilExistente] = useState(false); 
+  const [perfilPublico, setPerfilPublico] = useState(false);
+
 
   useEffect(() => {
     if (!user) {
@@ -157,6 +160,35 @@ export const PerfilUsuario = () => {
       console.error("Error: ", error);
     }
   };
+
+  useEffect(() => {
+  const verificarPerfilAdmin = async () => {
+    if (user && (user.tipoUsuario === 0 || user.tipoUsuario === 1)) {
+      try {
+        const response = await fetch(`${API_URL}/perfil/usuario/me`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPerfilExistente(true);
+          setPerfilPublico(data.data.perfilPublico || false);
+        } else if (response.status === 404) {
+          setPerfilExistente(false);
+          setPerfilPublico(false);
+        }
+      } catch (error) {
+        console.error('Error al verificar perfil admin:', error);
+        setPerfilExistente(false);
+        setPerfilPublico(false);
+      }
+    }
+  };
+
+  verificarPerfilAdmin();
+}, [user]);
 
   // useEffect que controla la carga de datos administrativos
   useEffect(() => {
@@ -775,23 +807,25 @@ const renderCambiosPropuestos = (publicacion) => {
               />
             )}
             
-            {/* Botones de Perfil Público */}
+            {/* Botones de Perfil Público - MOSTRAR PARA TODOS LOS USUARIOS */}
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => navigate('/mi-perfil/editar')}
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
               >
                 <FaEdit />
-                Modificar Perfil Público
+                {perfilExistente ? 'Modificar Perfil Público' : 'Crear Perfil Público'}
               </button>
               
-              <button
-                onClick={() => navigate(`/perfil/${user._id}`)}
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
-              >
-                <AiOutlineUser />
-                Ver Perfil Público
-              </button>
+              {perfilExistente && perfilPublico && (
+                <button
+                  onClick={() => navigate(`/perfil/${user._id}`)}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <AiOutlineUser />
+                  Ver Perfil Público
+                </button>
+              )}
             </div>
 
             <button
