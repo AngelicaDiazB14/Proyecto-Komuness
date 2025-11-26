@@ -388,50 +388,69 @@ export const PerfilUsuario = () => {
 
   // ✅ CAMBIO: ahora soporta Admin (1), Básico (2) y Premium (3)
   const actualizarMembresia = async (id, opcion) => {
-    let tipoUsuario = 2;
-    let plan;
+    const token = localStorage.getItem("token");
 
-    if (opcion === "admin") {
-      tipoUsuario = 1;
-    } else if (opcion === "basico") {
-      tipoUsuario = 2;
-    } else if (opcion === "premium_mensual") {
-      tipoUsuario = 3;
-      plan = "mensual";
-    } else if (opcion === "premium_anual") {
-      tipoUsuario = 3;
-      plan = "anual";
-    }
+    const promesa = (async () => {
+      // ✅ ADMIN: usar el endpoint que ya sabes que funciona (versión vieja)
+      if (opcion === "admin") {
+        const res = await fetch(`${API_URL}/usuario/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ tipoUsuario: 1 }),
+        });
 
-    const body = tipoUsuario === 3 ? { tipoUsuario, plan } : { tipoUsuario };
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(payload?.message || `Error ${res.status}`);
+        return payload?.data ?? payload;
+      }
 
-    const promesa = fetch(`${API_URL}/usuario/${id}/membresia`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(body),
-    });
+      // ✅ BÁSICO / PREMIUM: usar /membresia
+      let tipoUsuario = 2;
+      let plan;
+
+      if (opcion === "basico") {
+        tipoUsuario = 2;
+      } else if (opcion === "premium_mensual") {
+        tipoUsuario = 3;
+        plan = "mensual";
+      } else if (opcion === "premium_anual") {
+        tipoUsuario = 3;
+        plan = "anual";
+      }
+
+      const body = tipoUsuario === 3 ? { tipoUsuario, plan } : { tipoUsuario };
+
+      const res = await fetch(`${API_URL}/usuario/${id}/membresia`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.message || `Error ${res.status}`);
+      return payload?.data ?? payload;
+    })();
 
     toast.promise(promesa, {
       loading: "Actualizando tipo de usuario...",
       success: "Tipo de usuario actualizado",
-      error: "Error al actualizar tipo de usuario",
+      error: (e) => e.message || "Error al actualizar tipo de usuario",
     });
 
     try {
-      const response = await promesa;
-      const payload = await response.json();
-      const usuarioActualizado = payload?.data || payload;
-
-      setUsuarios((prev) =>
-        prev.map((u) => (u._id === id ? usuarioActualizado : u))
-      );
-    } catch (error) {
-      console.error("Error al actualizar membresía:", error);
+      const usuarioActualizado = await promesa;
+      setUsuarios((prev) => prev.map((u) => (u._id === id ? usuarioActualizado : u)));
+    } catch (e) {
+      console.error(e);
     }
   };
+
 
   const [searchTerm, setSearchTerm] = useState("");
 
