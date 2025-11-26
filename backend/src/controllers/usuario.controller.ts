@@ -6,8 +6,6 @@ import { hashPassword, comparePassword } from '../utils/bcryptjs';
 import { createTransport } from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
-//const nodemailer = require('nodemailer');
-
 
 // Controlador para crear un usuario
 export const createUsuario = async (req: Request, res: Response): Promise<void> => {
@@ -52,7 +50,6 @@ export const getUsuarios = async (req: Request, res: Response): Promise<void> =>
     }
 };
 
-
 // Controlador para obtener un usuario por su id
 export const getUsuarioById = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -96,7 +93,7 @@ export const deleteUsuario = async (req: Request, res: Response): Promise<void> 
 };
 
 /**
- * 
+ *
  * loginUsuario: realiza el login de un usuario y devuelve un token
  * @param req: Request
  * @param res: Response
@@ -135,23 +132,16 @@ export const loginUsuario = async (req: Request, res: Response): Promise<void> =
 
         //si es exitoso, generamos un token y lo devolvemos en la cookie
         const token = generarToken(usuario);
-        // res.cookie('token',
-        //     token,
-        //     {
-        //         httpOnly: true,
-        //         secure: process.env.NODE_ENV === "production",
-        //     }
-        // );
         res.status(200).json({ token, message: 'Login exitoso', user: usuario });
     } catch (error) {
         const err = error as Error;
         console.log(err);
         res.status(500).json({ message: err.message });
     }
-}
+};
 
 /**
- * 
+ *
  * registerUsuario: registra un usuario en la base de datos
  * @param req: Request
  * @param res: Response
@@ -183,7 +173,7 @@ export const registerUsuario = async (req: Request, res: Response): Promise<void
         console.log(err);
         res.status(500).json({ message: err.message });
     }
-}
+};
 
 /**
  * checkAuth: verifica si el usuario esta autenticado en la aplicacion
@@ -267,13 +257,12 @@ export const checkAuth = async (req: Request, res: Response): Promise<void> => {
         console.log(err);
         res.status(500).json({ message: err.message });
     }
-}
+};
 
 export async function enviarCorreoRecuperacion(req: Request, res: Response): Promise<void> {
-
     const { email } = req.body;
 
-    // setup del transporter de nodemailer para enviar correos 
+    // setup del transporter de nodemailer para enviar correos
     const transporter = createTransport({
         service: 'zoho',
         host: 'smtp.zoho.com',
@@ -387,7 +376,7 @@ export const actualizarVencimientoPremium = async (req: Request, res: Response):
 
         const usuario = await modelUsuario.findByIdAndUpdate(
             id,
-            { 
+            {
                 fechaVencimientoPremium: new Date(fechaVencimientoPremium),
                 tipoUsuario: 3 // Asegurar que sea premium
             },
@@ -417,21 +406,29 @@ export const actualizarVencimientoPremium = async (req: Request, res: Response):
 };
 
 /**
- * Admin: Cambiar membresía (tipoUsuario 2=básico, 3=premium) con cálculo automático de vencimiento (30/365)
- * Body:
- *  - tipoUsuario: 2 | 3
- *  - plan?: "mensual" | "anual"   (solo si tipoUsuario=3, default mensual)
+ * ✅ CAMBIO CLAVE:
+ * Admin/Superadmin: Cambiar tipoUsuario a 1,2,3
+ * - 1=admin (limpia premium)
+ * - 2=básico (limpia premium)
+ * - 3=premium (requiere plan mensual/anual o default mensual; calcula vencimiento 30/365)
+ *
+ * Seguridad:
+ * - Un admin (1) NO puede modificar a otro admin (1) ni al superadmin (0).
+ * - Solo el superadmin (0) puede modificar admins o al superadmin.
  */
 export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
         const { tipoUsuario, plan } = req.body;
 
+        const authReq = req as any;
+        const actorTipoUsuario = Number(authReq?.user?.tipoUsuario);
+
         const tipo = Number(tipoUsuario);
-        if (![2, 3].includes(tipo)) {
+        if (![1, 2, 3].includes(tipo)) {
             res.status(400).json({
                 success: false,
-                message: 'tipoUsuario debe ser 2 (básico) o 3 (premium)'
+                message: 'tipoUsuario debe ser 1 (admin), 2 (básico) o 3 (premium)'
             });
             return;
         }
@@ -442,20 +439,52 @@ export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Respons
             return;
         }
 
-        // Seguridad extra: no permitir tocar superadmin/admin desde este endpoint
-        if (usuarioActual.tipoUsuario === 0 || usuarioActual.tipoUsuario === 1) {
-            res.status(400).json({
+        // ✅ Protecciones por rol:
+        // Si target es superadmin (0), solo superadmin puede tocarlo
+        if (usuarioActual.tipoUsuario === 0 && actorTipoUsuario !== 0) {
+            res.status(403).json({
                 success: false,
-                message: 'Este endpoint es solo para membresía (usuarios 2/3). No modifica admins.'
+                message: 'No autorizado: solo el superadmin puede modificar a otro superadmin'
             });
             return;
         }
 
-        // Pasar a básico
+        // Si actor es admin (1), no puede tocar admins/superadmin
+        if (actorTipoUsuario === 1 && (usuarioActual.tipoUsuario === 0 || usuarioActual.tipoUsuario === 1)) {
+            res.status(403).json({
+                success: false,
+                message: 'No autorizado: un admin no puede modificar a otro admin/superadmin'
+            });
+            return;
+        }
+
+        // Helpers
+        const limpiarPremium = {
+            plan: null,
+            fechaVencimientoPremium: null
+        };
+
+        // ✅ Pasar a ADMIN
+        if (tipo === 1) {
+            const actualizado = await modelUsuario.findByIdAndUpdate(
+                id,
+                { tipoUsuario: 1, ...limpiarPremium },
+                { new: true }
+            ).select('-password');
+
+            res.status(200).json({
+                success: true,
+                message: 'Usuario actualizado a Admin',
+                data: actualizado
+            });
+            return;
+        }
+
+        // ✅ Pasar a BÁSICO
         if (tipo === 2) {
             const actualizado = await modelUsuario.findByIdAndUpdate(
                 id,
-                { tipoUsuario: 2, fechaVencimientoPremium: null },
+                { tipoUsuario: 2, ...limpiarPremium },
                 { new: true }
             ).select('-password');
 
@@ -467,7 +496,7 @@ export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Respons
             return;
         }
 
-        // Pasar a premium + calcular vencimiento
+        // ✅ Pasar a PREMIUM + calcular vencimiento
         const rawPlan = String(plan || 'mensual').toLowerCase().trim();
         const planOk = rawPlan === 'anual' ? 'anual' : 'mensual';
         const dias = planOk === 'anual' ? 365 : 30;
@@ -484,7 +513,11 @@ export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Respons
 
         const actualizado = await modelUsuario.findByIdAndUpdate(
             id,
-            { tipoUsuario: 3, fechaVencimientoPremium: nuevaFechaVencimientoPremium },
+            {
+                tipoUsuario: 3,
+                plan: planOk,
+                fechaVencimientoPremium: nuevaFechaVencimientoPremium
+            },
             { new: true }
         ).select('-password');
 
@@ -500,7 +533,6 @@ export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Respons
         res.status(500).json({ success: false, message: err.message });
     }
 };
-
 
 // Activar premium para el usuario actualmente autenticado
 export const activarPremiumActual = async (req: Request, res: Response): Promise<void> => {
@@ -543,7 +575,7 @@ export const activarPremiumActual = async (req: Request, res: Response): Promise
 
         const usuario = await modelUsuario.findByIdAndUpdate(
             loggedUserId,
-            { tipoUsuario: 3, fechaVencimientoPremium: nuevaFechaVencimientoPremium },
+            { tipoUsuario: 3, plan, fechaVencimientoPremium: nuevaFechaVencimientoPremium },
             { new: true }
         ).select('-password');
 

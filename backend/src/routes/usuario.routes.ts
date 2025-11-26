@@ -1,18 +1,18 @@
 import { Router } from 'express';
-import { 
-    createUsuario, 
-    deleteUsuario, 
-    getUsuarioById, 
-    getUsuarios, 
-    updateUsuario, 
-    loginUsuario, 
-    registerUsuario, 
-    checkAuth, 
-    enviarCorreoRecuperacion,
-    actualizarLimiteUsuario,
-    actualizarVencimientoPremium,
-    actualizarMembresiaUsuarioAdmin,
-    activarPremiumActual 
+import {
+  createUsuario,
+  deleteUsuario,
+  getUsuarioById,
+  getUsuarios,
+  updateUsuario,
+  loginUsuario,
+  registerUsuario,
+  checkAuth,
+  enviarCorreoRecuperacion,
+  actualizarLimiteUsuario,
+  actualizarVencimientoPremium,
+  actualizarMembresiaUsuarioAdmin,
+  activarPremiumActual
 } from '../controllers/usuario.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { verificarRoles } from '../middlewares/roles.middleware';
@@ -27,9 +27,9 @@ router.post('/login', loginUsuario); //login
 router.post('/register', registerUsuario); //register
 
 // ✅ PASO 3 (A): checkAuth pasa por authMiddleware para usar usuario real+aplicar downgrade
-router.get('/check', authMiddleware, checkAuth);// verificar el token
+router.get('/check', authMiddleware, checkAuth); // verificar el token
 
-//los siguientes endpoints son de uso exclusivo para el superadmin = 0
+// los siguientes endpoints son de uso exclusivo para el superadmin = 0
 router.post('/', authMiddleware, verificarRoles([0]), createUsuario); //create
 router.get('/', authMiddleware, verificarRoles([0, 1]), getUsuarios); //read
 
@@ -39,7 +39,8 @@ router.delete('/:id', authMiddleware, verificarRoles([0]), deleteUsuario); //del
 // Endpoints para administradores: gestión de límites y premium
 router.put('/:id/limite', authMiddleware, verificarRoles([0, 1]), actualizarLimiteUsuario); // Actualizar límite personalizado
 router.put('/:id/premium-vencimiento', authMiddleware, verificarRoles([0, 1]), actualizarVencimientoPremium); // Actualizar vencimiento premium
-// Endpoints de admins: cambiar membresía 2<->3 con cálculo automático (30/365)
+
+// Endpoints de admins/superadmin: cambiar tipoUsuario (ahora 1/2/3) con cálculo automático en premium
 router.put('/:id/membresia', authMiddleware, verificarRoles([0, 1]), actualizarMembresiaUsuarioAdmin);
 
 // este endpoint es de uso para cualquier usuario registrado
