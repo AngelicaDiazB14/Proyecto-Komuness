@@ -29,10 +29,8 @@ export const getUsuarios = async (req: Request, res: Response): Promise<void> =>
     const query: any = {};
 
     if (tipoUsuario) {
-        // Convertir a array de números
         const tipos = String(tipoUsuario).split(',').map(Number);
 
-        // Validar que todos sean números
         if (tipos.some(isNaN)) {
             res.status(400).json({
                 success: false,
@@ -45,7 +43,7 @@ export const getUsuarios = async (req: Request, res: Response): Promise<void> =>
     }
 
     try {
-        const usuarios = await modelUsuario.find(query);
+        const usuarios = await modelUsuario.find(query).select('-password');
         res.status(200).json(usuarios);
     } catch (error) {
         const err = error as Error;
@@ -53,6 +51,7 @@ export const getUsuarios = async (req: Request, res: Response): Promise<void> =>
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
 
 // Controlador para obtener un usuario por su id
 export const getUsuarioById = async (req: Request, res: Response): Promise<void> => {
@@ -107,7 +106,7 @@ export const loginUsuario = async (req: Request, res: Response): Promise<void> =
     try {
         const { email, password } = req.body;
         //buscamos el usuario en la base de datos
-        const usuario = await modelUsuario.findOne({ email });
+        let usuario: any = await modelUsuario.findOne({ email });
         if (!usuario) {
             res.status(401).json({ message: 'Usuario no encontrado' });
             return;
@@ -118,6 +117,22 @@ export const loginUsuario = async (req: Request, res: Response): Promise<void> =
             res.status(401).json({ message: 'Contraseña incorrecta' });
             return;
         }
+
+        // ✅ PASO 3 (A): si el usuario tiene premium vencido, lo bajamos antes de generar token/retornar user
+        const ahora = new Date();
+        const fecha = usuario.fechaVencimientoPremium ? new Date(usuario.fechaVencimientoPremium) : null;
+        const fechaValida = !!fecha && !isNaN(fecha.getTime());
+        const premiumVencido = usuario.tipoUsuario === 3 && fechaValida && fecha <= ahora;
+
+        if (premiumVencido) {
+            const actualizado = await modelUsuario.findByIdAndUpdate(
+                usuario._id,
+                { tipoUsuario: 2 },
+                { new: true }
+            );
+            if (actualizado) usuario = actualizado;
+        }
+
         //si es exitoso, generamos un token y lo devolvemos en la cookie
         const token = generarToken(usuario);
         // res.cookie('token',
@@ -178,6 +193,14 @@ export const registerUsuario = async (req: Request, res: Response): Promise<void
  */
 export const checkAuth = async (req: Request, res: Response): Promise<void> => {
     try {
+        // ✅ Si la ruta pasó por authMiddleware, ya viene el usuario real (con downgrade aplicado)
+        const authReq = req as any;
+        if (authReq.user) {
+            res.status(200).json({ message: 'Autorizado', user: authReq.user });
+            return;
+        }
+
+        // Fallback: si por alguna razón llaman checkAuth sin middleware, hacemos la validación aquí
         const header = req.headers.authorization;
         if (!header || !header.startsWith('Bearer ')) {
             res.status(401).json({ message: 'No provee Bearer header' });
@@ -203,7 +226,42 @@ export const checkAuth = async (req: Request, res: Response): Promise<void> => {
             res.status(401).json({ message: 'No autorizado' });
             return;
         }
-        res.status(200).json({ message: 'Autorizado', user: status.usuario });
+
+        // ✅ PASO 3 (A) también aquí: usar BD y aplicar downgrade si venció
+        const tokenUser: any = status.usuario;
+        const loggedUserId =
+            tokenUser?._id?.toString?.() ||
+            tokenUser?._id ||
+            tokenUser?.id ||
+            tokenUser?.userId;
+
+        if (!loggedUserId) {
+            res.status(401).json({ message: 'No autorizado (sin id de usuario)' });
+            return;
+        }
+
+        const usuarioDb: any = await modelUsuario.findById(loggedUserId);
+        if (!usuarioDb) {
+            res.status(401).json({ message: 'No autorizado (usuario no existe)' });
+            return;
+        }
+
+        const ahora = new Date();
+        const fecha = usuarioDb.fechaVencimientoPremium ? new Date(usuarioDb.fechaVencimientoPremium) : null;
+        const fechaValida = !!fecha && !isNaN(fecha.getTime());
+        const premiumVencido = usuarioDb.tipoUsuario === 3 && fechaValida && fecha <= ahora;
+
+        let usuarioFinal: any = usuarioDb;
+        if (premiumVencido) {
+            const actualizado = await modelUsuario.findByIdAndUpdate(
+                loggedUserId,
+                { tipoUsuario: 2 },
+                { new: true }
+            );
+            if (actualizado) usuarioFinal = actualizado;
+        }
+
+        res.status(200).json({ message: 'Autorizado', user: usuarioFinal });
     } catch (error) {
         const err = error as Error;
         console.log(err);
@@ -358,6 +416,92 @@ export const actualizarVencimientoPremium = async (req: Request, res: Response):
     }
 };
 
+/**
+ * Admin: Cambiar membresía (tipoUsuario 2=básico, 3=premium) con cálculo automático de vencimiento (30/365)
+ * Body:
+ *  - tipoUsuario: 2 | 3
+ *  - plan?: "mensual" | "anual"   (solo si tipoUsuario=3, default mensual)
+ */
+export const actualizarMembresiaUsuarioAdmin = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { tipoUsuario, plan } = req.body;
+
+        const tipo = Number(tipoUsuario);
+        if (![2, 3].includes(tipo)) {
+            res.status(400).json({
+                success: false,
+                message: 'tipoUsuario debe ser 2 (básico) o 3 (premium)'
+            });
+            return;
+        }
+
+        const usuarioActual: any = await modelUsuario.findById(id).select('-password');
+        if (!usuarioActual) {
+            res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+            return;
+        }
+
+        // Seguridad extra: no permitir tocar superadmin/admin desde este endpoint
+        if (usuarioActual.tipoUsuario === 0 || usuarioActual.tipoUsuario === 1) {
+            res.status(400).json({
+                success: false,
+                message: 'Este endpoint es solo para membresía (usuarios 2/3). No modifica admins.'
+            });
+            return;
+        }
+
+        // Pasar a básico
+        if (tipo === 2) {
+            const actualizado = await modelUsuario.findByIdAndUpdate(
+                id,
+                { tipoUsuario: 2, fechaVencimientoPremium: null },
+                { new: true }
+            ).select('-password');
+
+            res.status(200).json({
+                success: true,
+                message: 'Usuario actualizado a Básico',
+                data: actualizado
+            });
+            return;
+        }
+
+        // Pasar a premium + calcular vencimiento
+        const rawPlan = String(plan || 'mensual').toLowerCase().trim();
+        const planOk = rawPlan === 'anual' ? 'anual' : 'mensual';
+        const dias = planOk === 'anual' ? 365 : 30;
+
+        const ahora = new Date();
+        const fechaExistente = usuarioActual.fechaVencimientoPremium ? new Date(usuarioActual.fechaVencimientoPremium) : null;
+        const base =
+            (fechaExistente && !isNaN(fechaExistente.getTime()) && fechaExistente > ahora)
+                ? fechaExistente
+                : ahora;
+
+        const nuevaFechaVencimientoPremium = new Date(base);
+        nuevaFechaVencimientoPremium.setDate(nuevaFechaVencimientoPremium.getDate() + dias);
+
+        const actualizado = await modelUsuario.findByIdAndUpdate(
+            id,
+            { tipoUsuario: 3, fechaVencimientoPremium: nuevaFechaVencimientoPremium },
+            { new: true }
+        ).select('-password');
+
+        res.status(200).json({
+            success: true,
+            message: 'Usuario actualizado a Premium',
+            plan: planOk,
+            fechaVencimientoPremium: actualizado?.fechaVencimientoPremium,
+            data: actualizado
+        });
+    } catch (error) {
+        const err = error as Error;
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+
 // Activar premium para el usuario actualmente autenticado
 export const activarPremiumActual = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -376,9 +520,30 @@ export const activarPremiumActual = async (req: Request, res: Response): Promise
             return;
         }
 
+        // PASO 3: cálculo automático de vencimiento (30 días mensual, 365 días anual)
+        const rawPlan = String((req as any).body?.plan || 'mensual').toLowerCase().trim();
+        const plan = rawPlan === 'anual' ? 'anual' : 'mensual';
+        const dias = plan === 'anual' ? 365 : 30;
+
+        // Si ya tenía vencimiento vigente, extendemos desde esa fecha; si no, desde hoy
+        const usuarioActual = await modelUsuario.findById(loggedUserId).select('fechaVencimientoPremium');
+        if (!usuarioActual) {
+            res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado',
+            });
+            return;
+        }
+
+        const ahora = new Date();
+        const fechaExistente = usuarioActual.fechaVencimientoPremium ? new Date(usuarioActual.fechaVencimientoPremium) : null;
+        const base = (fechaExistente && !isNaN(fechaExistente.getTime()) && fechaExistente > ahora) ? fechaExistente : ahora;
+        const nuevaFechaVencimientoPremium = new Date(base);
+        nuevaFechaVencimientoPremium.setDate(nuevaFechaVencimientoPremium.getDate() + dias);
+
         const usuario = await modelUsuario.findByIdAndUpdate(
             loggedUserId,
-            { tipoUsuario: 3 }, 
+            { tipoUsuario: 3, fechaVencimientoPremium: nuevaFechaVencimientoPremium },
             { new: true }
         ).select('-password');
 
@@ -393,6 +558,8 @@ export const activarPremiumActual = async (req: Request, res: Response): Promise
         res.status(200).json({
             success: true,
             message: 'Usuario actualizado a Premium',
+            plan,
+            fechaVencimientoPremium: usuario.fechaVencimientoPremium,
             data: usuario,
         });
     } catch (error) {
