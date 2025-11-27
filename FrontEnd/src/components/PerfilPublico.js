@@ -6,9 +6,9 @@ import {
   FaPhone, FaEnvelope, FaMapMarkerAlt, FaLinkedin, FaTwitter, 
   FaInstagram, FaFacebook, FaDownload, FaMoon, FaSun, FaCheck, 
   FaStar, FaAward, FaBriefcase, FaGraduationCap, FaUser,
-  FaProjectDiagram, FaGlobe
+  FaProjectDiagram, FaGlobe, FaCalendarAlt
 } from 'react-icons/fa';
-import { AiOutlineUser, AiOutlinePhone, AiOutlineEnvironment } from 'react-icons/ai';
+import { AiOutlineUser, AiOutlinePhone, AiOutlineEnvironment, AiOutlineMail } from 'react-icons/ai';
 
 const PerfilPublico = () => {
   const { id } = useParams();
@@ -73,294 +73,295 @@ const PerfilPublico = () => {
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
-      <div className="container mx-auto px-4 py-8">
-        {/* Botón Dark Mode */}
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            {isDarkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-gray-600" />}
-          </button>
-        </div>
+    <div className={`perfil-publico-wrapper ${isDarkMode ? "dark-mode" : "light-mode"}`}>
+      {/* Header Principal */}
+      <header className="perfil-header">
+        <div className="perfil-header-content">
+          {/* Botón Dark Mode */}
+          <div className="dark-mode-toggle">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="theme-toggle-btn"
+              aria-label="Cambiar modo oscuro/claro"
+            >
+              {isDarkMode ? <FaSun className="theme-icon" /> : <FaMoon className="theme-icon" />}
+            </button>
+          </div>
 
-        {/* Header con foto y nombre */}
-        <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
-          {perfil.fotoPerfil ? (
-            <img 
-              src={`${BASE_URL}${perfil.fotoPerfil}`} 
-              alt={`${perfil.nombre} ${perfil.apellidos}`}
-              className="w-48 h-48 rounded-full object-cover shadow-lg border-4 border-white dark:border-gray-700"
-            />
-          ) : (
-            <div className="w-48 h-48 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-lg">
-              <FaUser className="text-6xl text-gray-400" />
+          {/* Información Principal */}
+          <div className="perfil-info-main">
+            <div className="perfil-avatar-section">
+              {perfil.fotoPerfil ? (
+                <img 
+                  src={`${BASE_URL}${perfil.fotoPerfil}`} 
+                  alt={`${perfil.nombre} ${perfil.apellidos}`}
+                  className="perfil-avatar"
+                />
+              ) : (
+                <div className="perfil-avatar-placeholder">
+                  <FaUser className="avatar-icon" />
+                </div>
+              )}
             </div>
-          )}
-          
-          <div>
-            <h1 className="text-4xl font-bold mb-2">
-              {perfil.nombre} {perfil.apellidos}
-            </h1>
-            {perfil.titulo && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl text-gray-600 dark:text-gray-300">{perfil.titulo}</span>
-                {perfil.perfilPublico && <FaCheck className="text-green-500" />}
-              </div>
-            )}
             
-            {perfil.ocupacionPrincipal && !perfil.titulo && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl text-gray-600 dark:text-gray-300">{perfil.ocupacionPrincipal}</span>
-                {perfil.perfilPublico && <FaCheck className="text-green-500" />}
-              </div>
-            )}
-
-            <div className="flex gap-4 flex-wrap">
-              {perfil.correoSecundario && (
-                <a 
-                  href={`mailto:${perfil.correoSecundario}`}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
-                >
-                  Contactar
-                </a>
+            <div className="perfil-basic-info">
+              <h1 className="perfil-name">
+                {perfil.nombre} {perfil.apellidos}
+                {perfil.perfilPublico && <FaCheck className="verified-badge" />}
+              </h1>
+              
+              {(perfil.titulo || perfil.ocupacionPrincipal) && (
+                <p className="perfil-title">
+                  {perfil.titulo || perfil.ocupacionPrincipal}
+                </p>
               )}
               
-              {perfil.cvUrl && (
-                <a
-                  href={`${BASE_URL}${perfil.cvUrl}`}
-                  download
-                  className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-6 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <FaDownload /> Descargar CV
-                </a>
+              {perfil.especialidad && (
+                <div className="perfil-specialty">
+                  <span>{perfil.especialidad}</span>
+                </div>
               )}
+
+              {/* Botones de Acción */}
+              <div className="perfil-actions">
+                {perfil.correoSecundario && (
+                  <a 
+                    href={`mailto:${perfil.correoSecundario}`}
+                    className="btn btn-primary"
+                  >
+                    <AiOutlineMail className="btn-icon" />
+                    Contactar
+                  </a>
+                )}
+                
+                {perfil.cvUrl && (
+                  <a
+                    href={`${BASE_URL}${perfil.cvUrl}`}
+                    download
+                    className="btn btn-secondary"
+                  >
+                    <FaDownload className="btn-icon" />
+                    Descargar CV
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Badges/Insignias */}
-        {perfil.habilidades && perfil.habilidades.length > 0 && (
-          <div className="flex flex-wrap gap-4 mb-8">
-            {perfil.habilidades.slice(0, 3).map((habilidad, index) => (
+      {/* Habilidades Destacadas */}
+      {perfil.habilidades && perfil.habilidades.length > 0 && (
+        <section className="skills-showcase">
+          <div className="skills-container">
+            {perfil.habilidades.slice(0, 4).map((habilidad, index) => (
               <div 
                 key={index} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                  index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                  index === 1 ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                }`}
+                className={`skill-badge skill-${index + 1}`}
               >
-                <span className="text-xl">
-                  {index === 0 ? '🏆' : index === 1 ? '⭐' : '🤝'}
+                <span className="skill-icon">
+                  {index === 0 ? '🏆' : index === 1 ? '⭐' : index === 2 ? '🚀' : '💡'}
                 </span>
-                <span className="font-semibold">{habilidad}</span>
+                <span className="skill-name">{habilidad}</span>
               </div>
             ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Grid de información */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <div className="perfil-publico-container">
-            <div className="perfil-completo-grid">
-              {/* Columna izquierda - Información principal */}
-              <div className="perfil-columna-principal">
-                <div className="perfil-card perfil-header-card">
-                  <div className="perfil-foto-container-grande">
-                    {perfil.fotoPerfil ? (
-                      <img 
-                        src={`${BASE_URL}${perfil.fotoPerfil}`} 
-                        alt={`${perfil.nombre} ${perfil.apellidos}`}
-                        className="perfil-foto-grande"
-                      />
-                    ) : (
-                      <AiOutlineUser className="perfil-foto-placeholder-grande" />
-                    )}
-                  </div>
-                  
-                  <h1 className="perfil-nombre-completo">
-                    {perfil.nombre} {perfil.apellidos}
-                  </h1>
-                  
-                  {perfil.titulo && (
-                    <p className="perfil-titulo">{perfil.titulo}</p>
+      {/* Contenido Principal */}
+      <main className="perfil-main-content">
+        <div className="content-grid">
+          {/* Columna Izquierda - Información Personal */}
+          <div className="left-column">
+            {/* Información de Contacto */}
+            {(perfil.telefono || perfil.correoSecundario || perfil.canton || perfil.provincia) && (
+              <div className="info-card contact-info">
+                <h2 className="card-title">
+                  <FaUser className="card-icon" />
+                  Información de Contacto
+                </h2>
+                
+                <div className="contact-list">
+                  {perfil.telefono && (
+                    <div className="contact-item">
+                      <AiOutlinePhone className="contact-icon" />
+                      <span>{perfil.telefono}</span>
+                    </div>
                   )}
                   
-                  {perfil.ocupacionPrincipal && (
-                    <p className="perfil-ocupacion-completo">{perfil.ocupacionPrincipal}</p>
+                  {perfil.correoSecundario && (
+                    <div className="contact-item">
+                      <AiOutlineMail className="contact-icon" />
+                      <a href={`mailto:${perfil.correoSecundario}`}>{perfil.correoSecundario}</a>
+                    </div>
                   )}
                   
-                  {perfil.especialidad && (
-                    <div className="perfil-especialidad-badge">{perfil.especialidad}</div>
-                  )}
-                </div>
-
-                {/* Información de contacto */}
-                {(perfil.telefono || perfil.canton || perfil.provincia) && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Información de Contacto</h2>
-                    
-                    {perfil.telefono && (
-                      <p className="perfil-contacto-item">
-                        <AiOutlinePhone /> {perfil.telefono}
-                      </p>
-                    )}
-                    
-                    {(perfil.canton || perfil.provincia) && (
-                      <p className="perfil-contacto-item">
-                        <AiOutlineEnvironment />
+                  {(perfil.canton || perfil.provincia) && (
+                    <div className="contact-item">
+                      <AiOutlineEnvironment className="contact-icon" />
+                      <span>
                         {perfil.canton && perfil.provincia 
                           ? `${perfil.canton}, ${perfil.provincia}`
                           : perfil.canton || perfil.provincia
                         }
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Redes sociales */}
-                {perfil.redesSociales && Object.values(perfil.redesSociales).some(val => val) && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Redes Sociales</h2>
-                    <div className="perfil-redes-sociales">
-                      {perfil.redesSociales.linkedin && (
-                        <a href={perfil.redesSociales.linkedin} target="_blank" rel="noopener noreferrer" className="red-social-link linkedin">
-                          <FaLinkedin /> LinkedIn
-                        </a>
-                      )}
-                      {perfil.redesSociales.facebook && (
-                        <a href={perfil.redesSociales.facebook} target="_blank" rel="noopener noreferrer" className="red-social-link facebook">
-                          <FaFacebook /> Facebook
-                        </a>
-                      )}
-                      {perfil.redesSociales.instagram && (
-                        <a href={perfil.redesSociales.instagram} target="_blank" rel="noopener noreferrer" className="red-social-link instagram">
-                          <FaInstagram /> Instagram
-                        </a>
-                      )}
-                      {perfil.redesSociales.twitter && (
-                        <a href={perfil.redesSociales.twitter} target="_blank" rel="noopener noreferrer" className="red-social-link twitter">
-                          <FaTwitter /> Twitter
-                        </a>
-                      )}
+                      </span>
                     </div>
-                  </div>
-                )}
-
-                {/* Habilidades */}
-                {perfil.habilidades && perfil.habilidades.length > 0 && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Habilidades</h2>
-                    <div className="perfil-habilidades">
-                      {perfil.habilidades.map((habilidad, index) => (
-                        <span key={index} className="habilidad-badge">{habilidad}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+            )}
 
-              {/* Columna derecha - Experiencia y formación */}
-              <div className="perfil-columna-secundaria">
-                {/* Formación académica */}
-                {perfil.formacionAcademica && perfil.formacionAcademica.length > 0 && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">
-                      <FaGraduationCap /> Formación Académica
-                    </h2>
-                    <div className="timeline">
-                      {perfil.formacionAcademica.map((formacion, index) => (
-                        <div key={index} className="timeline-item">
-                          <div className="timeline-period">
-                            {formacion.añoInicio} - {formacion.añoFin || 'Presente'}
-                          </div>
-                          <h3 className="timeline-title">{formacion.titulo}</h3>
-                          <p className="timeline-institution">{formacion.institucion}</p>
-                        </div>
-                      ))}
+            {/* Redes Sociales */}
+            {perfil.redesSociales && Object.values(perfil.redesSociales).some(val => val) && (
+              <div className="info-card social-info">
+                <h2 className="card-title">Redes Sociales</h2>
+                <div className="social-links">
+                  {perfil.redesSociales.linkedin && (
+                    <a href={perfil.redesSociales.linkedin} target="_blank" rel="noopener noreferrer" className="social-link linkedin">
+                      <FaLinkedin className="social-icon" />
+                      <span>LinkedIn</span>
+                    </a>
+                  )}
+                  {perfil.redesSociales.twitter && (
+                    <a href={perfil.redesSociales.twitter} target="_blank" rel="noopener noreferrer" className="social-link twitter">
+                      <FaTwitter className="social-icon" />
+                      <span>Twitter</span>
+                    </a>
+                  )}
+                  {perfil.redesSociales.instagram && (
+                    <a href={perfil.redesSociales.instagram} target="_blank" rel="noopener noreferrer" className="social-link instagram">
+                      <FaInstagram className="social-icon" />
+                      <span>Instagram</span>
+                    </a>
+                  )}
+                  {perfil.redesSociales.facebook && (
+                    <a href={perfil.redesSociales.facebook} target="_blank" rel="noopener noreferrer" className="social-link facebook">
+                      <FaFacebook className="social-icon" />
+                      <span>Facebook</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Habilidades */}
+            {perfil.habilidades && perfil.habilidades.length > 0 && (
+              <div className="info-card skills-info">
+                <h2 className="card-title">Habilidades</h2>
+                <div className="skills-grid">
+                  {perfil.habilidades.map((habilidad, index) => (
+                    <span key={index} className="skill-tag">{habilidad}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Columna Derecha - Experiencia y Formación */}
+          <div className="right-column">
+            {/* Formación Académica */}
+            {perfil.formacionAcademica && perfil.formacionAcademica.length > 0 && (
+              <div className="info-card education-info">
+                <h2 className="card-title">
+                  <FaGraduationCap className="card-icon" />
+                  Formación Académica
+                </h2>
+                <div className="timeline">
+                  {perfil.formacionAcademica.map((formacion, index) => (
+                    <div key={index} className="timeline-item">
+                      <div className="timeline-period">
+                        <FaCalendarAlt className="period-icon" />
+                        {formacion.añoInicio} - {formacion.añoFin || 'Presente'}
+                      </div>
+                      <h3 className="timeline-title">{formacion.titulo}</h3>
+                      <p className="timeline-institution">{formacion.institucion}</p>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {/* Experiencia laboral */}
-                {perfil.experienciaLaboral && perfil.experienciaLaboral.length > 0 && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">
-                      <FaBriefcase /> Experiencia Laboral
-                    </h2>
-                    <div className="timeline">
-                      {perfil.experienciaLaboral.map((experiencia, index) => (
-                        <div key={index} className="timeline-item">
-                          <div className="timeline-period">
-                            {experiencia.añoInicio} - {experiencia.añoFin || 'Presente'}
-                          </div>
-                          <h3 className="timeline-title">{experiencia.cargo}</h3>
-                          <p className="timeline-institution">{experiencia.empresa}</p>
-                          {experiencia.descripcion && (
-                            <p className="timeline-description">{experiencia.descripcion}</p>
-                          )}
-                        </div>
-                      ))}
+            {/* Experiencia Laboral */}
+            {perfil.experienciaLaboral && perfil.experienciaLaboral.length > 0 && (
+              <div className="info-card experience-info">
+                <h2 className="card-title">
+                  <FaBriefcase className="card-icon" />
+                  Experiencia Laboral
+                </h2>
+                <div className="timeline">
+                  {perfil.experienciaLaboral.map((experiencia, index) => (
+                    <div key={index} className="timeline-item">
+                      <div className="timeline-period">
+                        <FaCalendarAlt className="period-icon" />
+                        {experiencia.añoInicio} - {experiencia.añoFin || 'Presente'}
+                      </div>
+                      <h3 className="timeline-title">{experiencia.cargo}</h3>
+                      <p className="timeline-institution">{experiencia.empresa}</p>
+                      {experiencia.descripcion && (
+                        <p className="timeline-description">{experiencia.descripcion}</p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {/* Proyectos */}
-                {perfil.proyectos && perfil.proyectos.length > 0 && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Proyectos</h2>
-                    <div className="proyectos-lista">
-                      {perfil.proyectos.map((proyecto, index) => (
-                        <div key={index} className="proyecto-item">
-                          <h3 className="proyecto-nombre">
-                            <a href={proyecto.url} target="_blank" rel="noopener noreferrer">
-                              {proyecto.nombre}
-                            </a>
-                          </h3>
-                          {proyecto.descripcion && (
-                            <p className="proyecto-descripcion">{proyecto.descripcion}</p>
-                          )}
-                        </div>
-                      ))}
+            {/* Proyectos */}
+            {perfil.proyectos && perfil.proyectos.length > 0 && (
+              <div className="info-card projects-info">
+                <h2 className="card-title">
+                  <FaProjectDiagram className="card-icon" />
+                  Proyectos Destacados
+                </h2>
+                <div className="projects-grid">
+                  {perfil.proyectos.map((proyecto, index) => (
+                    <div key={index} className="project-card">
+                      <h3 className="project-name">
+                        <a href={proyecto.url} target="_blank" rel="noopener noreferrer">
+                          {proyecto.nombre}
+                        </a>
+                      </h3>
+                      {proyecto.descripcion && (
+                        <p className="project-description">{proyecto.descripcion}</p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {/* Portafolio */}
+            {/* Portafolio y CV */}
+            <div className="info-card links-info">
+              <h2 className="card-title">Enlaces</h2>
+              <div className="links-grid">
                 {perfil.urlPortafolio && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Portafolio</h2>
-                    <a 
-                      href={perfil.urlPortafolio} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn-portafolio"
-                    >
-                      Ver portafolio completo
-                    </a>
-                  </div>
+                  <a 
+                    href={perfil.urlPortafolio} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="link-card portfolio-link"
+                  >
+                    <FaGlobe className="link-icon" />
+                    <span>Ver Portafolio</span>
+                  </a>
                 )}
-
-                {/* CV descargable */}
+                
                 {perfil.cvUrl && (
-                  <div className="perfil-card">
-                    <h2 className="perfil-section-title">Currículum Vitae</h2>
-                    <a 
-                      href={`${BASE_URL}${perfil.cvUrl}`} 
-                      download
-                      className="btn-descargar-cv"
-                    >
-                      Descargar CV
-                    </a>
-                  </div>
+                  <a 
+                    href={`${BASE_URL}${perfil.cvUrl}`} 
+                    download
+                    className="link-card cv-link"
+                  >
+                    <FaDownload className="link-icon" />
+                    <span>Descargar CV</span>
+                  </a>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
