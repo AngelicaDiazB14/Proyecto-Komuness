@@ -24,6 +24,15 @@ const CheckoutPremium = () => {
   const [procesando, setProcesando] = useState(false);
   const [reintentos, setReintentos] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [metodoPago, setMetodoPago] = useState('paypal');
+
+  const cambiarMetodoPago = (metodo) => {
+    if (procesando) return;
+    setMetodoPago(metodo);
+    // limpiar estado de PayPal por si venías de un error
+    setErrorMessage('');
+    setReintentos(0);
+  };
 
   const planes = {
     mensual: {
@@ -73,75 +82,32 @@ const CheckoutPremium = () => {
       // Resetear estados
       setErrorMessage('');
       setReintentos(0);
+
+      // 👉 Marcamos que empezó el procesamiento del pago
       setProcesando(true);
 
-      // Capturar la orden en PayPal (lo hace el backend, aquí solo registramos)
-      // await actions.order.capture();
+      const details = await actions.order.capture();
+      console.log('Pago completado:', details);
 
-      // Llamar al backend para registrar el pago
-      const response = await fetch(`${API_URL}/paypal/capture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+      toast.success('✅ Pago realizado con éxito. Activando Premium...', {
+        duration: 5000,
+        icon: '🎉',
+        style: {
+          background: "#D1FAE5",
+          color: "#065F46",
+          border: "2px solid #10B981",
+          fontWeight: "600",
         },
-        body: JSON.stringify({
-          orderId: data.orderID,
-        }),
       });
 
-      const result = await response.json();
+      // --- marcar premium en backend ---
+      const user = JSON.parse(localStorage.getItem('user'));
+      const token = user?.token;
 
-      if (!response.ok) {
-        // Extraer información del error
-        const userMessage = result.message || 'Error al procesar el pago';
-        const attempts = result.attempts || 1;
-
-        // Actualizar estados
-        setErrorMessage(userMessage);
-        setReintentos(attempts);
-
-        // Mostrar toast con el mensaje específico y animación
-        toast.error(userMessage, {
-          duration: 6000,
-          icon: '⚠️',
-          style: {
-            background: '#FEE2E2',
-            color: '#991B1B',
-            border: '2px solid #F87171',
-            fontWeight: '600',
-          },
-        });
-
+      if (!token) {
+        console.warn('No hay token en localStorage, no se puede activar premium en backend');
         setProcesando(false);
         return;
-      }
-
-      // Pago exitoso
-      const attempts = result.attempts || 1;
-
-      if (attempts > 1) {
-        toast.success(`¡Pago completado después de ${attempts} intentos! 🎉`, {
-          duration: 5000,
-          icon: '✨',
-          style: {
-            background: '#D1FAE5',
-            color: '#065F46',
-            border: '2px solid #34D399',
-            fontWeight: '600',
-          },
-        });
-      } else {
-        toast.success('¡Felicidades! Ahora eres usuario Premium 🎉', {
-          duration: 5000,
-          icon: '🎉',
-          style: {
-            background: '#D1FAE5',
-            color: '#065F46',
-            border: '2px solid #34D399',
-            fontWeight: '600',
-          },
-        });
       }
 
       // 👉 Actualizar el usuario actual a Premium en el backend (dinámico según token)
@@ -152,6 +118,8 @@ const CheckoutPremium = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
+          // PASO 3: enviar plan para que el backend calcule fechaVencimientoPremium (30 días mensual / 365 días anual)
+          body: JSON.stringify({ plan: planSeleccionado || 'mensual' }),
         });
 
         const premiumData = await resPremium.json();
@@ -188,8 +156,37 @@ const CheckoutPremium = () => {
 
   const onError = (err) => {
     console.error('Error en PayPal:', err);
-    toast.error('Error al procesar el pago. Intenta de nuevo.');
+
     setProcesando(false);
+
+    // Incrementar contador de reintentos
+    setReintentos(prev => prev + 1);
+
+    // Mensajes de error más específicos
+    let userMessage = 'Error al procesar el pago.';
+
+    if (err?.message?.includes('insufficient_funds')) {
+      userMessage = 'Fondos insuficientes. Verifica tu método de pago.';
+    } else if (err?.message?.includes('network')) {
+      userMessage = 'Error de conexión. Verifica tu internet.';
+    } else if (err?.message?.includes('timeout')) {
+      userMessage = 'Tiempo de espera agotado. Intenta nuevamente.';
+    } else if (err?.message?.includes('paypal')) {
+      userMessage = 'Error en PayPal. Intenta con otro método de pago.';
+    }
+
+    setErrorMessage(userMessage);
+
+    toast.error(userMessage, {
+      duration: 6000,
+      icon: '⚠️',
+      style: {
+        background: '#FEE2E2',
+        color: '#991B1B',
+        border: '2px solid #F87171',
+        fontWeight: '600',
+      },
+    });
   };
 
   const onCancel = () => {
@@ -251,12 +248,17 @@ const CheckoutPremium = () => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Plan Mensual */}
           <div
-            className={`plan-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
+            className={`plan-card bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
               planSeleccionado === 'mensual'
                 ? 'ring-4 ring-blue-500 scale-105 animate-glow'
                 : 'hover:shadow-xl hover:scale-102'
             }`}
-            onClick={() => setPlanSeleccionado('mensual')}
+            onClick={() => {
+              setPlanSeleccionado('mensual');
+              setMetodoPago('paypal');
+              setErrorMessage('');
+              setReintentos(0);
+            }}
           >
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
@@ -272,7 +274,7 @@ const CheckoutPremium = () => {
             </div>
 
             {planSeleccionado === 'mensual' && (
-              <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold mb-4 animate-scale-in">
+              <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold animate-scale-in">
                 <FiCheckCircle size={20} className="animate-pulse" />
                 Plan seleccionado
               </div>
@@ -281,12 +283,17 @@ const CheckoutPremium = () => {
 
           {/* Plan Anual */}
           <div
-            className={`plan-card bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
+            className={`plan-card bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-200 rounded-2xl p-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${
               planSeleccionado === 'anual'
                 ? 'ring-4 ring-yellow-500 scale-105 animate-glow'
                 : 'hover:shadow-xl hover:scale-102'
             }`}
-            onClick={() => setPlanSeleccionado('anual')}
+            onClick={() => {
+              setPlanSeleccionado('anual');
+              setMetodoPago('paypal');
+              setErrorMessage('');
+              setReintentos(0);
+            }}
           >
             {/* Badge */}
             <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 animate-bounce-soft">
@@ -319,7 +326,7 @@ const CheckoutPremium = () => {
           </div>
         </div>
 
-        {/* Botones de PayPal */}
+        {/* Pago */}
         {planSeleccionado && (
           <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
@@ -332,14 +339,74 @@ const CheckoutPremium = () => {
               </span>
             </p>
 
+            {/* Método de pago */}
+            <div className="mb-6">
+              <p className="text-sm font-semibold text-gray-700 mb-3 text-center">
+                Método de pago
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => cambiarMetodoPago('paypal')}
+                  disabled={procesando}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    metodoPago === 'paypal'
+                      ? 'border-yellow-400 bg-yellow-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  } ${procesando ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        metodoPago === 'paypal' ? 'bg-yellow-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      <FiCreditCard className="text-gray-800" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">PayPal</p>
+                      <p className="text-xs text-gray-600">Tarjeta o cuenta PayPal (USD)</p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cambiarMetodoPago('sinpe')}
+                  disabled={procesando}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    metodoPago === 'sinpe'
+                      ? 'border-blue-400 bg-blue-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  } ${procesando ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        metodoPago === 'sinpe' ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      <FiWifi className="text-gray-800" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">SINPE Móvil</p>
+                      <p className="text-xs text-gray-600">
+                        Transferencia (CRC) · Configuración en el paso 2
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {procesando && (
-              <div className="flex flex-col items-center gap-4 mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-lg animate-slide-down">
+              <div className="flex flex-col items-center gap-4 bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-200 shadow-lg animate-slide-down">
                 {/* Spinner animado mejorado */}
                 <div className="relative">
-                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-500"></div>
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <FiCreditCard className="text-yellow-600 animate-pulse" size={24} />
-                  </div>
+                  <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin"></div>
+                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+                  <div className="absolute inset-2 w-12 h-12 border-4 border-transparent border-t-yellow-500 rounded-full animate-spin animate-reverse"></div>
                 </div>
 
                 {/* Mensaje principal */}
@@ -357,26 +424,19 @@ const CheckoutPremium = () => {
                 {reintentos > 0 && (
                   <div className="w-full max-w-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-yellow-700 flex items-center gap-1">
-                        <FiRefreshCw className="animate-spin" />
-                        Reintentando conexión...
+                      <span className="text-xs font-semibold text-gray-700">
+                        Reintentando... ({reintentos}/3)
                       </span>
-                      <span className="text-sm font-bold text-yellow-800">
-                        Intento {reintentos}/3
+                      <span className="text-xs text-gray-600">
+                        {reintentos === 1 ? '1 intento' : `${reintentos} intentos`}
                       </span>
                     </div>
-
-                    {/* Barra de progreso animada */}
-                    <div className="w-full bg-yellow-200 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-yellow-400 to-amber-500 h-3 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1"
-                        style={{ width: `${(reintentos / 3) * 100}%` }}
-                      >
-                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      </div>
+                        className="bg-gradient-to-r from-blue-500 to-yellow-500 h-2 rounded-full transition-all duration-500 animate-pulse"
+                        style={{ width: `${Math.min((reintentos / 3) * 100, 100)}%` }}
+                      ></div>
                     </div>
-
-                    {/* Puntos de progreso */}
                     <div className="flex justify-between mt-2">
                       {[1, 2, 3].map((num) => (
                         <div
@@ -397,11 +457,13 @@ const CheckoutPremium = () => {
                   </div>
                 )}
 
-                {/* Indicador de conexión */}
+                {/* Mensaje adicional */}
                 {reintentos > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-gray-600 animate-pulse">
-                    <FiWifi className="text-blue-500" />
-                    Verificando conexión con PayPal...
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600 flex items-center gap-1 justify-center">
+                      <FiWifi size={14} />
+                      Verificando conexión y reintentando automáticamente...
+                    </p>
                   </div>
                 )}
               </div>
@@ -419,10 +481,10 @@ const CheckoutPremium = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-lg font-bold text-red-900 mb-1">
+                      <h4 className="text-lg font-bold text-red-800 mb-1">
                         Error en el pago
                       </h4>
-                      <p className="text-red-800 font-medium leading-relaxed">
+                      <p className="text-sm text-red-700 font-medium">
                         {errorMessage}
                       </p>
                     </div>
@@ -475,23 +537,50 @@ const CheckoutPremium = () => {
               </div>
             )}
 
-            <div className="max-w-md mx-auto">
-              <PayPalScriptProvider options={paypalOptions}>
-                <PayPalButtons
-                  style={{
-                    layout: 'vertical',
-                    color: 'gold',
-                    shape: 'rect',
-                    label: 'paypal',
-                  }}
-                  createOrder={createOrder}
-                  onApprove={onApprove}
-                  onError={onError}
-                  onCancel={onCancel}
-                  disabled={procesando}
-                />
-              </PayPalScriptProvider>
-            </div>
+            {metodoPago === 'paypal' ? (
+              <div className="max-w-md mx-auto">
+                <PayPalScriptProvider options={paypalOptions}>
+                  <PayPalButtons
+                    style={{
+                      layout: 'vertical',
+                      color: 'gold',
+                      shape: 'rect',
+                      label: 'paypal',
+                    }}
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    onError={onError}
+                    onCancel={onCancel}
+                    disabled={procesando}
+                  />
+                </PayPalScriptProvider>
+              </div>
+            ) : (
+              <div className="max-w-md mx-auto">
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                  <p className="text-lg font-bold text-gray-800 flex items-center gap-2 justify-center">
+                    <FiWifi className="text-blue-600" />
+                    Pagar por SINPE Móvil
+                  </p>
+
+                  <div className="mt-4 bg-white border border-blue-200 rounded-lg p-4">
+                    <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
+                      <li>
+                        Realiza el SINPE Móvil al número:{' '}
+                        <span className="font-semibold">Pendiente de configurar</span>
+                      </li>
+                      <li>
+                        A nombre de:{' '}
+                        <span className="font-semibold">Pendiente de configurar</span>
+                      </li>
+                      <li>
+                        Envíanos el comprobante al mismo número para activar tu Premium.
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 text-center text-sm text-gray-500">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -499,7 +588,9 @@ const CheckoutPremium = () => {
                 <p className="font-semibold text-gray-700">Pago 100% seguro</p>
               </div>
               <p className="text-xs text-gray-500">
-                Procesado por PayPal · Tus datos están encriptados y protegidos
+                {metodoPago === 'paypal'
+                  ? 'Procesado por PayPal · Tus datos están encriptados y protegidos'
+                  : 'Pago por SINPE Móvil · Aprobación manual por administradores'}
               </p>
             </div>
           </div>
