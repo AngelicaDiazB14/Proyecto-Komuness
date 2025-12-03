@@ -14,6 +14,8 @@ import type {
   RetryHistoryEntry,
 } from "../interfaces/payment.interface";
 
+import { modelConfiguracion } from "../models/configuracion.model";
+
 const USERS_COL = "usuarios"; // cambia si tu colección de usuarios tiene otro nombre
 const PAY_COL = "payments";   // colección de auditoría/idempotencia
 
@@ -100,6 +102,33 @@ async function savePayment(doc: any) {
   }
 }
 
+// Función para obtener montos de configuración
+async function getMontosConfigurados(): Promise<{ mensual: number; anual: number }> {
+  try {
+    const configs = await modelConfiguracion.find({
+      clave: { $in: ['plan_mensual_monto', 'plan_anual_monto'] }
+    }).lean();
+
+    const montos = {
+      mensual: 4.0,
+      anual: 8.0
+    };
+
+    configs.forEach(config => {
+      if (config.clave === 'plan_mensual_monto') {
+        montos.mensual = Number(config.valor) || 4.0;
+      } else if (config.clave === 'plan_anual_monto') {
+        montos.anual = Number(config.valor) || 8.0;
+      }
+    });
+
+    return montos;
+  } catch (error) {
+    console.error('[PayPal] Error al obtener montos configurados:', error);
+    return { mensual: 4.0, anual: 8.0 };
+  }
+}
+
 /** POST /api/paypal/capture  body: { orderId, plan? }  */
 export const captureAndUpgrade: RequestHandler = async (
   req,
@@ -129,7 +158,8 @@ export const captureAndUpgrade: RequestHandler = async (
 
     console.log("[PayPal] Usuario autenticado asociado a este pago:", loggedUserId);
 
-    console.log(`[PayPal] Iniciando captura de orden: ${orderId}`);
+    // Obtener montos configurados
+    const montosConfigurados = await getMontosConfigurados();
 
     // Ejecutar captureOrder con sistema de reintentos
     const result = await retryWithExponentialBackoff(
@@ -217,14 +247,15 @@ export const captureAndUpgrade: RequestHandler = async (
           : typeof rawValue === "number"
           ? rawValue
           : Number(rawValue);
-      // Con tus precios actuales: 4 → mensual, 8 → anual
-      if (!Number.isNaN(amount) && amount >= 8) {
+      
+      // Usar montos configurados para determinar el plan
+      if (!Number.isNaN(amount) && amount >= montosConfigurados.anual) {
         effectivePlan = "anual";
+      } else if (amount >= montosConfigurados.mensual) {
+        effectivePlan = "mensual";
       }
     }
 
-    // (Opcional) todavía podemos extraer el userId desde PayPal,
-    // pero no lo usamos para upgrade, solo para referencia:
     const paypalUserId: string | undefined =
       extractUserId(resource) ?? undefined;
 
@@ -236,7 +267,6 @@ export const captureAndUpgrade: RequestHandler = async (
       currency: info.currency,
       payerId: info.payerId,
       email: info.email,
-      // 👇 AQUÍ usamos SIEMPRE el usuario autenticado en tu app
       userId: loggedUserId
         ? new mongoose.Types.ObjectId(loggedUserId)
         : undefined,
@@ -257,7 +287,7 @@ export const captureAndUpgrade: RequestHandler = async (
           "[PayPal] Pago completado pero no se encontró usuario autenticado para subir a Premium."
         );
       } else {
-        // AGREGADO PARA EL VENCIMIENTO
+         // AGREGADO PARA EL VENCIMIENTO
         await setUserRolePremium({ id: loggedUserId, plan: effectivePlan });
         console.log(
           `[PayPal] Usuario actualizado a Premium (por capture): ${loggedUserId} con plan ${effectivePlan}`
@@ -272,6 +302,8 @@ export const captureAndUpgrade: RequestHandler = async (
       attempts: result.attempts,
       // AGREGADO PARA EL VENCIMIENTO
       plan: effectivePlan,
+      monto: info.value,
+      montoEsperado: effectivePlan === 'anual' ? montosConfigurados.anual : montosConfigurados.mensual
     });
     return;
   } catch (e: any) {

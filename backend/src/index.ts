@@ -1,4 +1,3 @@
-// src/app.ts
 import express, { Request, Response, Express } from 'express';
 import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
@@ -7,8 +6,8 @@ import { connectBD } from './utils/mongodb';
 import usuarioRoutes from './routes/usuario.routes';
 import publicacionRoutes from './routes/publicaciones.routes';
 import bibliotecaRoutes from './routes/biblioteca.routes';
-import categoriaRoutes from "./routes/categoria.routes"; //importación de rutas para categoría
-import configuracionRoutes from "./routes/configuracion.routes"; //importación de rutas para configuración
+import categoriaRoutes from "./routes/categoria.routes";
+import configuracionRoutes from "./routes/configuracion.routes"; 
 import { sendEmail } from './utils/mail';
 import filesRouter from './routes/files.routes';
 import cookieParser from 'cookie-parser';
@@ -16,7 +15,7 @@ import seccionAcercaRoutes from './routes/seccionAcerca.routes';
 import perfilRoutes from './routes/perfil.routes';
 import path from 'path';
 
-// importar las rutas de PayPal
+// Rutas de PayPal
 import paypalRoutes from './routes/paypal.routes';
 import bancoProfesionalesRoutes from './routes/bancoProfesionales.routes';
 
@@ -28,33 +27,32 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(cors(
     {
-        origin: [
-            'http://localhost:3001',
-            'http://localhost:3000',
-            'https://proyecto-komuness-front.vercel.app',
-            'https://komuness-project.netlify.app',
-            'http://64.23.137.192',
-            'http://159.54.148.238',
-            'https://komuness.duckdns.org' 
-        ],
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true
-    }
+    origin: [
+        'http://localhost:3001',
+        'http://localhost:3000',
+        'https://proyecto-komuness-front.vercel.app',
+        'https://komuness-project.netlify.app',
+        'http://64.23.137.192',
+        'http://159.54.148.238',
+        'https://komuness.duckdns.org' 
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}
 ));
 
 // Rutas API
+app.use('/api/configuracion', configuracionRoutes);
 app.use('/api/usuario', usuarioRoutes);
 app.use('/api/publicaciones', publicacionRoutes);
 app.use('/api/biblioteca', bibliotecaRoutes);
-app.use("/api/categorias", categoriaRoutes); // nueva ruta para categorías
-app.use("/api/configuracion", configuracionRoutes); // nueva ruta para configuración de límites
+app.use("/api/categorias", categoriaRoutes);
 app.use('/api', filesRouter);
 app.use('/api/acerca-de', seccionAcercaRoutes);
-app.use('/api/perfil', perfilRoutes); // nueva ruta para perfiles de usuario
+app.use('/api/perfil', perfilRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
-app.use('/tmp', express.static(path.join(__dirname, '..', 'src', 'tmp'))); // Archivos temporales de perfil
+app.use('/tmp', express.static(path.join(__dirname, '..', 'src', 'tmp')));
 app.use('/api/banco-profesionales', bancoProfesionalesRoutes);
-// Montar PayPal bajo /api/paypal
 app.use('/api/paypal', paypalRoutes);
 
 app.get('/api/', (req: Request, res: Response) => {

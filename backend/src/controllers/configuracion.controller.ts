@@ -314,3 +314,97 @@ export const deleteConfiguracion = async (req: Request, res: Response): Promise<
         });
     }
 };
+
+
+export const getConfiguracionPagos = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const configs = await modelConfiguracion.find({
+      clave: { $in: [
+        'sinpe_numero',
+        'sinpe_nombre',
+        'whatsapp_numero',  
+        'plan_mensual_monto',
+        'plan_anual_monto'
+      ]}
+    });
+
+    const configMap: Record<string, any> = {};
+    configs.forEach(config => {
+      configMap[config.clave] = config.valor;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        sinpeNumero: configMap['sinpe_numero'] || '',
+        sinpeNombre: configMap['sinpe_nombre'] || '',
+        whatsappNumero: configMap['whatsapp_numero'] || '',  
+        planMensualMonto: configMap['plan_mensual_monto'] || 4.0,
+        planAnualMonto: configMap['plan_anual_monto'] || 8.0
+      }
+    });
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+/**
+ * Actualizar configuración de pagos
+ */
+export const actualizarConfiguracionPagos = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as any;
+    const actualizadoPor = authReq.user?._id;
+    
+    const { 
+      sinpeNumero, 
+      sinpeNombre, 
+      whatsappNumero, 
+      planMensualMonto, 
+      planAnualMonto 
+    } = req.body;
+
+    const configuraciones = [
+      { clave: 'sinpe_numero', valor: sinpeNumero, descripcion: 'Número de SINPE Móvil para pagos' },
+      { clave: 'sinpe_nombre', valor: sinpeNombre, descripcion: 'Nombre asociado al SINPE Móvil' },
+      { clave: 'whatsapp_numero', valor: whatsappNumero, descripcion: 'Número de WhatsApp para enviar comprobantes' }, 
+      { clave: 'plan_mensual_monto', valor: parseFloat(planMensualMonto) || 4.0, descripcion: 'Monto del plan premium mensual en USD' },
+      { clave: 'plan_anual_monto', valor: parseFloat(planAnualMonto) || 8.0, descripcion: 'Monto del plan premium anual en USD' }
+    ];
+
+    const results = [];
+
+    for (const config of configuraciones) {
+      const resultado = await modelConfiguracion.findOneAndUpdate(
+        { clave: config.clave },
+        { 
+          $set: { 
+            valor: config.valor,
+            descripcion: config.descripcion,
+            actualizadoPor,
+            actualizadoEn: new Date()
+          }
+        },
+        { upsert: true, new: true }
+      );
+      results.push(resultado);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Configuración de pagos actualizada correctamente',
+      data: results
+    });
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+

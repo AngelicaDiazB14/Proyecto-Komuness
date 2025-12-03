@@ -1,0 +1,242 @@
+/* Contenedor principal */
+.config-pagos-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Tarjetas de configuración */
+.config-card {
+  transition: all 0.3s ease;
+  border-width: 2px;
+}
+
+.config-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Campos de entrada */
+.config-input {
+  transition: all 0.2s ease;
+}
+
+.config-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* Indicador de cambios */
+.cambios-pendientes {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .config-pagos-container {
+    padding: 0.5rem;
+  }
+
+  .config-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  /* Campos de entrada en móviles */
+  .config-input {
+    font-size: 16px; /* Previene zoom en iOS */
+    padding: 0.75rem;
+  }
+
+  /* Ajustes para inputs con iconos */
+  .input-with-icon {
+    position: relative;
+  }
+
+  .input-with-icon input {
+    padding-left: 2.5rem;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  /* Ajustes para botones */
+  .config-buttons {
+    flex-direction: column;
+  }
+
+  .config-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Resumen en móviles */
+  .resumen-container {
+    font-size: 0.875rem;
+  }
+
+  .resumen-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+  }
+
+  /* Badge de descuento */
+  .descuento-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .config-pagos-container {
+    padding: 1rem;
+  }
+
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .config-card {
+    padding: 1.5rem;
+  }
+
+  /* Tamaños de fuente */
+  .config-label {
+    font-size: 0.875rem;
+  }
+
+  .config-input {
+    font-size: 1rem;
+  }
+
+  .config-hint {
+    font-size: 0.75rem;
+  }
+}
+
+/* Escritorios grandes */
+@media (min-width: 1025px) {
+  .config-pagos-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .config-card {
+    padding: 2rem;
+  }
+}
+
+/* Estados de carga */
+.config-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.config-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Estilos para validación */
+.config-input-error {
+  border-color: #ef4444 !important;
+}
+
+.config-error-message {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.config-input-success {
+  border-color: #10b981 !important;
+}
+
+/* Estilos para información de ayuda */
+.config-help-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.config-help-text strong {
+  color: #374151;
+}
+
+/* Ajustes para el modal en pantallas pequeñas */
+@media (max-height: 600px) {
+  .config-modal {
+    max-height: 85vh;
+  }
+
+  .config-content {
+    max-height: calc(85vh - 120px);
+    overflow-y: auto;
+  }
+}
+
+/* Mejoras de accesibilidad */
+.config-input:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.config-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Soporte para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .config-card {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .config-input {
+    background-color: #111827;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .config-label {
+    color: #d1d5db;
+  }
+
+  .config-help-text {
+    color: #9ca3af;
+  }
+}
