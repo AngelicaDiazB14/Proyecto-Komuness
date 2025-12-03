@@ -7,7 +7,8 @@ import {
   IoMdStar, 
   IoMdMail,   
   IoLogoFacebook, 
-  IoLogoInstagram, 
+  IoLogoInstagram,
+  IoMdTrash, 
   IoLogoWhatsapp,
   IoMdCreate  
 } from "react-icons/io";
@@ -20,13 +21,14 @@ import ComentariosPub from "./comentariosPub";
 import PublicacionModal from "./publicacionModal";
 import { useAuth } from "./context/AuthContext";
 import CategoriaBadge from "./categoriaBadge";
+import '../CSS/publicacionDetalle.css';
 
 export const PublicacionDetalle = () => {
   const navigate = useNavigate();
-  
+
   const { user } = useAuth();
 
-  // ========== FUNCIÓN FORMATFECHA CORREGIDA ==========
+ // ========== FUNCIÓN FORMATFECHA CORREGIDA ==========
    // MODIFICACIÓN: Se corrigió el problema de zona horaria
   // que causaba que las fechas se mostraran un día después
   const formatFecha = (fechaStr) => {
@@ -43,7 +45,7 @@ export const PublicacionDetalle = () => {
     if (fechaStr.includes("/")) {
       const partes = fechaStr.split("/");
       if (partes.length === 3) {
-        // CAMBIO: Crear fecha usando componentes directamente para evitar zona horaria
+      // CAMBIO: Crear fecha usando componentes directamente para evitar zona horaria
         fecha = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
       }
     } 
@@ -53,11 +55,11 @@ export const PublicacionDetalle = () => {
       const [año, mes, dia] = partes.split("-").map(num => parseInt(num));
       fecha = new Date(año, mes - 1, dia);
     }
-    // Fallback: intentar parsear directamente
+     // Fallback: intentar parsear directamente
     else {
       fecha = new Date(fechaStr);
     }
-    
+
     // Verificar si la fecha es válida
     if (isNaN(fecha)) return fechaStr;
     
@@ -86,7 +88,7 @@ export const PublicacionDetalle = () => {
           throw new Error(data.mensaje || "No se encontró la publicación");
         }
 
-        // Popular categoría si viene como id
+         // Popular categoría si viene como id
         if (data.categoria && typeof data.categoria === "string") {
           const categoriaData = await getCategoriaById(data.categoria);
           if (categoriaData) {
@@ -113,7 +115,7 @@ export const PublicacionDetalle = () => {
     }
   }, [publicacion]);
 
-  // === PRECIO (normalizado) ===
+// === PRECIO (normalizado) ===
   const formatPrecio = (precio) => {
     if (precio === 0 || precio === '0') return 'Gratis';
     if (Number.isFinite(Number(precio))) {
@@ -129,29 +131,27 @@ export const PublicacionDetalle = () => {
   const mostrarPrecios = publicacion && 
     (publicacion.tag === "evento" || publicacion.tag === "emprendimiento");
   
-  // === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
-  const mostrarHora =
+// === HORA DEL EVENTO (simple, ya viene "HH:mm") ===
+    const mostrarHora =
     publicacion?.tag === "evento" &&
     typeof publicacion?.horaEvento === "string" &&
     publicacion.horaEvento.trim() !== "";
 
-  // === TELÉFONO ===
-  const telefono = publicacion?.telefono;
-
-  // === ENLACES EXTERNOS ===
+// === TELÉFONO ===
+    const telefono = publicacion?.telefono;
+     
+// === ENLACES EXTERNOS ===
   const enlacesExternos = publicacion?.enlacesExternos || [];
 
-  // Función para formatear correctamente los enlaces
+   // Función para formatear correctamente los enlaces
   const formatearEnlace = (url) => {
     // Si es un correo sin mailto:, agregar el prefijo
     if (url.includes('@') && !url.startsWith('mailto:')) {
       return `mailto:${url}`;
     }
-    // Si es un teléfono sin tel:, agregar el prefijo
     if (/^[\d\s\-\+\(\)]+$/.test(url.replace(/\s/g, '')) && !url.startsWith('tel:')) {
       return `tel:${url}`;
     }
-    // Si no tiene protocolo y parece una URL, agregar https://
     if (!url.startsWith('http://') && !url.startsWith('https://') && 
         !url.startsWith('mailto:') && !url.startsWith('tel:') &&
         url.includes('.') && !url.includes(' ')) {
@@ -160,43 +160,42 @@ export const PublicacionDetalle = () => {
     return url;
   };
 
-  // Función para determinar el ícono según el tipo de enlace
   const obtenerIconoEnlace = (url) => {
     if (url.includes('@') || url.startsWith('mailto:')) {
-      return <IoMdMail className="mr-1" size={14} />;
+      return <IoMdMail className="publicacion-icon" size={14} />;
     }
     if (url.includes('tel:') || /^[\d\s\-\+\(\)]+$/.test(url.replace(/\s/g, ''))) {
-      return <IoMdCall className="mr-1" size={14} />;
+      return <IoMdCall className="publicacion-icon" size={14} />;
     }
     if (url.includes('facebook.com')) {
-      return <IoLogoFacebook className="mr-1" size={14} />;
+      return <IoLogoFacebook className="publicacion-icon" size={14} />;
     }
     if (url.includes('instagram.com')) {
-      return <IoLogoInstagram className="mr-1" size={14} />;
+      return <IoLogoInstagram className="publicacion-icon" size={14} />;
     }
     if (url.includes('whatsapp.com') || url.includes('wa.me')) {
-      return <IoLogoWhatsapp className="mr-1" size={14} />;
+      return <IoLogoWhatsapp className="publicacion-icon" size={14} />;
     }
-    return <IoMdLink className="mr-1" size={14} />;
+    return <IoMdLink className="publicacion-icon" size={14} />;
   };
 
   if (cargando) {
     return (
-      <div className="flex flex-col items-center justify-center mt-10 bg-gray-800/80">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <h2 className="text-white-600">Cargando publicación...</h2>
+      <div className="publicacion-loading">
+        <div className="publicacion-spinner"></div>
+        <h2 className="text-white">Cargando publicación...</h2>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="flex flex-col justify-center items-center h-96 bg-gray-900/80 text-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+      <div className="publicacion-error-container">
+        <div className="publicacion-error-card">
           <p className="text-lg mb-4">{error}</p>
           <button
             onClick={() => (window.location.href = "/publicaciones")}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+            className="publicacion-error-btn"
           >
             Volver a publicaciones
           </button>
@@ -208,84 +207,69 @@ export const PublicacionDetalle = () => {
   if (!publicacion) return null;
 
   return (
-    <div className="min-h-screen bg-gray-800/80">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Back (mobile) */}
-        <div className="md:hidden flex justify-between w-full mb-4">
+    <div className="publicacion-detalle-container">
+      <div className="publicacion-content-wrapper">
+        {/* Header con botón de regreso y acciones - ÚNICO PARA TODOS LOS DISPOSITIVOS */}
+        <div className="publicacion-header-bar">
+          {/* Botón de regreso - Izquierda */}
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-md"
+            className="publicacion-back-btn"
           >
             <IoMdArrowRoundBack color="black" size={21} />
           </button>
+
+          {/* Clasificación - Centro */}
+          <div className="publicacion-category-display">
+            <strong className="text-white text-sm md:text-base">Clasificación:</strong>
+            <CategoriaBadge categoria={categoriaCompleta} mobile />
+          </div>
+
+          {/* BOTONES DE ACCIÓN - Derecha */}
+          <div className="publicacion-actions">
+            {/* Botón Editar - para el autor */}
+            {user && user._id === publicacion.autor?._id && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="publicacion-action-btn publicacion-edit-btn"
+              >
+                <IoMdCreate size={16} />
+                <span className="hidden md:inline">Editar</span>
+              </button>
+            )}
+
+            {/* Botón Eliminar - solo para administradores */}
+            {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
+            <button
+              className="publicacion-action-btn publicacion-delete-btn"
+              onClick={() => setSelectedPub(true)}
+            >
+              <IoMdTrash className="md:hidden" size={16} />
+              <span className="hidden md:inline">Eliminar</span>
+            </button>
+          )}
+          </div>
         </div>
 
         {publicacion && (
           <>
-            {/* HEADER CON CLASIFICACIÓN Y BOTONES EN MISMA LÍNEA - CORREGIDO */}
-            <div className="flex items-center justify-between mb-4">
-              {/* Clasificación alineada a la izquierda */}
-              <div className="flex items-center gap-2">
-                <strong className="text-white text-sm md:text-base">Clasificación:</strong>
-                <CategoriaBadge categoria={categoriaCompleta} mobile />
-              </div>
-
-              {/* BOTONES DE ACCIÓN */}
-              <div className="flex gap-2">
-                {/* Botón Editar - para el autor (cualquier tipo de usuario) */}
-                {user && user._id === publicacion.autor?._id && (
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="bg-blue-600 py-1.5 px-3 rounded hover:bg-blue-700 text-white text-sm md:py-2 md:px-4 md:text-base flex items-center gap-1"
-                  >
-                    <IoMdCreate size={16} />
-                    Editar
-                  </button>
-                )}
-
-                {/* Botón Eliminar - solo para administradores */}
-                {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-                  <button
-                    className="bg-red-600 py-1.5 px-3 rounded hover:bg-red-700 text-white text-sm md:py-2 md:px-4 md:text-base"
-                    onClick={() => setSelectedPub(true)}
-                  >
-                    Eliminar
-                  </button>
-                )}
+            {/* TÍTULO CENTRADO */}
+            <div className="publicacion-title-wrapper">
+              <div className="publicacion-title-content">
+                <h1 className="publicacion-title">
+                  {publicacion.titulo}
+                </h1>
               </div>
             </div>
 
-            {/* TÍTULO CON SALTO DE LÍNEA AUTOMÁTICO */}
-            <div className="flex items-center justify-center w-full mb-6">
-              {/* Botón atrás (desktop) */}
-              <div className="w-1/4 flex justify-start">
-                <button
-                  type="button"
-                  onClick={() => navigate(-1)}
-                  className="hidden md:inline p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-md"
-                >
-                  <IoMdArrowRoundBack color="black" size={21} />
-                </button>
-              </div>
-
-              {/* Título centrado con break-words */}
-              <h1 className="w-2/4 text-xl font-bold text-white text-center break-words leading-tight md:text-3xl">
-                {publicacion.titulo}
-              </h1>
-
-              {/* Espacio vacío para balancear el layout */}
-              <div className="w-1/4"></div>
-            </div>
-
-            {/* MODALES - fuera del flujo condicional principal */}
+            {/* MODALES */}
             {showEditModal && (
               <EditarPublicacionModal
                 publicacion={publicacion}
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 onUpdate={() => {
-                  // Recargar datos de la publicación
                   window.location.reload();
                 }}
               />
@@ -300,60 +284,68 @@ export const PublicacionDetalle = () => {
               onClose={() => setSelectedPub(false)}
             />
 
-            {/* SLIDER CON MÁRGEN SUPERIOR */}
-            <div className="mb-6">
+            {/* SLIDER */}
+            <div className="publicacion-slider-container">
               <Slider key={publicacion._id} publicacion={publicacion} />
             </div>
 
-            {/* DETALLES PRINCIPALES CON MEJOR ESPACIADO */}
-            <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
-              <h2 className="text-white text-sm md:text-base mb-3">
-                <IoMdPerson className="inline mr-2" />
-                <strong>Autor:</strong>{" "}
-                <span
-                  className="text-blue-400 hover:text-blue-300 cursor-pointer hover:underline transition-colors"
-                  onClick={() => navigate(`/perfil/${publicacion.autor?._id}`)}
-                >
-                  {publicacion.autor?.nombre || "Autor desconocido"}
-                </span>
-              </h2>
+            {/* DETALLES PRINCIPALES */}
+            <div className="publicacion-details-panel">
+              <div className="publicacion-author-info">
+                <h2 className="text-white text-sm md:text-base mb-2">
+                  <IoMdPerson className="inline mr-2 publicacion-icon" />
+                  <strong>Autor:</strong>{" "}
+                  <span
+                    className="publicacion-author-link"
+                    onClick={() => navigate(`/perfil/${publicacion.autor?._id}`)}
+                  >
+                    {publicacion.autor?.nombre || "Autor desconocido"}
+                  </span>
+                </h2>
+              </div>
 
-              {/* Descripción con SALTO DE LÍNEA AUTOMÁTICO */}
-              <div className="mb-4">
-                <p className="text-white text-sm md:text-base">
+              {/* Descripción */}
+              <div className="publicacion-description">
+                <p className="text-white text-sm md:text-base mb-3">
                   <strong>Descripción:</strong>
                 </p>
-                <p className="text-white mt-2 whitespace-pre-line break-words leading-relaxed">
+                <div className="publicacion-description-content">
                   {publicacion.contenido}
-                </p>
+                </div>
               </div>
 
               {/* INFORMACIÓN ADICIONAL */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {/* PRECIOS */}
                 {mostrarPrecios && (
-                  <div className="bg-gray-600/30 rounded p-3">
-                    <h3 className="text-white font-semibold mb-2">Precios:</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <div className="flex items-center text-white">
-                        <IoMdPerson className="mr-2 text-blue-400" />
-                        <span className="font-medium">Precio regular:</span>
-                        <span className="ml-2">{formatPrecio(precioRegular)}</span>
+                  <div className="publicacion-price-panel">
+                    <h3 className="text-white font-semibold mb-3">Precios:</h3>
+                    <div className="publicacion-price-grid">
+                      <div className="publicacion-price-item">
+                        <IoMdPerson className="mr-3 text-blue-400 publicacion-icon" size={18} />
+                        <div>
+                          <span className="font-medium text-white block">Precio regular:</span>
+                          <span className="text-blue-300">{formatPrecio(precioRegular)}</span>
+                        </div>
                       </div>
                       
                       {precioEstudiante !== undefined && precioEstudiante !== null && (
-                        <div className="flex items-center text-white">
-                          <IoMdSchool className="mr-2 text-green-400" />
-                          <span className="font-medium">Estudiante:</span>
-                          <span className="ml-2">{formatPrecio(precioEstudiante)}</span>
+                        <div className="publicacion-price-item">
+                          <IoMdSchool className="mr-3 text-green-400 publicacion-icon" size={18} />
+                          <div>
+                            <span className="font-medium text-white block">Estudiante:</span>
+                            <span className="text-green-300">{formatPrecio(precioEstudiante)}</span>
+                          </div>
                         </div>
                       )}
                       
                       {precioCiudadanoOro !== undefined && precioCiudadanoOro !== null && (
-                        <div className="flex items-center text-white">
-                          <IoMdStar className="mr-2 text-yellow-400" />
-                          <span className="font-medium">Ciudadano de oro:</span>
-                          <span className="ml-2">{formatPrecio(precioCiudadanoOro)}</span>
+                        <div className="publicacion-price-item">
+                          <IoMdStar className="mr-3 text-yellow-400 publicacion-icon" size={18} />
+                          <div>
+                            <span className="font-medium text-white block">Ciudadano de oro:</span>
+                            <span className="text-yellow-300">{formatPrecio(precioCiudadanoOro)}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -362,42 +354,41 @@ export const PublicacionDetalle = () => {
 
                 {/* Fecha de evento */}
                 {publicacion.fechaEvento && (
-                  <div className="flex items-center text-white">
-                    <strong className="mr-2">Fecha del evento:</strong>
-                    {formatFecha(publicacion.fechaEvento)}
+                  <div className="publicacion-info-item">
+                    <span className="publicacion-info-label">Fecha del evento:</span>
+                    <span className="publicacion-info-value">{formatFecha(publicacion.fechaEvento)}</span>
                   </div>
                 )}
 
                 {/* Hora de evento */}
                 {mostrarHora && (
-                  <div className="flex items-center text-white">
-                    <strong className="mr-2">Hora del evento:</strong>
-                    {publicacion.horaEvento}
+                  <div className="publicacion-info-item">
+                    <span className="publicacion-info-label">Hora del evento:</span>
+                    <span className="publicacion-info-value">{publicacion.horaEvento}</span>
                   </div>
                 )}
 
                 {/* Fecha de publicación */}
                 {publicacion.fecha && (
-                  <div className="flex items-center text-white">
-                    <strong className="mr-2">Fecha de publicación:</strong>
-                    {formatFecha(publicacion.fecha)}
+                  <div className="publicacion-info-item">
+                    <span className="publicacion-info-label">Fecha de publicación:</span>
+                    <span className="publicacion-info-value">{formatFecha(publicacion.fecha)}</span>
                   </div>
                 )}
 
                 {/* TIPO */}
-                <div className="flex items-center text-white">
-                  <strong className="mr-2">Tipo:</strong>
-                  {publicacion.tag || "Sin tag"}
+                <div className="publicacion-info-item">
+                  <span className="publicacion-info-label">Tipo:</span>
+                    <span className="publicacion-info-value">{publicacion.tag || "Sin tag"}</span>
                 </div>
 
                 {/* TELÉFONO */}
                 {telefono && (
-                  <div className="flex items-center text-white">
-                    <IoMdCall className="mr-2 text-green-400" />
-                    <strong className="mr-2">Teléfono:</strong>
+                  <div className="publicacion-info-item">
+                    <span className="publicacion-info-label">Teléfono:</span>
                     <a 
                       href={`tel:${telefono}`}
-                      className="text-blue-300 hover:text-blue-200 underline"
+                      className="publicacion-info-value text-blue-300 hover:text-blue-200 underline"
                     >
                       {telefono}
                     </a>
@@ -406,26 +397,26 @@ export const PublicacionDetalle = () => {
 
                 {/* ENLACES EXTERNOS */}
                 {enlacesExternos.length > 0 && (
-                  <div>
-                    <h3 className="text-white font-semibold mb-2 flex items-center">
-                      <IoMdLink className="mr-2 text-purple-400" />
+                  <div className="publicacion-links-section">
+                    <h3 className="text-white font-semibold mb-3 flex items-center">
+                      <IoMdLink className="mr-2 text-purple-400 publicacion-icon" />
                       Enlaces externos:
                     </h3>
-                    <div className="space-y-2">
+                    <div className="publicacion-links-grid">
                       {enlacesExternos.map((enlace, index) => {
                         const enlaceFormateado = formatearEnlace(enlace.url);
                         const icono = obtenerIconoEnlace(enlace.url);
                         
                         return (
-                          <div key={index} className="flex items-center">
+                          <div key={index} className="publicacion-link-item">
                             <a
                               href={enlaceFormateado}
                               target={enlaceFormateado.startsWith('http') ? "_blank" : "_self"}
                               rel={enlaceFormateado.startsWith('http') ? "noopener noreferrer" : ""}
-                              className="text-blue-300 hover:text-blue-200 underline flex items-center"
+                              className="publicacion-link-content"
                             >
                               {icono}
-                              {enlace.nombre}
+                              <span>{enlace.nombre}</span>
                             </a>
                           </div>
                         );
@@ -436,8 +427,8 @@ export const PublicacionDetalle = () => {
               </div>
             </div>
 
-            {/* COMENTARIOS CON MÁRGEN SUPERIOR */}
-            <div className="mt-6">
+            {/* COMENTARIOS */}
+            <div className="publicacion-comments-section">
               <ComentariosPub
                 comentarios={comentarios}
                 setComentarios={setComentarios}
