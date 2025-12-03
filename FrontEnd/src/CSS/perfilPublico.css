@@ -252,11 +252,12 @@
 .skill-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center; /* Centrar el texto */
   padding: 0.75rem 1.5rem;
   border-radius: 2rem;
   font-weight: 600;
   transition: var(--transition);
+  min-height: 44px; /* Altura consistente */
 }
 
 .skill-badge:hover {
@@ -752,4 +753,75 @@
     box-shadow: none;
     border: 1px solid #ccc;
   }
+}
+
+/* Asegurar legibilidad en modo claro */
+.light-mode .contact-text,
+.light-mode .social-text,
+.light-mode .timeline-title,
+.light-mode .project-name a,
+.light-mode .link-text {
+  color: var(--text-light) !important;
+}
+
+.light-mode .timeline-institution,
+.light-mode .timeline-description,
+.light-mode .project-description {
+  color: var(--text-light-secondary) !important;
+}
+
+.light-mode .contact-item a:hover {
+  color: var(--primary-color) !important;
+}
+
+.light-mode .social-link {
+  color: var(--text-light) !important;
+  border-color: var(--border-light);
+}
+
+.light-mode .social-link:hover {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color);
+}
+
+.light-mode .link-card {
+  color: var(--text-light) !important;
+  background: var(--bg-light);
+}
+
+.light-mode .link-card:hover {
+  color: var(--primary-color) !important;
+}
+
+/* Asegurar contraste en modo claro para el header */
+.light-mode .perfil-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  color: white;
+}
+
+.light-mode .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.light-mode .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.light-mode .perfil-specialty {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Asegurar que los textos sean legibles en modo claro */
+.light-mode .card-title {
+  color: var(--text-light) !important;
+}
+
+.light-mode .info-card {
+  background: var(--bg-light-secondary);
+  border-color: var(--border-light);
+}
+
+/* Mejorar contraste para los badges de skills en modo claro */
+.light-mode .skill-badge {
+  font-weight: 600;
 }
