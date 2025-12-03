@@ -8,8 +8,9 @@ import { useAuth } from "./context/AuthContext";
 import ModalCambioContrasena from "./modalCambioContra";
 import { Link } from "react-router-dom";
 import { FaListAlt, FaEdit, FaHistory } from "react-icons/fa";
-import { FiSettings } from "react-icons/fi";
+import { FiSettings, FiCreditCard, FiDollarSign } from "react-icons/fi";
 import ModalLimitesPublicaciones from "./modalLimitesPublicaciones";
+import ModalConfiguracionPagos from "./ModalConfiguracionPagos";
 import AlertaLimitePublicaciones from "./AlertaLimitePublicaciones";
 
 export const PerfilUsuario = () => {
@@ -17,17 +18,18 @@ export const PerfilUsuario = () => {
   const [publicaciones, setPublicaciones] = useState([]);
   const [archivos, setArchivos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
-  const [pendingUpdates, setPendingUpdates] = useState([]); // NUEVO: Actualizaciones pendientes
+  const [pendingUpdates, setPendingUpdates] = useState([]);
   const { user, logout } = useAuth();
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalLimitesAbierto, setModalLimitesAbierto] = useState(false);
+  const [modalPagosAbierto, setModalPagosAbierto] = useState(false);
   const [modalPremiumAbierto, setModalPremiumAbierto] = useState(false);
-  const [activeTab, setActiveTab] = useState("publicaciones"); // NUEVO: Control de pestañas
+  const [activeTab, setActiveTab] = useState("publicaciones");
   const [limiteData, setLimiteData] = useState(null);
   const [perfilExistente, setPerfilExistente] = useState(false); 
   const [perfilPublico, setPerfilPublico] = useState(false);
 
-
+  
   useEffect(() => {
     if (!user) {
       navigate("/");
@@ -54,7 +56,7 @@ export const PerfilUsuario = () => {
 
   // Cargar datos de límite al montar el componente
   useEffect(() => {
-    if (user && user.tipoUsuario === 2) {
+    if (user) {
       cargarDatosLimite();
     }
   }, [user]);
@@ -101,7 +103,6 @@ export const PerfilUsuario = () => {
       console.log("Response status:", response.status);
 
       if (response.status === 404) {
-        // Si no hay actualizaciones pendientes, establecer array vacío
         setPendingUpdates([]);
         return;
       }
@@ -122,7 +123,6 @@ export const PerfilUsuario = () => {
     } catch (error) {
       console.error("Error al cargar actualizaciones pendientes:", error);
 
-      // Si es un error 404, no mostrar toast de error
       if (error.message.includes("404")) {
         setPendingUpdates([]);
       } else {
@@ -140,7 +140,6 @@ export const PerfilUsuario = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        // El nuevo endpoint devuelve { success: true, count: X, archivos: [...] }
         setArchivos(data.archivos || []);
       })
       .catch((error) =>
@@ -151,7 +150,6 @@ export const PerfilUsuario = () => {
   // Función para cargar usuarios
   const cargarUsuarios = async () => {
     try {
-      // ✅ CAMBIO: incluir admin (1), básico (2) y premium (3)
       const apires = await fetch(`${API_URL}/usuario?tipoUsuario=1,2,3`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
@@ -165,8 +163,6 @@ export const PerfilUsuario = () => {
       }
 
       const data = await apires.json();
-
-      // ✅ CAMBIO: soportar respuestas tipo {data:[...]} o directamente [...]
       const lista = data?.data ?? data;
       setUsuarios(Array.isArray(lista) ? lista : []);
     } catch (error) {
@@ -175,33 +171,33 @@ export const PerfilUsuario = () => {
   };
 
   useEffect(() => {
-  const verificarPerfilAdmin = async () => {
-    if (user && (user.tipoUsuario === 0 || user.tipoUsuario === 1)) {
-      try {
-        const response = await fetch(`${API_URL}/perfil/usuario/me`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+    const verificarPerfilAdmin = async () => {
+      if (user && (user.tipoUsuario === 0 || user.tipoUsuario === 1)) {
+        try {
+          const response = await fetch(`${API_URL}/perfil/usuario/me`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setPerfilExistente(true);
+            setPerfilPublico(data.data.perfilPublico || false);
+          } else if (response.status === 404) {
+            setPerfilExistente(false);
+            setPerfilPublico(false);
           }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setPerfilExistente(true);
-          setPerfilPublico(data.data.perfilPublico || false);
-        } else if (response.status === 404) {
+        } catch (error) {
+          console.error('Error al verificar perfil admin:', error);
           setPerfilExistente(false);
           setPerfilPublico(false);
         }
-      } catch (error) {
-        console.error('Error al verificar perfil admin:', error);
-        setPerfilExistente(false);
-        setPerfilPublico(false);
       }
-    }
-  };
+    };
 
-  verificarPerfilAdmin();
-}, [user]);
+    verificarPerfilAdmin();
+  }, [user]);
 
   // useEffect que controla la carga de datos administrativos
   useEffect(() => {
@@ -210,7 +206,7 @@ export const PerfilUsuario = () => {
         await cargarPublicaciones();
         await cargarArchivos();
         await cargarUsuarios();
-        await cargarActualizacionesPendientes(); // NUEVO: Cargar actualizaciones pendientes
+        await cargarActualizacionesPendientes();
       }
     };
     loader();
@@ -301,7 +297,6 @@ export const PerfilUsuario = () => {
           prev.filter((item) => item._id !== publicacionId)
         );
 
-        // Forzar recarga de datos después de un breve delay
         setTimeout(() => {
           cargarActualizacionesPendientes();
         }, 500);
@@ -371,7 +366,6 @@ export const PerfilUsuario = () => {
   }
 
   const aceptarArchivo = async (id) => {
-    // RF023: Usar nuevo endpoint de aprobación
     const promesa = fetch(`${API_URL}/biblioteca/approve/${id}`, {
       method: "PUT",
       headers: {
@@ -395,7 +389,6 @@ export const PerfilUsuario = () => {
   };
 
   const rechazarArchivo = async (id) => {
-    // RF023: Usar nuevo endpoint de rechazo (en lugar de eliminar directamente)
     const promesa = fetch(`${API_URL}/biblioteca/reject/${id}`, {
       method: "PUT",
       headers: {
@@ -937,20 +930,15 @@ export const PerfilUsuario = () => {
                 <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 ${
-                      (limiteData.publicacionesActuales / limiteData.limite) *
-                        100 >=
-                      100
+                      (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 100
                         ? "bg-red-500"
-                        : (limiteData.publicacionesActuales / limiteData.limite) *
-                            100 >=
-                          80
+                        : (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 80
                         ? "bg-yellow-500"
                         : "bg-blue-500"
                     }`}
                     style={{
                       width: `${Math.min(
-                        (limiteData.publicacionesActuales / limiteData.limite) *
-                          100,
+                        (limiteData.publicacionesActuales / limiteData.limite) * 100,
                         100
                       )}%`,
                     }}
@@ -982,16 +970,93 @@ export const PerfilUsuario = () => {
             </div>
           )}
 
-          <div className="mt-4">
-            {modalAbierto && (
-              <ModalCambioContrasena
-                userId={user._id}
-                onClose={() => setModalAbierto(false)}
-                API_URL={API_URL}
-              />
-            )}
+          {/* SECCIÓN PARA USUARIOS PREMIUM */}
+          {user?.tipoUsuario === 3 && limiteData && (
+            <div className="mt-6 w-full bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm rounded-xl p-4 border border-yellow-400/30">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-white">Tu Membresía Premium</h3>
+                <span className="px-3 py-1 bg-yellow-600 text-white text-xs font-semibold rounded-full">
+                  Premium {limiteData.plan === 'anual' ? 'Anual' : 'Mensual'}
+                </span>
+              </div>
 
-           {/* Botones de Perfil Público */}
+              {/* Barra de progreso de publicaciones */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-200">Publicaciones</span>
+                  <span className="font-semibold text-white">
+                    {limiteData.publicacionesActuales} / {limiteData.limite}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 100
+                        ? "bg-red-500"
+                        : (limiteData.publicacionesActuales / limiteData.limite) * 100 >= 80
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        (limiteData.publicacionesActuales / limiteData.limite) * 100,
+                        100
+                      )}%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-300 mt-1">
+                  {limiteData.publicacionesActuales >= limiteData.limite
+                    ? "¡Has alcanzado tu límite!"
+                    : `${
+                        limiteData.limite - limiteData.publicacionesActuales
+                      } publicaciones disponibles`}
+                </p>
+              </div>
+
+              {/* Información de vencimiento */}
+              {limiteData.fechaVencimientoPremium && (
+                <div className="mb-3 p-3 bg-white/10 rounded-lg border border-white/20">
+                  <div className="flex items-center gap-2 text-white mb-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-semibold">Vencimiento del Plan</span>
+                  </div>
+                  <p className="text-white text-sm">
+                    Tu plan {limiteData.plan === 'anual' ? 'anual' : 'mensual'} se vence el{" "}
+                    <span className="font-bold text-yellow-300">
+                      {new Date(limiteData.fechaVencimientoPremium).toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </p>
+                  {limiteData.premiumVencido && (
+                    <p className="text-red-300 text-xs mt-2">
+                      ⚠️ Tu plan premium ha vencido. Por favor, renueva tu suscripción.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Botón para renovar */}
+              <button
+                onClick={() => setModalPremiumAbierto(true)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                </svg>
+                Renovar Plan Premium
+              </button>
+            </div>
+          )}
+
+          {/* Botones de Perfil Público */}
+          <div className="mt-4">
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => navigate("/mi-perfil/editar")}
@@ -1002,7 +1067,7 @@ export const PerfilUsuario = () => {
               </button>
 
               <button
-                onClick={() => navigate(`/perfil/${user._id}`)}
+                onClick={() => navigate(`/perfil/${user?._id}`)}
                 className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
               >
                 <AiOutlineUser />
@@ -1037,6 +1102,12 @@ export const PerfilUsuario = () => {
         onClose={() => setModalPremiumAbierto(false)}
       />
 
+      {/* Modal de configuración de pagos */}
+      <ModalConfiguracionPagos
+        isOpen={modalPagosAbierto}
+        onClose={() => setModalPagosAbierto(false)}
+      />
+
       {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
         <div className="w-full md:w-2/3 flex flex-col gap-6 bg-gray-50 rounded-xl p-4 md:p-6 dashboard-scroll-container">
           <h1 className="text-2xl font-bold text-black mb-4">
@@ -1060,6 +1131,15 @@ export const PerfilUsuario = () => {
               >
                 <FiSettings className="w-4 h-4 mr-2" />
                 Configurar Límites
+              </button>
+              
+              {/*  BOTÓN PARA CONFIGURAR PAGOS */}
+              <button
+                onClick={() => setModalPagosAbierto(true)}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+              >
+                <FiCreditCard className="w-4 h-4 mr-2" />
+                Configurar Pagos
               </button>
             </div>
           )}
@@ -1341,7 +1421,6 @@ export const PerfilUsuario = () => {
                             key={item._id}
                             className="border-t hover:bg-gray-50"
                           >
-                            {/* ✅ CAMBIO: antes aquí estabas poniendo el dropdown de usuario (pero item es ARCHIVO) */}
                             <td className="px-3 py-2 min-w-[220px]">
                               <div className="text-sm font-medium text-gray-900 break-words">
                                 {(
@@ -1485,13 +1564,13 @@ export const PerfilUsuario = () => {
                                     actualizarMembresia(item._id, e.target.value)
                                   }
                                 >
-                                  <option value="admin">Admin (tipoUsuario=1)</option>
-                                  <option value="basico">Básico (tipoUsuario=2)</option>
+                                  <option value="admin">Administrador</option>
+                                  <option value="basico">Básico</option>
                                   <option value="premium_mensual">
-                                    Premium Mensual (tipoUsuario=3)
+                                    Premium Mensual 
                                   </option>
                                   <option value="premium_anual">
-                                    Premium Anual (tipoUsuario=3)
+                                    Premium Anual 
                                   </option>
                                 </select>
 

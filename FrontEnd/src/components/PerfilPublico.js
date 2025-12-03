@@ -18,7 +18,7 @@ const PerfilPublico = () => {
   const [perfil, setPerfil] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); 
 
   useEffect(() => {
     cargarPerfil();
@@ -159,9 +159,6 @@ const PerfilPublico = () => {
                 key={index} 
                 className={`skill-badge skill-${index + 1}`}
               >
-                <span className="skill-icon">
-                  {index === 0 ? '🏆' : index === 1 ? '⭐' : index === 2 ? '🚀' : '💡'}
-                </span>
                 <span className="skill-name">{habilidad}</span>
               </div>
             ))}
@@ -186,21 +183,23 @@ const PerfilPublico = () => {
                   {perfil.telefono && (
                     <div className="contact-item">
                       <AiOutlinePhone className="contact-icon" />
-                      <span>{perfil.telefono}</span>
+                      <span className="contact-text">{perfil.telefono}</span>
                     </div>
                   )}
                   
                   {perfil.correoSecundario && (
                     <div className="contact-item">
                       <AiOutlineMail className="contact-icon" />
-                      <a href={`mailto:${perfil.correoSecundario}`}>{perfil.correoSecundario}</a>
+                      <a href={`mailto:${perfil.correoSecundario}`} className="contact-text">
+                        {perfil.correoSecundario}
+                      </a>
                     </div>
                   )}
                   
                   {(perfil.canton || perfil.provincia) && (
                     <div className="contact-item">
                       <AiOutlineEnvironment className="contact-icon" />
-                      <span>
+                      <span className="contact-text">
                         {perfil.canton && perfil.provincia 
                           ? `${perfil.canton}, ${perfil.provincia}`
                           : perfil.canton || perfil.provincia
@@ -220,25 +219,25 @@ const PerfilPublico = () => {
                   {perfil.redesSociales.linkedin && (
                     <a href={perfil.redesSociales.linkedin} target="_blank" rel="noopener noreferrer" className="social-link linkedin">
                       <FaLinkedin className="social-icon" />
-                      <span>LinkedIn</span>
+                      <span className="social-text">LinkedIn</span>
                     </a>
                   )}
                   {perfil.redesSociales.twitter && (
                     <a href={perfil.redesSociales.twitter} target="_blank" rel="noopener noreferrer" className="social-link twitter">
                       <FaTwitter className="social-icon" />
-                      <span>Twitter</span>
+                      <span className="social-text">Twitter</span>
                     </a>
                   )}
                   {perfil.redesSociales.instagram && (
                     <a href={perfil.redesSociales.instagram} target="_blank" rel="noopener noreferrer" className="social-link instagram">
                       <FaInstagram className="social-icon" />
-                      <span>Instagram</span>
+                      <span className="social-text">Instagram</span>
                     </a>
                   )}
                   {perfil.redesSociales.facebook && (
                     <a href={perfil.redesSociales.facebook} target="_blank" rel="noopener noreferrer" className="social-link facebook">
                       <FaFacebook className="social-icon" />
-                      <span>Facebook</span>
+                      <span className="social-text">Facebook</span>
                     </a>
                   )}
                 </div>
@@ -343,7 +342,7 @@ const PerfilPublico = () => {
                     className="link-card portfolio-link"
                   >
                     <FaGlobe className="link-icon" />
-                    <span>Ver Portafolio</span>
+                    <span className="link-text">Ver Portafolio</span>
                   </a>
                 )}
                 
@@ -354,7 +353,7 @@ const PerfilPublico = () => {
                     className="link-card cv-link"
                   >
                     <FaDownload className="link-icon" />
-                    <span>Descargar CV</span>
+                    <span className="link-text">Descargar CV</span>
                   </a>
                 )}
               </div>

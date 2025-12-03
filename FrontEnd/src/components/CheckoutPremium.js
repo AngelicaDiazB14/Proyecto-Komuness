@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { toast } from 'react-hot-toast';
@@ -25,20 +25,77 @@ const CheckoutPremium = () => {
   const [reintentos, setReintentos] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [metodoPago, setMetodoPago] = useState('paypal');
+  const [configPagos, setConfigPagos] = useState(null);
+  const [cargandoConfig, setCargandoConfig] = useState(false);
 
-  const cambiarMetodoPago = (metodo) => {
-    if (procesando) return;
-    setMetodoPago(metodo);
-    // limpiar estado de PayPal por si venías de un error
-    setErrorMessage('');
-    setReintentos(0);
+  // Cargar configuración de pagos al iniciar
+  useEffect(() => {
+    cargarConfiguracionPagos();
+  }, []);
+
+  const cargarConfiguracionPagos = async () => {
+    try {
+      setCargandoConfig(true);
+      
+      // Obtener el token del localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No hay token en localStorage. El usuario debe iniciar sesión.');
+        // Se podría redirigir al login si se quiere
+        // navigate('/iniciarSesion');
+        throw new Error('Usuario no autenticado');
+      }
+
+      const response = await fetch(`${API_URL}/configuracion/pagos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('No autorizado. Por favor, inicia sesión.');
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setConfigPagos(data.data);
+      } else {
+        throw new Error(data.message || 'Error en la respuesta del servidor');
+      }
+    } catch (error) {
+      console.error('Error al cargar configuración de pagos:', error);
+      
+      let mensajeUsuario = 'No se pudo cargar la información de pagos.';
+      if (error.message.includes('No autorizado') || error.message.includes('autenticado')) {
+        mensajeUsuario = 'Debes iniciar sesión para ver los detalles de pago.';
+      }
+      
+      toast.error(mensajeUsuario);
+      
+      // Usar valores por defecto si hay error
+      setConfigPagos({
+        sinpeNumero: '',
+        sinpeNombre: '',
+        whatsappNumero: '',
+        planMensualMonto: 4.0,
+        planAnualMonto: 8.0
+      });
+    } finally {
+      setCargandoConfig(false);
+    }
   };
 
+  // Definir planes con valores de configuración o por defecto
   const planes = {
     mensual: {
       id: 'mensual',
       nombre: 'Plan Mensual',
-      precio: 4.0,
+      precio: configPagos?.planMensualMonto || 4.0,
       periodo: 'mes',
       descripcion: 'Facturación mensual',
       badge: null,
@@ -46,17 +103,34 @@ const CheckoutPremium = () => {
     anual: {
       id: 'anual',
       nombre: 'Plan Anual',
-      precio: 8.0,
+      precio: configPagos?.planAnualMonto || 8.0,
       periodo: 'año',
       descripcion: 'Facturación anual',
       badge: '33% OFF',
-      precioComparacion: 12.0,
+      precioComparacion: (configPagos?.planMensualMonto || 4.0) * 12,
     },
+  };
+
+  // Calcular descuento para mostrar
+  const calcularDescuento = () => {
+    const precioMensual = planes.mensual.precio;
+    const precioAnual = planes.anual.precio;
+    if (precioMensual > 0) {
+      return (((precioMensual * 12 - precioAnual) / (precioMensual * 12)) * 100).toFixed(0);
+    }
+    return '33';
   };
 
   const beneficios = [
     'Publicaciones adicionales tanto en eventos como en emprendimientos',
   ];
+
+  const cambiarMetodoPago = (metodo) => {
+    if (procesando) return;
+    setMetodoPago(metodo);
+    setErrorMessage('');
+    setReintentos(0);
+  };
 
   const createOrder = async (data, actions) => {
     const plan = planes[planSeleccionado];
@@ -82,7 +156,7 @@ const CheckoutPremium = () => {
       // Resetear estados
       setErrorMessage('');
       setReintentos(0);
-
+      
       // 👉 Marcamos que empezó el procesamiento del pago
       setProcesando(true);
 
@@ -118,7 +192,6 @@ const CheckoutPremium = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-          // PASO 3: enviar plan para que el backend calcule fechaVencimientoPremium (30 días mensual / 365 días anual)
           body: JSON.stringify({ plan: planSeleccionado || 'mensual' }),
         });
 
@@ -144,7 +217,7 @@ const CheckoutPremium = () => {
       // Esperar un poco para que el usuario vea el mensaje y luego ir al perfil
       setTimeout(() => {
         navigate('/perfilUsuario');
-        // window.location.reload(); // solo si quieres forzar recarga
+         // window.location.reload(); // solo si quieres forzar recarga
       }, 2000);
     } catch (error) {
       console.error('Error al procesar el pago:', error);
@@ -158,11 +231,10 @@ const CheckoutPremium = () => {
     console.error('Error en PayPal:', err);
 
     setProcesando(false);
-
+    
     // Incrementar contador de reintentos
     setReintentos(prev => prev + 1);
 
-    // Mensajes de error más específicos
     let userMessage = 'Error al procesar el pago.';
 
     if (err?.message?.includes('insufficient_funds')) {
@@ -266,7 +338,7 @@ const CheckoutPremium = () => {
               </h3>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-5xl font-bold text-gray-900">
-                  ${planes.mensual.precio}
+                  ${planes.mensual.precio.toFixed(2)}
                 </span>
                 <span className="text-gray-600">/ {planes.mensual.periodo}</span>
               </div>
@@ -295,10 +367,10 @@ const CheckoutPremium = () => {
               setReintentos(0);
             }}
           >
-            {/* Badge */}
+            {/* Badge con descuento dinámico */}
             <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 animate-bounce-soft">
               <FiZap size={14} />
-              {planes.anual.badge}
+              {calcularDescuento()}% OFF
             </div>
 
             <div className="text-center mb-6">
@@ -307,13 +379,13 @@ const CheckoutPremium = () => {
               </h3>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-5xl font-bold text-gray-900">
-                  ${planes.anual.precio}
+                  ${planes.anual.precio.toFixed(2)}
                 </span>
                 <span className="text-gray-600">/ {planes.anual.periodo}</span>
               </div>
               <p className="text-gray-500 mt-2">{planes.anual.descripcion}</p>
               <p className="text-sm text-gray-600 mt-1 line-through">
-                ${planes.anual.precioComparacion} al año
+                ${planes.anual.precioComparacion.toFixed(2)} al año
               </p>
             </div>
 
@@ -336,6 +408,10 @@ const CheckoutPremium = () => {
               Seleccionaste el{' '}
               <span className="font-semibold">
                 {planes[planSeleccionado].nombre}
+              </span>
+              {' '}por{' '}
+              <span className="font-bold text-green-600">
+                ${planes[planSeleccionado].precio.toFixed(2)} USD
               </span>
             </p>
 
@@ -563,21 +639,55 @@ const CheckoutPremium = () => {
                     Pagar por SINPE Móvil
                   </p>
 
-                  <div className="mt-4 bg-white border border-blue-200 rounded-lg p-4">
-                    <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
-                      <li>
-                        Realiza el SINPE Móvil al número:{' '}
-                        <span className="font-semibold">Pendiente de configurar</span>
-                      </li>
-                      <li>
-                        A nombre de:{' '}
-                        <span className="font-semibold">Pendiente de configurar</span>
-                      </li>
-                      <li>
-                        Envíanos el comprobante al mismo número para activar tu Premium.
-                      </li>
-                    </ol>
-                  </div>
+                  {cargandoConfig ? (
+                    <div className="mt-4 text-center">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="mt-2 text-sm text-gray-600">Cargando información de pago...</p>
+                    </div>
+                  ) : configPagos?.sinpeNumero ? (
+                    <div className="mt-4 bg-white border border-blue-200 rounded-lg p-4">
+                      <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
+                        <li>
+                          Realiza el SINPE Móvil al número:{' '}
+                          <span className="font-semibold text-blue-700">+506 {configPagos.sinpeNumero}</span>
+                        </li>
+                        <li>
+                          A nombre de:{' '}
+                          <span className="font-semibold text-blue-700">{configPagos.sinpeNombre}</span>
+                        </li>
+                        <li>
+                          Monto a transferir:{' '}
+                          <span className="font-bold text-green-600">
+                            ${planSeleccionado === 'anual' ? configPagos.planAnualMonto : configPagos.planMensualMonto} USD
+                          </span>
+                        </li>
+                        <li>
+                          Envíanos el comprobante al WhatsApp{' '}
+                          <a 
+                            href={`https://wa.me/506${configPagos.whatsappNumero}?text=Hola,%20envío%20comprobante%20de%20pago%20para%20activar%20Premium`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-green-600 hover:underline"
+                          >
+                            +506 {configPagos.whatsappNumero}
+                          </a>{' '}
+                          para activar tu Premium.
+                        </li>
+                      </ol>
+                      <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                        <p className="text-xs text-blue-800">
+                          <strong>Nota:</strong> La activación se realiza manualmente después de verificar el pago. 
+                          Por favor, guarda el comprobante.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800 text-center">
+                        ⚠️ SINPE Móvil no configurado. Por favor, contacta al administrador o usa PayPal.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

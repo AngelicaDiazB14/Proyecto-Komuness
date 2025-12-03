@@ -6,35 +6,35 @@ const isDevelopment = window.location.hostname === 'localhost' ||
                      window.location.port === '3000' ||
                      window.location.port === '3001';
 
-// URL base original (como estaba antes)
 // FORZAR siempre el dominio correcto, no usar window.location.origin
+// En desarrollo usar localhost:5000, en producción usar el dominio configurado
 const RAW = process.env.REACT_APP_BACKEND_URL || 'https://komuness.duckdns.org';
 let BASE = (RAW || '').replace(/\/+$/, '');
 
 // Si viene con /api al final (ej: https://servidor.com/api), se lo quitamos
 if (BASE.endsWith('/api')) {
-  BASE = BASE.slice(0, -4); // elimina los últimos 4 caracteres: "/api"
+  BASE = BASE.slice(0, -4);
 }
 
-// Ahora:
-//   BASE_URL = raíz del backend (sin /api)
-//   API_URL  = raíz de la API (con /api)
-export const BASE_URL = BASE;           // p.ej. "https://servidor.com"
-export const API_URL  = `${BASE_URL}/api`;
+// EN DESARROLLO: Forzar localhost:5000
+// EN PRODUCCIÓN: Usar el dominio configurado en el .env
+const FINAL_BASE_URL = isDevelopment 
+  ? 'http://localhost:5000'  // Forzar localhost en desarrollo
+  : BASE;                    // Usar configuración en producción
 
-// URL ESPECÍFICA para banco de profesionales - FORZAR localhost:5000 en desarrollo
+// Exportar URLs
+export const BASE_URL = FINAL_BASE_URL;           // p.ej. "http://localhost:5000" o "https://komuness.duckdns.org"
+export const API_URL = `${BASE_URL}/api`;         // p.ej. "http://localhost:5000/api"
+
+// URL ESPECÍFICA para banco de profesionales - Mantener compatibilidad
 export const PROFESIONALES_API_URL = isDevelopment 
   ? 'http://localhost:5000/api' 
-  : `${BASE_URL}/api`;
+  : `${BASE}/api`;
 
-// Debugging
-console.log(' Entorno:', isDevelopment ? 'Desarrollo' : 'Producción');
-console.log('API URL Original (biblioteca):', API_URL);
-console.log('API URL Profesionales:', PROFESIONALES_API_URL);
-console.log('BASE URL (archivos):', BASE_URL);
-console.log('Host actual:', window.location.host);
+// Debugging 
+console.log('=== CONFIGURACIÓN DE API (CORREGIDA) ===');
+console.log('Entorno:', isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN');
 
-// hace una petición HTTP al backend (ejemplo existente)
 export const getCategoriaById = async (id) => {
   try {
     const response = await fetch(`${API_URL}/categorias/${id}`);
