@@ -170,7 +170,7 @@ export const PublicacionCard = ({ publicacion }) => {
               <p className="fecha">
                 Creador por:{" "}
                 <span
-                  className="text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                  className="text-white hover:text-blue-100 cursor-pointer hover:underline"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/perfil/${publicacion.autor?._id}`);
@@ -191,7 +191,7 @@ export const PublicacionCard = ({ publicacion }) => {
                     <p className="fecha">
                     Publicado por:{" "}
                     <span
-                      className="text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                      className="text-white hover:text-blue-100 cursor-pointer hover:underline"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/perfil/${publicacion.autor?._id}`);
@@ -213,7 +213,7 @@ export const PublicacionCard = ({ publicacion }) => {
                 <div className="tweet-header mb-2">
                     <div className="tweet-user">
                     <h4
-                      className="user-name font-semibold text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                      className="user-name font-semibold text-white hover:text-blue-100 cursor-pointer hover:underline"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/perfil/${publicacion.autor?._id}`);
