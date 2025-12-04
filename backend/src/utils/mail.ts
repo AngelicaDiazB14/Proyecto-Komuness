@@ -17,7 +17,7 @@ const transporter = createTransport({
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
   const mailOptions = {
-    from: 'komuness@zohomail.com', // igual que en recuperación
+    from: process.env.MAIL_USER || 'komuness334@zohomail.com',
     to,
     subject,
     text, // mantengo texto plano; si quieres HTML, cambia a 'html'
