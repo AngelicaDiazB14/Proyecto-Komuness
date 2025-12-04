@@ -103,7 +103,6 @@ export const FormularioPublicacion = ({ isOpen, onClose, openTag }) => {
     const data = new FormData();
     data.append("titulo", formData.titulo);
     data.append("contenido", formData.contenido);
-    data.append("autor", user?._id || "");
     data.append("fecha", formData.fecha);
     data.append("tag", formData.tag);
     data.append("publicado", String(formData.publicado));

@@ -108,7 +108,6 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
     setCargando(true);
 
     try {
-
       // Crear objeto plano primero para debugging
       const datosActualizacion = {
         titulo: formData.titulo,
@@ -124,7 +123,6 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
         imagenesMantenidas: imagenesMantenidas,
         nuevasImagenesCount: nuevasImagenes.length
       };
-
 
       const data = new FormData();
       
@@ -172,7 +170,6 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
 
       clearTimeout(timeoutId);
 
-
       const text = await response.text();
       console.log('📡 Response text:', text);
 
@@ -189,18 +186,19 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
         throw new Error(result?.message || result?.mensaje || `Error ${response.status} al enviar solicitud de edición`);
       }
 
+      // ✅ Toast con duración más larga para que el usuario lo vea
+      toast.success(
+        "Solicitud de edición enviada para revisión. Un administrador debe aprobarla para aplicar los cambios.",
+        { duration: 3000 }
+      );
 
-      toast.success("Solicitud de edición enviada para revisión ✅");
-      
-      // Recargar los datos
-      if (onUpdate) {
-        onUpdate();
-      }
-      
-      onClose?.();
+      // 🔁 Cerrar el modal un poquito después para no matar el toast de inmediato
+      setTimeout(() => {
+        onClose?.();
+      }, 300);
 
     } catch (error) {
-      if (error.message.includes('alcanzado el límite máximo')) {
+      if (error.message && error.message.includes('alcanzado el límite máximo')) {
         // No hacer console.error para este caso específico, solo mostrar toast
         toast.error(error.message);
       } else {

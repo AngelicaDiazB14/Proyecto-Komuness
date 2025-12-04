@@ -10,7 +10,11 @@ const LOG_ON = process.env.LOG_PUBLICACION === '1';
 export const requestUpdatePublicacion = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user?._id;
+
+    // 🔴 Autor SIEMPRE como string
+    const userId =
+      (req as any).user?._id?.toString?.() ||
+      (req as any).userId?.toString?.();
 
     if (!userId) {
       res.status(401).json({ message: 'Usuario no autenticado' });
@@ -24,8 +28,14 @@ export const requestUpdatePublicacion = async (req: Request, res: Response): Pro
       return;
     }
 
-    // Verificar si el usuario es el autor
-    if (publicacion.autor.toString() !== userId) {
+    // (Opcional) Logs de depuración
+    if (LOG_ON) {
+      console.log('👤 userId token:', userId);
+      console.log('📝 autor BD:', publicacion.autor?.toString?.());
+    }
+
+    // 🔴 Verificar si el usuario es el autor (string vs string)
+    if (publicacion.autor?.toString?.() !== userId) {
       res.status(403).json({ message: 'Solo el autor puede editar esta publicación' });
       return;
     }
@@ -155,7 +165,6 @@ export const requestUpdatePublicacion = async (req: Request, res: Response): Pro
     }
 
     updateData.adjunto = adjuntos;
-
 
     // Validar que al menos un campo haya cambiado
     const camposCambiados = Object.keys(updateData).filter(key => {
@@ -304,28 +313,14 @@ export const approveUpdate = async (req: Request, res: Response): Promise<void> 
     }
 
     // CORRECCIÓN CRÍTICA: Obtener los datos reales del pendingUpdate
-    // Convertir a JSON y luego parsear para obtener un objeto plano limpio
     const pendingUpdateString = JSON.stringify(publicacion.pendingUpdate);
     const pendingUpdateObj = JSON.parse(pendingUpdateString);
 
-
-    // CORRECCIÓN: Desestructurar del objeto plano, no del documento Mongoose
+    // Desestructurar del objeto plano
     const { requestedAt, requestedBy, ...updateFields } = pendingUpdateObj;
 
-
-    // ACTUALIZAR CAMPOS DIRECTAMENTE EN EL DOCUMENTO
     const camposActualizados: string[] = [];
 
-    // Verificar cada campo individualmente
-    Object.keys(updateFields).forEach(key => {
-      if (['requestedAt', 'requestedBy'].includes(key)) return; // Excluir campos internos
-      
-      const newValue = updateFields[key as keyof typeof updateFields];
-      const currentValue = (publicacion as any)[key];
-      
-    });
-
-    // ACTUALIZAR CAMPOS CON VALIDACIÓN
     if (updateFields.titulo !== undefined && updateFields.titulo !== publicacion.titulo) {
       publicacion.titulo = updateFields.titulo;
       camposActualizados.push('título');
@@ -381,7 +376,6 @@ export const approveUpdate = async (req: Request, res: Response): Promise<void> 
       console.log('Después:', JSON.stringify(updateFields.enlacesExternos, null, 2));
       
       if (Array.isArray(updateFields.enlacesExternos)) {
-        // Agregar tipo explícito para el parámetro enlace
         publicacion.enlacesExternos = updateFields.enlacesExternos.filter((enlace: IEnlaceExterno) => 
           enlace && typeof enlace.nombre === 'string' && typeof enlace.url === 'string'
         );
@@ -418,7 +412,6 @@ export const approveUpdate = async (req: Request, res: Response): Promise<void> 
     publicacion.pendingUpdate = undefined as any;
     publicacion.lastEditRequest = undefined as any;
 
-
     if (camposActualizados.length === 0) {
       console.log('⚠️ ADVERTENCIA: No se detectaron campos para actualizar');
     }
@@ -432,8 +425,6 @@ export const approveUpdate = async (req: Request, res: Response): Promise<void> 
     const populatedPublicacion = await modelPublicacion.findById(updatedPublicacion._id)
       .populate('autor', 'nombre email')
       .populate('categoria', 'nombre estado');
-
-
 
     res.status(200).json({
       message: `Actualización aprobada exitosamente. Campos actualizados: ${camposActualizados.join(', ')}`,
@@ -510,7 +501,6 @@ export const rejectUpdate = async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error('=== ERROR EN rejectUpdate ===');
     
-    // Manejo seguro del error unknown
     if (error instanceof Error) {
       console.error('Error completo:', error);
       console.error('Stack trace:', error.stack);
@@ -533,7 +523,14 @@ export const rejectUpdate = async (req: Request, res: Response): Promise<void> =
 export const cancelUpdateRequest = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user?._id;
+    const userId =
+      (req as any).user?._id?.toString?.() ||
+      (req as any).userId?.toString?.();
+
+    if (!userId) {
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
+    }
 
     const publicacion = await modelPublicacion.findById(id);
     if (!publicacion) {
@@ -541,8 +538,8 @@ export const cancelUpdateRequest = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Verificar si el usuario es el autor
-    if (publicacion.autor.toString() !== userId) {
+    // Verificar si el usuario es el autor (string vs string)
+    if (publicacion.autor?.toString?.() !== userId) {
       res.status(403).json({ message: 'Solo el autor puede cancelar esta solicitud' });
       return;
     }
@@ -561,7 +558,6 @@ export const cancelUpdateRequest = async (req: Request, res: Response): Promise<
   } catch (error) {
     console.error('=== ERROR EN cancelUpdateRequest ===');
     
-    // Manejo seguro del error unknown
     if (error instanceof Error) {
       console.error('Error completo:', error);
       console.error('Stack trace:', error.stack);
