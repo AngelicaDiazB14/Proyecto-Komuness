@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 import { API_URL } from "../utils/api";
 import "../CSS/perfilUsuario.css";
 import { useAuth } from "./context/AuthContext";
-import ModalCambioContrasena from "./modalCambioContra";
+import ModalCambioContrasena from "./ModalCambioContra";
 import { Link } from "react-router-dom";
 import { FaListAlt, FaEdit, FaHistory } from "react-icons/fa";
 import { FiSettings } from "react-icons/fi";
