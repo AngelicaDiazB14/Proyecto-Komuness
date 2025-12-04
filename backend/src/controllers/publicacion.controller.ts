@@ -505,10 +505,13 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
     const filtro: any = {};
 
     if (texto) {
-      filtro.$or = [
-        { titulo: { $regex: texto as string, $options: 'i' } },
-        { contenido: { $regex: texto as string, $options: 'i' } },
-      ];
+      //Buscar SOLO en el título, no en el contenido
+      filtro.titulo = { $regex: texto as string, $options: 'i' };
+      // Si desea buscar en ambos campos:
+      // filtro.$or = [
+      //   { titulo: { $regex: texto as string, $options: 'i' } },
+      //   { contenido: { $regex: texto as string, $options: 'i' } },
+      // ];
     }
     if (tag) filtro.tag = { $regex: tag as string, $options: 'i' };
     if (autor) {
@@ -524,7 +527,9 @@ export const filterPublicaciones = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro);
+    const publicaciones: IPublicacion[] = await modelPublicacion.find(filtro)
+      .populate('autor', 'nombre') 
+      .populate('categoria', 'nombre estado'); 
 
     if (publicaciones.length === 0) {
       res.status(404).json({ message: 'No se encontraron publicaciones con esos criterios' });
@@ -618,12 +623,15 @@ export const searchPublicacionesAvanzada = async (req: Request, res: Response): 
 
     const query: any = { publicado: true };
 
-    // Búsqueda por texto en título o contenido
+    // Búsqueda por texto SOLO en título
     if (q && typeof q === 'string' && q.trim() !== '') {
-      query.$or = [
-        { titulo: { $regex: q.trim(), $options: 'i' } },
-        { contenido: { $regex: q.trim(), $options: 'i' } }
-      ];
+      // CAMBIO: Buscar SOLO en el título, no en el contenido
+      query.titulo = { $regex: q.trim(), $options: 'i' };
+      // Si desea buscar en ambos campos:
+      // query.$or = [
+      //   { titulo: { $regex: q.trim(), $options: 'i' } },
+      //   { contenido: { $regex: q.trim(), $options: 'i' } }
+      // ];
     }
 
     // Filtros adicionales

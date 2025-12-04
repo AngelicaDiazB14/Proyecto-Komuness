@@ -16,8 +16,9 @@ import seccionAcercaRoutes from './routes/seccionAcerca.routes';
 import perfilRoutes from './routes/perfil.routes';
 import path from 'path';
 
-// 👇👇 NUEVO: importar las rutas de PayPal
+// importar las rutas de PayPal
 import paypalRoutes from './routes/paypal.routes';
+import bancoProfesionalesRoutes from './routes/bancoProfesionales.routes';
 
 const app: Express = express();
 dotenv.config();
@@ -52,8 +53,8 @@ app.use('/api/acerca-de', seccionAcercaRoutes);
 app.use('/api/perfil', perfilRoutes); // nueva ruta para perfiles de usuario
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 app.use('/tmp', express.static(path.join(__dirname, '..', 'src', 'tmp'))); // Archivos temporales de perfil
-
-// 👇👇 NUEVO: montar PayPal bajo /api/paypal
+app.use('/api/banco-profesionales', bancoProfesionalesRoutes);
+// Montar PayPal bajo /api/paypal
 app.use('/api/paypal', paypalRoutes);
 
 app.get('/api/', (req: Request, res: Response) => {

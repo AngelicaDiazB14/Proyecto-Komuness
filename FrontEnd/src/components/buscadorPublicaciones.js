@@ -143,7 +143,7 @@ const performSearch = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyPress={handleSearch}
-          placeholder="Buscar publicaciones por título..."
+          placeholder="Buscar por título..."
           className="w-full p-2 border border-gray-300 rounded bg-white text-black placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           style={{ color: 'black' }}
         />
