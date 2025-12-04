@@ -189,7 +189,7 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
       // ✅ Toast con duración más larga para que el usuario lo vea
       toast.success(
         "Solicitud de edición enviada para revisión. Un administrador debe aprobarla para aplicar los cambios.",
-        { duration: 8000 }
+        { duration: 3000 }
       );
 
       // 🔁 Cerrar el modal un poquito después para no matar el toast de inmediato
