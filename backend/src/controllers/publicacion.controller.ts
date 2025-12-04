@@ -107,6 +107,13 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
   try {
     const body = req.body as IPublicacion & Record<string, any>;
 
+    // 🔴 Autor siempre desde el token
+    const userId = (req as any).user?._id;
+    if (!userId) {
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
+    }
+
     const precio = parsePrecio(body.precio);
     const precioEstudiante = parsePrecio(body.precioEstudiante);
     const precioCiudadanoOro = parsePrecio(body.precioCiudadanoOro);
@@ -131,6 +138,7 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
 
     const publicacion: IPublicacion = {
       ...body,
+      autor: userId, // 🔴 forzamos autor desde el token
       publicado: `${(body as any).publicado}` === 'true',
       precio,
       precioEstudiante,
@@ -144,6 +152,7 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
 
     if (LOG_ON) {
       console.log('[Publicaciones][createPublicacion] doc a guardar:', {
+        autor: nuevaPublicacion.autor,
         precio: nuevaPublicacion.precio,
         precioEstudiante: nuevaPublicacion.precioEstudiante,
         precioCiudadanoOro: nuevaPublicacion.precioCiudadanoOro,
@@ -184,6 +193,13 @@ export const createPublicacion = async (req: Request, res: Response): Promise<vo
 export const createPublicacionA = async (req: Request, res: Response): Promise<void> => {
   try {
     const publicacion = req.body as IPublicacion & Record<string, any>;
+
+    // 🔴 Autor siempre desde el token
+    const userId = (req as any).user?._id;
+    if (!userId) {
+      res.status(401).json({ ok: false, message: 'Usuario no autenticado' });
+      return;
+    }
 
     // --- Recolectar archivos desde Multer (array o fields) ---
     let files: Express.Multer.File[] = [];
@@ -245,6 +261,7 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
     // --- Crear documento y guardar ---
     const nuevaPublicacion = new modelPublicacion({
       ...publicacion,
+      autor: userId, // 🔴 forzamos autor desde el token
       categoria,
       adjunto: adjuntos,
       publicado: `${(publicacion as any).publicado}` === 'true',
@@ -257,7 +274,8 @@ export const createPublicacionA = async (req: Request, res: Response): Promise<v
     });
 
     if (LOG_ON) {
-      console.log('[Publicaciones][createPublicacionA] doc a guardar (precio, horaEvento):', {
+      console.log('[Publicaciones][createPublicacionA] doc a guardar (autor, precio, horaEvento):', {
+        autor: nuevaPublicacion.autor,
         precio: nuevaPublicacion.precio,
         horaEvento: (nuevaPublicacion as any).horaEvento,
       });
