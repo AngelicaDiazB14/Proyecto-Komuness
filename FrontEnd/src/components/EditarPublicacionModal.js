@@ -191,11 +191,6 @@ export const EditarPublicacionModal = ({ publicacion, isOpen, onClose, onUpdate 
         "Solicitud de edición enviada para revisión. Un administrador debe aprobarla para aplicar los cambios.",
         { duration: 8000 }
       );
-      
-      // Recargar los datos en el padre (si aplica)
-      if (onUpdate) {
-        onUpdate();
-      }
 
       // 🔁 Cerrar el modal un poquito después para no matar el toast de inmediato
       setTimeout(() => {
