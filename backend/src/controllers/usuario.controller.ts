@@ -283,7 +283,7 @@ export async function enviarCorreoRecuperacion(req: Request, res: Response): Pro
 
     // opciones del correo electrónico con la nueva contraseña
     const mailOptions = {
-        from: 'komuness@zohomail.com',
+        from: process.env.MAIL_USER || 'komuness334@zohomail.com',
         to: email,
         subject: 'Recuperación de contraseña',
         html: `
