@@ -16,10 +16,12 @@ import {
   FiShield
 } from 'react-icons/fi';
 import { API_URL } from '../utils/api';
+import { useAuth } from '../components/context/AuthContext'; // 🆕 IMPORT
 import '../CSS/CheckoutPremium.css';
 
 const CheckoutPremium = () => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth(); // 🆕 usuario desde contexto
   const [planSeleccionado, setPlanSeleccionado] = useState(null);
   const [procesando, setProcesando] = useState(false);
   const [reintentos, setReintentos] = useState(0);
@@ -60,8 +62,8 @@ const CheckoutPremium = () => {
 
   const createOrder = async (data, actions) => {
     const plan = planes[planSeleccionado];
-    const user = JSON.parse(localStorage.getItem('user'));
-    const userId = user ? user._id : null;
+    const storedUser = JSON.parse(localStorage.getItem('user')); // 🔁 renombrado para no chocar con authUser
+    const userId = storedUser ? storedUser._id : null;
 
     return actions.order.create({
       purchase_units: [
@@ -101,12 +103,17 @@ const CheckoutPremium = () => {
       });
 
       // --- marcar premium en backend ---
-      const user = JSON.parse(localStorage.getItem('user'));
-      const token = user?.token;
+
+      // 🆕 Intentar obtener token de localStorage y/o contexto
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const storedToken = localStorage.getItem('token');
+      const token = storedToken || storedUser?.token || authUser?.token; // 🔑 fuente única de verdad
 
       if (!token) {
-        console.warn('No hay token en localStorage, no se puede activar premium en backend');
+        console.warn('No hay token en localStorage ni en contexto, no se puede activar premium en backend');
+        toast.error('Debes iniciar sesión para activar tu cuenta premium.');
         setProcesando(false);
+        navigate('/login');
         return;
       }
 
@@ -116,7 +123,7 @@ const CheckoutPremium = () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`, // 🆕 usamos siempre el token calculado
           },
           // PASO 3: enviar plan para que el backend calcule fechaVencimientoPremium (30 días mensual / 365 días anual)
           body: JSON.stringify({ plan: planSeleccionado || 'mensual' }),
