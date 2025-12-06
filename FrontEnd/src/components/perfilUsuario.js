@@ -882,7 +882,7 @@ export const PerfilUsuario = () => {
   return (
     <div
       className={`flex flex-col md:flex-row gap-6 w-full min-h-screen bg-gray-800/80 p-4 md:p-6
-      ${user?.tipoUsuario === 2 ? "justify-center" : "md:flex-row gap-6"}`}
+      ${user?.tipoUsuario === 2 || user?.tipoUsuario === 3 ? "justify-center" : ""}`}
     >
       {/* Sección de perfil del usuario */}
       <div
@@ -1076,11 +1076,11 @@ export const PerfilUsuario = () => {
             </div>
 
             <button
-              onClick={() => setModalAbierto(true)}
-              className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-            >
-              Cambiar contraseña
-            </button>
+            onClick={() => setModalAbierto(true)}
+            className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            Cambiar contraseña
+          </button>
           </div>
           <div>
             <button
@@ -1095,6 +1095,14 @@ export const PerfilUsuario = () => {
           </div>
         </div>
       </div>
+      {/* Modal de cambio de contraseña */}
+      {modalAbierto && (
+        <ModalCambioContrasena
+          userId={user?._id}
+          onClose={() => setModalAbierto(false)}
+          API_URL={API_URL}
+        />
+      )}
 
       {/* Modal de alerta Premium */}
       <AlertaLimitePublicaciones
