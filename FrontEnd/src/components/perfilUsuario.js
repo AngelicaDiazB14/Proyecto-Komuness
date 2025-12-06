@@ -882,7 +882,7 @@ export const PerfilUsuario = () => {
   return (
     <div
       className={`flex flex-col md:flex-row gap-6 w-full min-h-screen bg-gray-800/80 p-4 md:p-6
-      ${user?.tipoUsuario === 2 ? "justify-center" : "md:flex-row gap-6"}`}
+      ${user?.tipoUsuario === 2 || user?.tipoUsuario === 3 ? "justify-center" : ""}`}
     >
       {/* Sección de perfil del usuario */}
       <div

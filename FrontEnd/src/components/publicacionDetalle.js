@@ -21,6 +21,7 @@ import ComentariosPub from "./comentariosPub";
 import PublicacionModal from "./publicacionModal";
 import { useAuth } from "./context/AuthContext";
 import CategoriaBadge from "./categoriaBadge";
+import ProfileErrorModal from "./ProfileErrorModal";
 import '../CSS/publicacionDetalle.css';
 
 export const PublicacionDetalle = () => {
@@ -74,6 +75,10 @@ export const PublicacionDetalle = () => {
   const [error, setError] = useState(null);
   const [categoriaCompleta, setCategoriaCompleta] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Estados para el modal de error de perfil
+  const [showProfileError, setShowProfileError] = useState(false);
+  const [errorType, setErrorType] = useState('private');
 
   useEffect(() => {
     const obtenerPublicacion = async () => {
@@ -88,7 +93,7 @@ export const PublicacionDetalle = () => {
           throw new Error(data.mensaje || "No se encontró la publicación");
         }
 
-         // Popular categoría si viene como id
+        // Popular categoría si viene como id
         if (data.categoria && typeof data.categoria === "string") {
           const categoriaData = await getCategoriaById(data.categoria);
           if (categoriaData) {
@@ -115,7 +120,37 @@ export const PublicacionDetalle = () => {
     }
   }, [publicacion]);
 
-// === PRECIO (normalizado) ===
+  // Función para manejar clic en perfil de usuario
+  const handleProfileClick = async (e, userId) => {
+    e.stopPropagation();
+    
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/perfil/${userId}?modo=basico`);
+      
+      if (!response.ok) {
+        if (response.status === 403) {
+          setErrorType('private');
+          setShowProfileError(true);
+          return;
+        } else if (response.status === 404) {
+          setErrorType('notFound');
+          setShowProfileError(true);
+          return;
+        }
+        throw new Error('Error al cargar el perfil');
+      }
+      
+      navigate(`/perfil/${userId}`);
+      
+    } catch (error) {
+      console.error('Error al verificar perfil:', error);
+      setErrorType('private');
+      setShowProfileError(true);
+    }
+  };
+
   const formatPrecio = (precio) => {
     if (precio === 0 || precio === '0') return 'Gratis';
     if (Number.isFinite(Number(precio))) {
@@ -208,8 +243,15 @@ export const PublicacionDetalle = () => {
 
   return (
     <div className="publicacion-detalle-container">
+      {/* Modal de error de perfil */}
+      <ProfileErrorModal
+        isOpen={showProfileError}
+        onClose={() => setShowProfileError(false)}
+        type={errorType}
+      />
+      
       <div className="publicacion-content-wrapper">
-        {/* Header con botón de regreso y acciones - ÚNICO PARA TODOS LOS DISPOSITIVOS */}
+       {/* Header con botón de regreso y acciones - ÚNICO PARA TODOS LOS DISPOSITIVOS */}
         <div className="publicacion-header-bar">
           {/* Botón de regreso - Izquierda */}
           <button
@@ -239,16 +281,16 @@ export const PublicacionDetalle = () => {
               </button>
             )}
 
-            {/* Botón Eliminar - solo para administradores */}
+             {/* Botón Eliminar - solo para administradores */}
             {user && (user.tipoUsuario === 0 || user.tipoUsuario === 1) && (
-            <button
-              className="publicacion-action-btn publicacion-delete-btn"
-              onClick={() => setSelectedPub(true)}
-            >
-              <IoMdTrash className="md:hidden" size={16} />
-              <span className="hidden md:inline">Eliminar</span>
-            </button>
-          )}
+              <button
+                className="publicacion-action-btn publicacion-delete-btn"
+                onClick={() => setSelectedPub(true)}
+              >
+                <IoMdTrash className="md:hidden" size={16} />
+                <span className="hidden md:inline">Eliminar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -284,12 +326,12 @@ export const PublicacionDetalle = () => {
               onClose={() => setSelectedPub(false)}
             />
 
-            {/* SLIDER */}
+           {/* SLIDER */}
             <div className="publicacion-slider-container">
               <Slider key={publicacion._id} publicacion={publicacion} />
             </div>
 
-            {/* DETALLES PRINCIPALES */}
+           {/* DETALLES PRINCIPALES */}
             <div className="publicacion-details-panel">
               <div className="publicacion-author-info">
                 <h2 className="text-white text-sm md:text-base mb-2">
@@ -297,14 +339,14 @@ export const PublicacionDetalle = () => {
                   <strong>Autor:</strong>{" "}
                   <span
                     className="publicacion-author-link"
-                    onClick={() => navigate(`/perfil/${publicacion.autor?._id}`)}
+                    onClick={(e) => handleProfileClick(e, publicacion.autor?._id)}
                   >
                     {publicacion.autor?.nombre || "Autor desconocido"}
                   </span>
                 </h2>
               </div>
 
-              {/* Descripción */}
+               {/* Descripción */}
               <div className="publicacion-description">
                 <p className="text-white text-sm md:text-base mb-3">
                   <strong>Descripción:</strong>
@@ -313,7 +355,7 @@ export const PublicacionDetalle = () => {
                   {publicacion.contenido}
                 </div>
               </div>
-
+                
               {/* INFORMACIÓN ADICIONAL */}
               <div className="space-y-4">
                 {/* PRECIOS */}
@@ -351,8 +393,8 @@ export const PublicacionDetalle = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Fecha de evento */}
+                 
+                 {/* Fecha de evento */}
                 {publicacion.fechaEvento && (
                   <div className="publicacion-info-item">
                     <span className="publicacion-info-label">Fecha del evento:</span>
@@ -367,8 +409,8 @@ export const PublicacionDetalle = () => {
                     <span className="publicacion-info-value">{publicacion.horaEvento}</span>
                   </div>
                 )}
-
-                {/* Fecha de publicación */}
+                 
+                 {/* Fecha de publicación */}
                 {publicacion.fecha && (
                   <div className="publicacion-info-item">
                     <span className="publicacion-info-label">Fecha de publicación:</span>
@@ -376,10 +418,10 @@ export const PublicacionDetalle = () => {
                   </div>
                 )}
 
-                {/* TIPO */}
+               {/* TIPO */}
                 <div className="publicacion-info-item">
                   <span className="publicacion-info-label">Tipo:</span>
-                    <span className="publicacion-info-value">{publicacion.tag || "Sin tag"}</span>
+                  <span className="publicacion-info-value">{publicacion.tag || "Sin tag"}</span>
                 </div>
 
                 {/* TELÉFONO */}
@@ -427,7 +469,7 @@ export const PublicacionDetalle = () => {
               </div>
             </div>
 
-            {/* COMENTARIOS */}
+           {/* COMENTARIOS */}
             <div className="publicacion-comments-section">
               <ComentariosPub
                 comentarios={comentarios}
