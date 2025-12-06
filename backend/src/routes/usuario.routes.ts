@@ -44,13 +44,14 @@ router.put('/:id/premium-vencimiento', authMiddleware, verificarRoles([0, 1]), a
 router.put('/:id/membresia', authMiddleware, verificarRoles([0, 1]), actualizarMembresiaUsuarioAdmin);
 
 // este endpoint es de uso para cualquier usuario registrado
-router.put('/:id', authMiddleware, verificarRoles([0, 1, 2]), updateUsuario); //update
+router.put('/:id', authMiddleware, verificarRoles([0, 1, 2, 3]), updateUsuario); //update
+
 
 // para cualquier usuario registrado
 router.put(
   '/me/premium',
   authMiddleware,
-  verificarRoles([0, 1, 2]),  // superadmin, admin, usuario normal
+  verificarRoles([0, 1, 2, 3]),  // superadmin, admin, usuario normal
   activarPremiumActual
 );
 
